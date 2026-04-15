@@ -21,9 +21,17 @@ function setSidebarActive(buttonId) {
     document.getElementById(buttonId)?.classList.add('active');
 }
 
-function closeChatDetailView() {
+function closeChatDetailView(forceHide = false) {
     const detail = document.getElementById('chatDetailView');
-    if (detail) detail.style.display = 'none';
+    if (!detail) return;
+    if (!forceHide && typeof isDesktopChatView === 'function' && isDesktopChatView()) {
+        currentChatDriver = null;
+        if (typeof window.renderChatWorkspaceState === 'function') window.renderChatWorkspaceState();
+        if (typeof renderDriverList === 'function') renderDriverList();
+        return;
+    }
+    detail.classList.remove('desktop-visible');
+    detail.style.removeProperty('display');
 }
 
 function renderPageByKey(pageKey) {
@@ -41,11 +49,13 @@ function switchTab(pageKey) {
     const targetPageId = PAGE_IDS[pageKey] || PAGE_IDS.chat;
     document.querySelectorAll('.page').forEach(page => page.classList.toggle('active-page', page.id === targetPageId));
     document.querySelectorAll('.tab-btn').forEach(button => button.classList.toggle('active', button.dataset.page === pageKey));
-    if (pageKey !== 'chat') closeChatDetailView();
+    if (pageKey !== 'chat') closeChatDetailView(true);
     renderPageByKey(pageKey);
+    if (pageKey === 'chat' && typeof window.renderChatWorkspaceState === 'function') window.renderChatWorkspaceState();
 }
 
 function openHistoryTodayPage() {
+    closeChatDetailView(true);
     document.querySelectorAll('.page').forEach(page => page.classList.remove('active-page'));
     document.getElementById('historyTodayPage')?.classList.add('active-page');
     document.querySelectorAll('.tab-btn').forEach(button => button.classList.remove('active'));
@@ -105,6 +115,9 @@ function bindEvents() {
         closeChatDetailView();
         switchTab('chat');
     });
+
+    document.getElementById('chatViewMobileBtn')?.addEventListener('click', () => applyChatViewMode('mobile'));
+    document.getElementById('chatViewDesktopBtn')?.addEventListener('click', () => applyChatViewMode('desktop'));
 
     document.getElementById('refreshFeedBtn')?.addEventListener('click', refreshFeedWithAI);
     document.getElementById('postBtn')?.addEventListener('click', userPost);
@@ -173,6 +186,7 @@ function initFeedPosts() {
 function init() {
     startStatusBarClock();
     loadTheme();
+    loadChatViewMode();
     loadFavorability();
     loadAvatars();
     loadChatHistories();
@@ -196,6 +210,7 @@ function init() {
     renderRaceRankings();
     renderSignPage();
     switchTab('chat');
+    if (typeof window.renderChatWorkspaceState === 'function') window.renderChatWorkspaceState();
     checkAndShowNewAnnouncements();
 }
 
