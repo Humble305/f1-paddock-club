@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <link rel="icon" href="PC.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>Paddock Club · F1围场</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="phone">
+    <div class="status-bar"><span id="systemStatusTime">9:41</span><span>📶 🔋 100%</span></div>
+    <div class="app-container">
+        <div class="sidebar">
+            <button class="sidebar-btn" id="sidebarProfileBtn" data-sidebar="profile"><span class="sidebar-icon">👤</span><span>资料</span></button>
+            <button class="sidebar-btn" id="sidebarSaveBtn" data-sidebar="save"><span class="sidebar-icon">💾</span><span>存档</span></button>
+            <button class="sidebar-btn" id="sidebarApiBtn" data-sidebar="api"><span class="sidebar-icon">⚙️</span><span>API</span></button>
+            <button class="sidebar-btn" id="sidebarCalendarBtn" data-sidebar="calendar"><span class="sidebar-icon">📅</span><span>赛历</span></button>
+            <button class="sidebar-btn" id="sidebarMediaBtn" data-sidebar="media"><span class="sidebar-icon">📰</span><span>媒体</span></button>
+            <button class="sidebar-btn" id="sidebarSignBtn" data-sidebar="sign"><span class="sidebar-icon">🏁</span><span>签到</span></button>
+            <button class="sidebar-btn" id="sidebarThemeBtn"><span class="sidebar-icon">🎨</span><span>配色</span></button>
+        </div>
+        <div class="main-content">
+            <div class="app-header">
+                <h2>Paddock Club</h2>
+                <div style="display: flex; gap: 8px;">
+                    <button class="announce-btn" id="historyTodayBtn">📜 往日</button>
+                    <button class="announce-btn" id="announceBtn">📢 公告</button>
+                </div>
+            </div>
+
+            <!-- 聊天页面 -->
+            <div id="chatPage" class="page active-page"><div class="driver-list" id="driverList"></div></div>
+
+            <!-- 围场动态页面 -->
+            <div id="feedPage" class="page">
+                <button id="postBtn" class="post-btn">📝 发一条动态</button>
+                <button id="refreshFeedBtn" class="refresh-feed">🔄 AI刷新围场动态</button>
+                <div id="feedContainer" class="feed-container"></div>
+            </div>
+
+            <!-- 积分榜页面 -->
+            <div id="standingsPage" class="page"><div class="standings-container" id="standingsContainer"></div></div>
+
+            <!-- 约会页面 -->
+            <div id="datePage" class="page"><div id="dateContainer" class="date-container"></div></div>
+
+            <!-- 赛历页面 -->
+            <div id="calendarPage" class="page"><div id="calendarContainer" class="calendar-container"></div></div>
+
+            <!-- 媒体页面 -->
+            <div id="mediaPage" class="page"><div id="mediaContainer" class="media-container"></div></div>
+
+            <!-- 排名页面 -->
+            <div id="raceRankingsPage" class="page"><div id="raceRankingsContainer" class="race-rankings-container"></div></div>
+
+            <!-- 签到页面 -->
+            <div id="signPage" class="page">
+                <div class="sign-container" style="padding: 16px;">
+                    <div class="sign-card" style="background: #13161c; border-radius: 32px; padding: 24px 20px; text-align: center; margin-bottom: 20px; border: 1px solid #2a313b;">
+                        <div style="font-size: 0.85rem; color: #9aa5b5; margin-bottom: 8px;">🏎️ 我的围场币</div>
+                        <div style="font-size: 2.8rem; font-weight: 800; color: var(--accent-color); line-height: 1.2;" id="coinAmountDisplay">0</div>
+                        <div style="font-size: 0.7rem; color: #6c7a8e; margin-top: 6px;">可用于后续社区活动兑换</div>
+                    </div>
+                    <div class="sign-card" style="background: #13161c; border-radius: 32px; padding: 20px; border: 1px solid #2a313b;">
+                        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px;">
+                            <span style="font-weight: 700; color: var(--primary-color);">📅 每日签到</span>
+                            <span style="font-size: 0.7rem; background: #1e293b; padding: 4px 12px; border-radius: 20px;" id="consecutiveDaysSpan">连续 0 天</span>
+                        </div>
+                        <div id="signStatusMsg" style="background: #0f1218; border-radius: 20px; padding: 12px; font-size: 0.8rem; color: #b9c7d9; margin-bottom: 20px; text-align: center;">今日未签到，点击下方按钮领取奖励</div>
+                        <button id="doSignBtn" class="modal-btn modal-btn-primary" style="width:100%; margin:0; padding:14px; font-size:1rem;">🏁 立即签到</button>
+                        <div style="margin-top: 20px; font-size: 0.7rem; color: #6c7a8e; text-align: center; border-top: 1px solid #262d36; padding-top: 16px;">
+                            💡 签到奖励：基础 +20 围场币<br>
+                            🔥 连续签到额外奖励：第1天+5，第2天+10，第3天+15，第4天+20，第5天+25（上限）
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 围场往日页面（独立，与签到页面平级） -->
+            <div id="historyTodayPage" class="page">
+                <div class="history-container">
+                    <div class="history-header">
+                        <button class="calendar-back-btn" id="historyBackBtn" style="margin-left: auto;">← 返回</button>
+                        📅 <span id="historyDateSpan"></span> · F1 历史上的今天
+                    </div>
+                    <div id="historyEventsList" class="history-events-list"></div>
+                </div>
+            </div>
+
+            <!-- 聊天详情视图（覆盖层） -->
+            <div id="chatDetailView" class="chat-detail">
+                <div class="chat-header">
+                    <div class="chat-header-left" id="chatAvatarClick">
+                        <div id="chatDetailAvatar" class="chat-header-avatar"></div>
+                        <div class="chat-header-info">
+                            <div class="chat-name" id="chatDriverName">Driver</div>
+                            <div class="token-display" id="tokenDisplay">Token: 0</div>
+                        </div>
+                    </div>
+                    <button class="back-btn" id="closeChatBtn">← 返回</button>
+                </div>
+                <div class="messages-area" id="chatMessagesArea"></div>
+                <div style="padding: 4px 12px; font-size: 0.65rem; color: #8e98a5; text-align: center;">💡 长按/右键消息可删除</div>
+                <div class="chat-input-area">
+                    <input type="text" id="chatInput" class="chat-input" placeholder="给车手发消息...">
+                    <button id="sendChatBtn" class="send-msg-btn">发送</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部导航栏 -->
+    <div class="bottom-tab">
+        <button class="tab-btn active" data-page="chat"><span class="tab-icon">💬</span><span>聊天</span></button>
+        <button class="tab-btn" data-page="feed"><span class="tab-icon">📱</span><span>围场动态</span></button>
+        <button class="tab-btn" data-page="standings"><span class="tab-icon">🏆</span><span>积分/排名</span></button>
+        <button class="tab-btn" data-page="date"><span class="tab-icon">💕</span><span>约会</span></button>
+    </div>
+</div>
+
+<!-- 模态框 -->
+<div id="announceModal" class="modal"><div class="announce-modal-card"><div class="announce-header"><h3>📢 更新公告</h3><div class="announce-title">PADDOCK CLUB维修日志</div></div><div id="announceContent" class="announce-content"></div><div class="modal-buttons"><button id="closeAnnounceBtn" class="modal-btn">关闭</button></div></div></div>
+<div id="driverProfileModal" class="profile-card-modal"><div class="profile-card-content"><div id="driverProfileContent"></div><button class="modal-btn modal-btn-danger" id="clearChatHistoryBtn" style="margin-bottom:8px;">🗑️ 清除聊天记录</button><button class="modal-btn" id="closeDriverProfileBtn">关闭</button></div></div>
+<div id="diaryModal" class="modal"><div class="modal-card diary-modal-card"><div class="diary-modal-header"><div><h3 id="diaryDriverName">关系日记</h3><div class="diary-status-text" id="diaryStatusText">这一天还没有日记</div></div><button id="closeDiaryModalBtn" class="modal-btn">关闭</button></div><div class="diary-date-nav"><button id="diaryPrevBtn" class="calendar-back-btn">← 前一天</button><div class="diary-date-pill" id="diaryDateLabel">今天</div><button id="diaryNextBtn" class="calendar-back-btn">后一天 →</button></div><div class="diary-meta-card"><div class="diary-meta-line" id="diarySourceMeta">今日聊天记录 0 条</div><div class="diary-memory-hint" id="diaryMemoryHint">这一天没有同步到约会记忆摘要。</div></div><textarea id="diaryEditor" rows="10" placeholder="这里会显示 AI 根据当日聊天生成的关系日记，你也可以手动补写或修改。"></textarea><div class="modal-buttons"><button id="generateDiaryBtn" class="modal-btn modal-btn-primary">✍️ 生成今日日记</button><button id="saveDiaryBtn" class="modal-btn">保存修改</button></div></div></div>
+<div id="saveModal" class="modal"><div class="modal-card save-config-card"><h3>💾 存档管理（文件方式）</h3><div id="saveSlotsContainer"></div><div class="export-import-area"><button id="exportDataBtn" class="modal-btn save-action-btn save-export-btn">📥 导出存档文件 (.json)</button><button id="importFileBtn" class="modal-btn save-action-btn save-import-btn">📂 导入存档文件</button><input type="file" id="importFileInput" accept=".json" style="display:none;"></div><div class="modal-buttons"><button id="closeSaveModalBtn" class="modal-btn">关闭</button></div></div></div>
+<div id="apiModal" class="modal"><div class="modal-card api-config-card"><div class="api-config-head"><div><h3>🔧 AI 引擎设置</h3><p class="api-config-subtitle">填入兼容 OpenAI 风格接口的网址与密钥，然后一键拉取当前可用模型。</p></div><div class="api-status-badge" id="apiStatusBadge">未连接</div></div><label>接口地址</label><input type="text" id="apiUrl" placeholder="API Base URL" value="https://api.deepseek.com/v1"><label>密钥</label><input type="password" id="apiKey" placeholder="API Key"><div class="api-model-toolbar"><div class="api-model-toolbar-text"><span class="api-model-title">模型</span><span class="api-model-hint">可拉取站点返回的模型列表，也可手动填写。</span></div><button id="fetchModelsBtn" class="modal-btn">拉取模型</button></div><div class="api-model-picker"><select id="modelName"><option value="deepseek-chat">deepseek-chat</option><option value="__custom__">手动填写模型名</option></select><input type="text" id="customModelName" placeholder="手动填写模型名称，例如 gpt-4.1-mini"></div><div class="api-model-feedback" id="apiModelStatus">等待拉取模型列表</div><div class="modal-buttons"><button id="saveApiBtn" class="modal-btn modal-btn-primary">保存并重连</button><button id="closeModalBtn" class="modal-btn">取消</button></div><p class="api-config-note">💡 未配置时使用「模拟模式」。如站点不支持模型列表接口，可直接手动填写模型名。</p></div></div>
+<div id="profileModal" class="modal"><div class="modal-card profile-settings-card"><h3>👤 我的资料卡</h3><label>姓名</label><input type="text" id="profileName" placeholder="你的名字" value="车迷"><label>性别</label><select id="profileGender"><option value="男">男</option><option value="女">女</option><option value="不愿透露">不愿透露</option><option value="其他">其他</option></select><p class="field-tip">⚠️ 性别将影响车手对你的称呼（先生/女士）</p><label>年龄</label><input type="text" id="profileAge" placeholder="年龄" value="25"><label>身高(cm)</label><input type="text" id="profileHeight" placeholder="身高" value="175"><label>体重(kg)</label><input type="text" id="profileWeight" placeholder="体重" value="70"><label>国籍</label><input type="text" id="profileNationality" placeholder="国籍" value="中国"><label>角色</label><select id="profileRoleSelect"><option value="赛车手">🏎️ 赛车手</option><option value="车队经理">📋 车队经理</option><option value="自定义">✨ 自定义</option></select><input type="text" id="profileCustomRole" placeholder="自定义角色" style="margin-top: 6px;" value=""><label>性格</label><input type="text" id="profilePersonality" placeholder="如: 热情、冷静" value="热情开朗"><label>爱好</label><input type="text" id="profileHobby" placeholder="爱好" value="赛车、游戏"><label>背景</label><textarea id="profileBackground" rows="3" placeholder="你的背景故事..."></textarea><div class="modal-buttons"><button id="saveProfileBtn" class="modal-btn modal-btn-primary">保存资料卡</button><button id="closeProfileBtn" class="modal-btn">取消</button></div></div></div>
+<div id="loadingToast" class="loading-toast">✍️ AI 正在生成...</div>
+<input type="file" id="avatarUploadInput" accept="image/*" style="display:none;">
+<div id="themeModal" class="modal"><div class="modal-card"><h3>🎨 选择车队配色</h3><div class="theme-options-grid" id="themeOptionsGrid"></div><div class="modal-buttons"><button id="closeThemeModalBtn" class="modal-btn">关闭</button></div></div></div>
+
+<script src="data.js"></script>
+<script src="historyEvents.js"></script>
+<script src="helpers.js"></script>
+<script src="raceSession.js"></script>
+<script src="driverPersonalities.js"></script>
+<script src="modules/app-state-theme.js"></script>
+<script src="modules/app-storage-services.js"></script>
+<script src="modules/app-conversation.js"></script>
+<script src="modules/app-social-feed.js"></script>
+<script src="modules/app-date-diary.js"></script>
+<script src="modules/app-pages-settings.js"></script>
+<script src="modules/app-entry.js"></script>
+</body>
+</html>
