@@ -3,16 +3,16 @@
 async function generateAIPost() {
     if (!useAI || !apiConfig.key || !apiConfig.url || !apiConfig.model) return null;
     const driver = window.DRIVERS[Math.floor(Math.random() * window.DRIVERS.length)];
-    const systemPrompt = `你是 F1 车手 ${driver.name}，请写一条适合围场动态流的简短近况，长度控制在 40 到 90 字。语气符合本人，不要带括号动作。\n${getRoleOutputSafetyPrompt('feed')}`;
+    const systemPrompt = `你是 F1 车手 ${driver.name}，请写一条适合围场动态流的简短近况，长度控制在 40 到 90 字。语气符合本人，不要带括号动作。`;
     try {
         const response = await fetch(`${apiConfig.url.replace(/\/$/, '')}/chat/completions`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiConfig.key}` },
-            body: JSON.stringify({ model: apiConfig.model, messages: [{ role: 'system', content: systemPrompt }], temperature: 0.9, max_tokens: 120 })
+            body: JSON.stringify({ model: apiConfig.model, messages: [{ role: 'user', content: systemPrompt }], temperature: 0.9, max_tokens: 120 })
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const payload = await response.json();
-        const content = sanitizeRoleOutput(payload?.choices?.[0]?.message?.content?.trim(), 'feed');
+        const content = payload?.choices?.[0]?.message?.content?.trim();
         if (!content) throw new Error('API 返回空内容');
         return { id: Date.now(), name: driver.name, handle: driver.handle, avatar: driver.avatarLetter, content, likes: Math.floor(Math.random() * 800) + 100, comments: [], timeAgo: '刚刚' };
     } catch (error) {

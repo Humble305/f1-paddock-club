@@ -40,15 +40,15 @@ async function generateDateReply(driver, scene, userAction, userMessage, round, 
     try {
         const chatHistoryText = normalHistory.map(msg => `${msg.role === 'user' ? '用户' : driver.name}: ${msg.content}`).join('\n');
         const dateHistoryText = dateHistory.map(msg => `${msg.role === 'user' ? '用户' : driver.name}: ${msg.content}`).join('\n');
-        const systemPrompt = `今天是${getCurrentDateInfo()}。${window.getCurrentRaceContext ? window.getCurrentRaceContext() : ''}\n你是 F1 车手 ${driver.name}（${driver.team}），正在和用户进行一场真实、私密、连续的约会。\n【当前约会场景】${scene.name} - ${scene.desc}\n【当前关系】${mood}（好感度 ${favor}/100）\n${getDateWritingGuide()}\n${getUserProfilePriorityPrompt()}\n${getRoleOutputSafetyPrompt('date')}\n【共享记忆】${memoryContext}\n【普通聊天记录】\n${chatHistoryText}\n【本次约会对话】\n${dateHistoryText}\n${personalityContext}\n【用户刚刚的动作或话语】${userAction}：${userMessage || '（无具体话语）'}\n请以 ${driver.name} 的身份回复。回复长度 100 到 220 字，动作描写必须放在开头单独一行，随后换行继续台词。`;
+        const systemPrompt = `今天是${getCurrentDateInfo()}。${window.getCurrentRaceContext ? window.getCurrentRaceContext() : ''}\n你是 F1 车手 ${driver.name}（${driver.team}），正在和用户进行一场真实、私密、连续的约会。\n【当前约会场景】${scene.name} - ${scene.desc}\n【当前关系】${mood}（好感度 ${favor}/100）\n${getDateWritingGuide()}\n${getUserProfilePriorityPrompt()}\n【共享记忆】${memoryContext}\n【普通聊天记录】\n${chatHistoryText}\n【本次约会对话】\n${dateHistoryText}\n${personalityContext}\n【用户刚刚的动作或话语】${userAction}：${userMessage || '（无具体话语）'}\n请以 ${driver.name} 的身份回复。回复长度 100 到 220 字，动作描写必须放在开头单独一行，随后换行继续台词。`;
         const response = await fetch(`${apiConfig.url.replace(/\/$/, '')}/chat/completions`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiConfig.key}` },
-            body: JSON.stringify({ model: apiConfig.model, messages: [{ role: 'system', content: systemPrompt }], temperature: 0.82, max_tokens: 320 })
+            body: JSON.stringify({ model: apiConfig.model, messages: [{ role: 'user', content: systemPrompt }], temperature: 0.82, max_tokens: 320 })
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const payload = await response.json();
-        const content = sanitizeRoleOutput(payload?.choices?.[0]?.message?.content?.trim(), 'date');
+        const content = payload?.choices?.[0]?.message?.content?.trim();
         if (!content) throw new Error('API 返回空内容');
         return content;
     } catch (error) {
@@ -134,10 +134,7 @@ function formatDateBubbleContent(text = '', role = 'bot') {
 
 function renderDatePage() {
     const container = document.getElementById('dateContainer');
-    const datePage = document.getElementById('datePage');
     if (!container) return;
-    container.classList.toggle('date-session-active', !!dateInProgress);
-    datePage?.classList.toggle('date-page-session', !!dateInProgress);
     if (!dateInProgress) {
         const availableDrivers = window.DRIVERS.filter(driver => (favorability[driver.id] || 0) >= DATE_FAVOR_THRESHOLD);
         if (!availableDrivers.length) {
@@ -170,23 +167,6 @@ function renderDatePage() {
         return `<div class="date-message-row ${msg.role}">${msg.role === 'bot' ? avatarMarkup : ''}<div class="date-message ${msg.role}"><div class="date-bubble">${formatDateBubbleContent(msg.content, msg.role)}</div></div>${msg.role === 'user' ? avatarMarkup : ''}</div>`;
     }).join('');
     container.innerHTML = `<div class="round-counter">第 ${currentRound + 1} / ${maxRounds} 轮 · 与 ${currentDateDriver.name} 的约会</div><div class="date-chat-area" id="dateChatArea">${messagesHtml}</div><div class="date-input-area"><input type="text" id="dateUserInput" class="date-input" placeholder="输入你想说的话..." autocomplete="off"><button id="dateSendBtn" class="send-msg-btn">发送</button></div>`;
-    const roundCounter = container.querySelector('.round-counter');
-    if (roundCounter) {
-        roundCounter.classList.add('date-panel-pill');
-        const driverAvatarBg = getDriverAvatarStyle(currentDateDriver.id);
-        const header = document.createElement('div');
-        header.className = 'date-panel-header';
-        header.innerHTML = `<div class="date-panel-main"><div class="date-panel-avatar"${driverAvatarBg ? ` style="background-image:${driverAvatarBg};background-size:cover;background-position:center;"` : ''}>${driverAvatarBg ? '' : currentDateDriver.avatarLetter}</div><div class="date-panel-meta"><div class="date-panel-title">${escapeHtml(currentDateDriver.name)}</div><div class="date-panel-subtitle">${escapeHtml(currentDateDriver.team)}</div></div></div>`;
-        roundCounter.replaceWith(header);
-        header.appendChild(roundCounter);
-    }
-    const inputArea = container.querySelector('.date-input-area');
-    if (inputArea && !inputArea.parentElement?.classList.contains('date-input-shell')) {
-        const shell = document.createElement('div');
-        shell.className = 'date-input-shell';
-        inputArea.replaceWith(shell);
-        shell.appendChild(inputArea);
-    }
     const send = () => {
         const input = document.getElementById('dateUserInput');
         const text = input.value.trim();

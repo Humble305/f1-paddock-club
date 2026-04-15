@@ -15,11 +15,19 @@ function trimChatHistory(driverId) {
 }
 
 function getChatWritingGuide() {
-    return `【私聊写作要求】\n- 你是在手机里和用户一对一聊天，不是在接受采访，也不是在写官宣文案。\n- 文风要自然、细腻、克制，像真人刚刚想到什么就回了什么。\n- 回复通常控制在 2 到 5 句。\n- 用户资料属于高优先级记忆。\n- 小窗私聊是纯对话界面，绝对禁止输出任何括号动作描写、旁白、舞台说明或心理活动补注。\n${getRoleOutputSafetyPrompt('chat')}`;
+    return `【私聊写作要求】
+- 你是在手机里和用户一对一聊天，不是在接受采访，也不是在写官宣文案。
+- 文风要自然、细腻、克制，像真人刚刚想到什么就回了什么。
+- 回复通常控制在 2 到 5 句。
+- 用户资料属于高优先级记忆。
+- 小窗私聊是纯对话界面，绝对禁止输出任何括号动作描写、旁白、舞台说明或心理活动补注。`;
 }
 
 function getDateWritingGuide() {
-    return `【约会写作要求】\n- 回复必须承接当前场景、上一轮对话、关系状态和用户资料。\n- 动作描写放在最前面单独一行，再换行继续台词。\n- 不要突然切场景、切情绪、切话题。\n${getRoleOutputSafetyPrompt('date')}`;
+    return `【约会写作要求】
+- 回复必须承接当前场景、上一轮对话、关系状态和用户资料。
+- 动作描写放在最前面单独一行，再换行继续台词。
+- 不要突然切场景、切情绪、切话题。`;
 }
 
 function initDriverHistory(driver) {
@@ -42,7 +50,7 @@ function updateTokenDisplay(history) {
 }
 
 function stripChatStageDirections(text = '') {
-    let result = sanitizeRoleOutput(text, 'chat');
+    let result = String(text || '').trim();
     const patterns = [/^[（(][^（）()\n]{1,80}[）)]\s*/u, /^\[[^\[\]\n]{1,80}\]\s*/u];
     let changed = true;
     while (changed) {
@@ -56,65 +64,6 @@ function stripChatStageDirections(text = '') {
     }
     return result;
 }
-
-function setChatComposerEnabled(enabled) {
-    const input = document.getElementById('chatInput');
-    const sendBtn = document.getElementById('sendChatBtn');
-    if (input) {
-        input.disabled = !enabled;
-        input.placeholder = enabled ? '给车手发消息...' : '先从左侧选择一位车手开始聊天';
-    }
-    if (sendBtn) sendBtn.disabled = !enabled;
-}
-
-function renderDesktopChatPlaceholder() {
-    const detail = document.getElementById('chatDetailView');
-    const avatar = document.getElementById('chatDetailAvatar');
-    const name = document.getElementById('chatDriverName');
-    const token = document.getElementById('tokenDisplay');
-    const area = document.getElementById('chatMessagesArea');
-    if (!detail || !area) return;
-    detail.style.removeProperty('display');
-    detail.classList.add('desktop-visible');
-    if (avatar) {
-        avatar.style.backgroundImage = '';
-        avatar.textContent = 'PC';
-    }
-    if (name) name.innerText = 'Paddock Club Chat';
-    if (token) token.innerText = '选择左侧车手开始聊天';
-    area.innerHTML = `<div class="desktop-chat-empty"><div class="desktop-chat-empty-badge">Desktop Chat</div><h3>把围场聊天铺满整个屏幕</h3><p>左边是车手列表，右边是当前会话。切到电脑界面后，你可以像在桌面聊天软件里一样自然地查看历史消息、切换联系人和继续对话。</p></div>`;
-    setChatComposerEnabled(false);
-}
-
-function renderChatWorkspaceState() {
-    const detail = document.getElementById('chatDetailView');
-    const chatPage = document.getElementById('chatPage');
-    if (!detail) return;
-    if (!chatPage?.classList.contains('active-page')) {
-        detail.classList.remove('desktop-visible');
-        detail.style.removeProperty('display');
-        return;
-    }
-    if (!currentChatDriver) {
-        if (typeof isDesktopChatView === 'function' && isDesktopChatView()) {
-            renderDesktopChatPlaceholder();
-        } else {
-            detail.classList.remove('desktop-visible');
-            detail.style.removeProperty('display');
-            setChatComposerEnabled(false);
-        }
-        return;
-    }
-    detail.style.removeProperty('display');
-    detail.classList.toggle('desktop-visible', typeof isDesktopChatView === 'function' && isDesktopChatView());
-    document.getElementById('chatDriverName').innerText = currentChatDriver.name;
-    renderChatHeaderAvatar(currentChatDriver.id);
-    initDriverHistory(currentChatDriver);
-    renderChatMessages(currentChatDriver.id);
-    setChatComposerEnabled(true);
-}
-
-window.renderChatWorkspaceState = renderChatWorkspaceState;
 
 function renderChatMessages(driverId) {
     const area = document.getElementById('chatMessagesArea');
@@ -189,7 +138,7 @@ async function getDriverReplyWithFavor(driver, userMessage) {
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const payload = await response.json();
-        const content = sanitizeRoleOutput(payload?.choices?.[0]?.message?.content?.trim(), 'chat');
+        const content = payload?.choices?.[0]?.message?.content?.trim();
         if (!content) throw new Error('API 返回空内容');
         return { reply: stripChatStageDirections(content), inc: localFavorJudgment(userMessage) };
     } catch (error) {
@@ -224,13 +173,13 @@ async function sendMessageToDriver(driver, userText) {
 
 function openChat(driver) {
     currentChatDriver = driver;
-    renderChatWorkspaceState();
-    renderDriverList();
-    const input = document.getElementById('chatInput');
-    if (input) {
-        input.value = '';
-        input.focus();
-    }
+    document.getElementById('chatDriverName').innerText = driver.name;
+    renderChatHeaderAvatar(driver.id);
+    initDriverHistory(driver);
+    renderChatMessages(driver.id);
+    document.getElementById('chatDetailView').style.display = 'flex';
+    document.getElementById('chatInput').value = '';
+    document.getElementById('chatInput').focus();
 }
 
 function renderDriverList() {
@@ -259,7 +208,7 @@ function renderDriverList() {
                 const cleanedPreview = lastMsg ? stripChatStageDirections(lastMsg.content) : '';
                 const preview = cleanedPreview ? `${cleanedPreview.slice(0, 35)}${cleanedPreview.length > 35 ? '...' : ''}` : '点击开始对话';
                 const card = document.createElement('div');
-                card.className = `driver-card${currentChatDriver?.id === driver.id ? ' active' : ''}`;
+                card.className = 'driver-card';
                 const avatarWrapper = document.createElement('div');
                 avatarWrapper.className = 'avatar-wrapper';
                 const avatar = document.createElement('div');
@@ -301,6 +250,7 @@ function renderDriverList() {
         container.appendChild(groupDiv);
     });
 }
+
 function deleteMessage(driverId, msgIndex) {
     const history = chatHistories[driverId];
     if (!history || msgIndex < 0 || msgIndex >= history.length) return;
@@ -312,8 +262,7 @@ function deleteMessage(driverId, msgIndex) {
         if (driver) history.push({ role: 'assistant', content: driver.initialMsg, timestamp: getCurrentTime(), dateKey: getLocalDateKey() });
     }
     saveChatHistories();
-    if (currentChatDriver?.id === driverId) renderChatWorkspaceState();
+    if (currentChatDriver?.id === driverId) renderChatMessages(driverId);
     renderDriverList();
     showToast('消息已删除', false);
 }
-
