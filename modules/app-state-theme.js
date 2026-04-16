@@ -36,6 +36,7 @@ let currentDiaryDateKey = null;
 let userCoins = 0;
 let signData = { lastSignDate: null, consecutiveDays: 0 };
 let currentTheme = null;
+let chatViewMode = 'mobile';
 
 const F1_THEMES = {
     ferrari: { id: 'ferrari', name: '法拉利', primary: '#D92E2B', dark: '#8F1412', accent: '#F5C542', phoneBg: '#13090A', text: '#FFF8F5' },
@@ -123,3 +124,34 @@ function shadeColor(hex, percent) {
     b = Math.max(0, Math.min(255, b));
     return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
 }
+
+function syncChatViewToggleUI() {
+    document.querySelectorAll('[data-chat-view-mode]').forEach(button => {
+        button.classList.toggle('active', button.dataset.chatViewMode === chatViewMode);
+    });
+}
+
+function isDesktopChatView() {
+    return chatViewMode === 'desktop' && window.innerWidth >= 1100;
+}
+
+function applyChatViewMode(mode, options = {}) {
+    chatViewMode = mode === 'desktop' ? 'desktop' : 'mobile';
+    document.body.dataset.chatView = chatViewMode;
+    if (!options.skipSave) localStorage.setItem('f1_chat_view_mode', chatViewMode);
+    syncChatViewToggleUI();
+    if (typeof window.renderChatWorkspaceState === 'function') window.renderChatWorkspaceState();
+    if (typeof renderDriverList === 'function') renderDriverList();
+}
+
+function loadChatViewMode() {
+    const saved = localStorage.getItem('f1_chat_view_mode') || 'mobile';
+    applyChatViewMode(saved, { skipSave: true });
+    return chatViewMode;
+}
+
+window.addEventListener('resize', () => {
+    if (!document.body) return;
+    document.body.dataset.chatView = chatViewMode;
+    if (typeof window.renderChatWorkspaceState === 'function') window.renderChatWorkspaceState();
+});

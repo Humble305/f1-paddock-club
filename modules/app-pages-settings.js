@@ -169,7 +169,7 @@ function openApiModal() {
 
 function closeModal() { document.getElementById('apiModal').style.display = 'none'; clearSidebarActive(); }
 
-function showDriverProfile(driverId) {
+function deprecatedShowDriverProfileLegacyA(driverId) {
     const profile = window.DRIVER_PROFILES[driverId];
     const driver = window.DRIVERS.find(item => item.id === driverId);
     if (!profile || !driver) return;
@@ -182,6 +182,102 @@ function showDriverProfile(driverId) {
 }
 
 function closeDriverProfile() { document.getElementById('driverProfileModal').style.display = 'none'; }
+
+const DRIVER_NUMBERS = {
+    nor: '1',
+    pia: '81',
+    lec: '16',
+    ham: '44',
+    rus: '63',
+    ant: '12',
+    ver: '3',
+    hadjar: '6',
+    alo: '14',
+    str: '18',
+    alb: '23',
+    sai: '55',
+    gas: '10',
+    col: '43',
+    oco: '31',
+    bea: '87',
+    hul: '27',
+    bor: '5',
+    law: '30',
+    lin: '41',
+    per: '11',
+    bot: '77'
+};
+
+function deprecatedShowDriverProfileLegacyB(driverId) {
+    const profile = window.DRIVER_PROFILES[driverId];
+    const driver = window.DRIVERS.find(item => item.id === driverId);
+    if (!profile || !driver) return;
+    const avatarBg = getDriverAvatarStyle(driverId);
+    const favor = favorability[driverId] || 0;
+    const mood = getFavorMood(favor);
+    document.getElementById('driverProfileContent').innerHTML = `<div class="profile-card-header"><div class="profile-card-avatar-row"><button type="button" class="profile-card-avatar profile-card-avatar-button" id="driverProfileAvatarBtn" style="${avatarBg ? `background-image:${avatarBg};background-size:cover;` : `background-color:${window.TEAM_COLORS[driver.team] || '#2a2f3a'};`}">${avatarBg ? '' : driver.avatarLetter}</button><button type="button" class="profile-avatar-reset-btn" id="resetDriverAvatarBtn" title="恢复初始头像" aria-label="恢复初始头像"><span class="profile-avatar-reset-icon" aria-hidden="true"></span></button></div><div class="profile-avatar-hint">点击头像即可更换</div><div class="profile-card-title-row"><div class="profile-card-name">${profile.fullName}</div><button class="profile-diary-btn" id="openDiaryBtn">日记</button></div><div class="profile-card-team">${profile.team}</div><div style="margin-top:8px; color:#ffb347; font-size:0.8rem;">好感度：${favor}/100（${mood}）</div></div><div class="profile-card-section"><div class="profile-card-section-title">基本信息</div><div class="profile-card-info-row"><span>国籍</span><span>${profile.nationality}</span></div><div class="profile-card-info-row"><span>出生日期</span><span>${profile.birthDate}</span></div><div class="profile-card-info-row"><span>身高/体重</span><span>${profile.height} / ${profile.weight}</span></div><div class="profile-card-info-row"><span>F1 首秀</span><span>${profile.f1Debut}</span></div></div><div class="profile-card-section"><div class="profile-card-section-title">生涯数据</div><div class="profile-card-info-row"><span>分站冠军</span><span>${profile.totalWins}</span></div><div class="profile-card-info-row"><span>杆位</span><span>${profile.totalPoles}</span></div><div class="profile-card-info-row"><span>领奖台</span><span>${profile.totalPodiums}</span></div></div>`;
+    document.getElementById('driverProfileModal').style.display = 'flex';
+    document.getElementById('openDiaryBtn')?.addEventListener('click', () => openDiaryModal(driverId));
+    document.getElementById('driverProfileAvatarBtn')?.addEventListener('click', () => openAvatarUpload(driverId));
+    document.getElementById('resetDriverAvatarBtn')?.addEventListener('click', () => {
+        resetDriverAvatar(driverId);
+        showDriverProfile(driverId);
+    });
+}
+
+function showDriverProfile(driverId) {
+    const profile = window.DRIVER_PROFILES[driverId];
+    const driver = window.DRIVERS.find(item => item.id === driverId);
+    if (!profile || !driver) return;
+    const avatarBg = getDriverAvatarStyle(driverId);
+    const favor = favorability[driverId] || 0;
+    const mood = getFavorMood(favor);
+    const teamColor = window.TEAM_COLORS[driver.team] || '#2a2f3a';
+    const driverNumber = DRIVER_NUMBERS[driverId] || '--';
+    const safe = value => escapeHtml(String(value ?? ''));
+    document.getElementById('driverProfileContent').innerHTML = `
+        <div class="profile-card-header profile-license-card" style="--profile-team-color:${teamColor}; --profile-driver-number:'${driverNumber}';">
+            <div class="profile-license-topline">
+                <div class="profile-license-label">PADDOCK ID</div>
+                <div class="profile-license-number">#${driverNumber}</div>
+            </div>
+            <div class="profile-license-main">
+                <div class="profile-card-avatar-row">
+                    <button type="button" class="profile-card-avatar profile-card-avatar-button" id="driverProfileAvatarBtn" style="${avatarBg ? `background-image:${avatarBg};background-size:cover;` : `background-color:${teamColor};`}">${avatarBg ? '' : driver.avatarLetter}</button>
+                    <button type="button" class="profile-avatar-reset-btn" id="resetDriverAvatarBtn" title="恢复初始头像" aria-label="恢复初始头像"><span class="profile-avatar-reset-icon" aria-hidden="true"></span></button>
+                </div>
+                <div class="profile-license-identity">
+                    <div class="profile-card-name">${safe(profile.fullName)}</div>
+                    <div class="profile-card-team">${safe(profile.team)}</div>
+                    <div class="profile-license-meta">
+                        <span class="profile-license-chip">车手资料卡</span>
+                        <span class="profile-license-chip profile-license-chip-accent">好感 ${favor}/100</span>
+                    </div>
+                    <div class="profile-favor-line">当前关系：${safe(mood)}</div>
+                </div>
+            </div>
+            <div class="profile-avatar-hint">点击头像即可更换</div>
+        </div>
+        <div class="profile-card-section profile-card-section-identity">
+            <div class="profile-card-section-title">基本信息</div>
+            <div class="profile-card-info-row"><span>国籍</span><strong>${safe(profile.nationality)}</strong></div>
+            <div class="profile-card-info-row"><span>出生日期</span><strong>${safe(profile.birthDate)}</strong></div>
+            <div class="profile-card-info-row"><span>身高 / 体重</span><strong>${safe(profile.height)} / ${safe(profile.weight)}</strong></div>
+            <div class="profile-card-info-row"><span>F1 首秀</span><strong>${safe(profile.f1Debut)}</strong></div>
+        </div>
+        <div class="profile-card-section profile-card-section-stats">
+            <div class="profile-card-section-title">生涯数据</div>
+            <div class="profile-card-info-row"><span>分站冠军</span><strong>${safe(profile.totalWins)}</strong></div>
+            <div class="profile-card-info-row"><span>杆位</span><strong>${safe(profile.totalPoles)}</strong></div>
+            <div class="profile-card-info-row"><span>领奖台</span><strong>${safe(profile.totalPodiums)}</strong></div>
+        </div>`;
+    document.getElementById('driverProfileModal').style.display = 'flex';
+    document.getElementById('driverProfileAvatarBtn')?.addEventListener('click', () => openAvatarUpload(driverId));
+    document.getElementById('resetDriverAvatarBtn')?.addEventListener('click', () => {
+        resetDriverAvatar(driverId);
+        showDriverProfile(driverId);
+    });
+}
 
 function showAnnouncements() {
     const content = (window.ANNOUNCEMENTS || []).map(item => `<div style="margin-bottom:16px; border-bottom:1px solid #2a313b; padding-bottom:12px;"><div style="color:#e10600; font-weight:bold;">${item.version}</div><div style="white-space:pre-line; margin-top:6px;">${escapeHtml(item.content)}</div></div>`).join('');
