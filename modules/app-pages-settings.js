@@ -27,6 +27,8 @@ function exportGameData() {
         apiConfig,
         userCoins,
         signData,
+        giftInventory,
+        giftHistory,
         currentTheme: currentTheme?.id || 'ferrari'
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -51,6 +53,8 @@ function applyLoadedData(saveData) {
     apiConfig = { ...apiConfig, ...(saveData.apiConfig || {}) };
     userCoins = saveData.userCoins ?? userCoins;
     signData = saveData.signData || signData;
+    giftInventory = saveData.giftInventory || giftInventory;
+    giftHistory = saveData.giftHistory || giftHistory;
     localStorage.setItem('f1_favorability', JSON.stringify(favorability));
     localStorage.setItem('f1_date_memories', JSON.stringify(driverDateMemories));
     localStorage.setItem('f1_driver_diaries', JSON.stringify(driverDiaries));
@@ -61,6 +65,8 @@ function applyLoadedData(saveData) {
     localStorage.setItem('f1_api_config', JSON.stringify(apiConfig));
     localStorage.setItem('f1_user_coins', String(userCoins));
     localStorage.setItem('f1_sign_data', JSON.stringify(signData));
+    localStorage.setItem('f1_gift_inventory', JSON.stringify(giftInventory));
+    localStorage.setItem('f1_gift_history', JSON.stringify(giftHistory));
     if (saveData.currentTheme) applyTheme(saveData.currentTheme);
     loadUserProfile();
     loadApiConfig();
@@ -72,6 +78,7 @@ function applyLoadedData(saveData) {
     renderMediaPage();
     renderRaceRankings();
     renderSignPage();
+    if (typeof renderPaddockStore === 'function') renderPaddockStore();
 }
 
 function importGameDataFromFile(file) {

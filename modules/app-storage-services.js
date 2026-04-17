@@ -157,7 +157,10 @@ function sanitizeRoleOutput(text = '', mode = 'chat') {
         }
     }
 
-    return result;
+    return result
+        .replace(/[ \t]{2,}/g, ' ')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
 }
 
 function getUserProfilePriorityPrompt() {
@@ -272,6 +275,24 @@ function loadChatHistories() {
     try { chatHistories = JSON.parse(saved) || {}; } catch (_) {}
 }
 
+function saveGroupChats() {
+    localStorage.setItem('f1_group_chats', JSON.stringify(groupChats));
+}
+
+function loadGroupChats() {
+    const saved = localStorage.getItem('f1_group_chats');
+    if (!saved) return;
+    try { groupChats = JSON.parse(saved) || []; } catch (_) {}
+}
+
+function saveGroupChatUiState() {
+    localStorage.setItem('f1_group_chats_collapsed', groupChatsCollapsed ? '1' : '0');
+}
+
+function loadGroupChatUiState() {
+    groupChatsCollapsed = localStorage.getItem('f1_group_chats_collapsed') === '1';
+}
+
 function addFavorability(driverId, inc) {
     const oldValue = favorability[driverId] || 0;
     const nextValue = Math.min(100, oldValue + inc);
@@ -363,6 +384,35 @@ function renderAvatarOnElement(element, driverId, size = '') {
     }
 }
 
+function getGroupChatAvatarStyle(groupId) {
+    const group = (groupChats || []).find(item => item.id === groupId);
+    const avatarUrl = group?.avatarDataUrl || '';
+    return avatarUrl ? `url(${avatarUrl})` : '';
+}
+
+function renderGroupChatAvatarOnElement(element, groupId, size = '') {
+    if (!element) return;
+    const group = (groupChats || []).find(item => item.id === groupId) || null;
+    const avatarBg = getGroupChatAvatarStyle(groupId);
+    if (size) {
+        element.style.width = size;
+        element.style.height = size;
+    }
+    if (avatarBg) {
+        element.style.backgroundImage = avatarBg;
+        element.style.backgroundSize = 'cover';
+        element.style.backgroundPosition = 'center';
+        element.style.backgroundColor = '';
+        element.innerText = '';
+    } else {
+        element.style.backgroundImage = '';
+        element.style.backgroundSize = '';
+        element.style.backgroundPosition = '';
+        element.style.backgroundColor = 'rgba(23,28,37,0.96)';
+        element.innerText = (group?.name || '群聊').slice(0, 1);
+    }
+}
+
 function openAvatarUpload(driverId) {
     const input = document.getElementById('avatarUploadInput');
     if (!input) return;
@@ -417,6 +467,53 @@ function openAvatarUpload(driverId) {
         input.value = '';
     };
     input.click();
+}
+
+function refreshGroupChatAvatarViews(groupId) {
+    if (typeof renderDriverList === 'function') renderDriverList();
+    if (currentChatDriver?.id === groupId && typeof window.renderChatWorkspaceState === 'function') window.renderChatWorkspaceState();
+    if (typeof renderGroupChatModalAvatar === 'function') renderGroupChatModalAvatar();
+}
+
+function openGroupChatAvatarUpload(groupId) {
+    const input = document.getElementById('avatarUploadInput');
+    if (!input) return;
+    input.onchange = event => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            const dataUrl = String(reader.result || '');
+            if (groupId) {
+                const group = (groupChats || []).find(item => item.id === groupId);
+                if (!group) return;
+                group.avatarDataUrl = dataUrl;
+                saveGroupChats();
+                refreshGroupChatAvatarViews(groupId);
+            } else {
+                groupChatDraftAvatarDataUrl = dataUrl;
+                if (typeof renderGroupChatModalAvatar === 'function') renderGroupChatModalAvatar();
+            }
+            showToast('头像已更新', false);
+        };
+        reader.readAsDataURL(file);
+        input.value = '';
+    };
+    input.click();
+}
+
+function resetGroupChatAvatar(groupId) {
+    if (groupId) {
+        const group = (groupChats || []).find(item => item.id === groupId);
+        if (!group) return;
+        delete group.avatarDataUrl;
+        saveGroupChats();
+        refreshGroupChatAvatarViews(groupId);
+    } else {
+        groupChatDraftAvatarDataUrl = '';
+        if (typeof renderGroupChatModalAvatar === 'function') renderGroupChatModalAvatar();
+    }
+    showToast('已恢复默认头像', false);
 }
 
 function getUserAvatarFallbackText() {

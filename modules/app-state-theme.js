@@ -35,8 +35,12 @@ let currentDiaryDriverId = null;
 let currentDiaryDateKey = null;
 let userCoins = 0;
 let signData = { lastSignDate: null, consecutiveDays: 0 };
+let giftInventory = {};
+let giftHistory = [];
 let currentTheme = null;
 let chatViewMode = 'mobile';
+let groupChats = [];
+let groupChatsCollapsed = false;
 
 const F1_THEMES = {
     ferrari: { id: 'ferrari', name: '法拉利', primary: '#D92E2B', dark: '#8F1412', accent: '#F5C542', phoneBg: '#13090A', text: '#FFF8F5' },
