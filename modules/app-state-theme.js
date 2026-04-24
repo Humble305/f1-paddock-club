@@ -56,6 +56,20 @@ const F1_THEMES = {
     cadillac: { id: 'cadillac', name: '凯迪拉克', primary: '#D6DCE6', dark: '#8F97A3', accent: '#153A64', phoneBg: '#0B1015', text: '#F7FAFF' }
 };
 
+const F1_THEME_DETAILS = {
+    ferrari: { code: 'SF-25', vibe: 'Scarlet apex / gold sparks' },
+    mercedes: { code: 'W16', vibe: 'Teal pulse / silver precision' },
+    redbull: { code: 'RB21', vibe: 'Night charge / hot pursuit' },
+    mclaren: { code: 'MCL39', vibe: 'Papaya flash / cool aero' },
+    alpine: { code: 'A526', vibe: 'Blue force / neon edge' },
+    aston_martin: { code: 'AMR25', vibe: 'British racing / velvet green' },
+    racingbulls: { code: 'VCARB 02', vibe: 'Steel blue / sharp orbit' },
+    haas: { code: 'VF-26', vibe: 'Titanium cut / redline mark' },
+    williams: { code: 'FW48', vibe: 'Electric slipstream / crisp blue' },
+    audi: { code: 'A-Proto', vibe: 'Carbon noir / clean metal' },
+    cadillac: { code: 'CDL-01', vibe: 'Chrome luxe / deep navy' }
+};
+
 function hexToRgb(hex) {
     const safe = String(hex || '#000000').replace('#', '').padEnd(6, '0');
     const r = parseInt(safe.slice(0, 2), 16);
@@ -82,11 +96,27 @@ function setCssVars(theme) {
     document.documentElement.style.setProperty('--primary-color-rgb', hexToRgb(theme.primary));
 }
 
+function getThemeDetails(themeId) {
+    return F1_THEME_DETAILS[themeId] || { code: 'F1', vibe: 'Race tuned palette' };
+}
+
+function updateThemeShowcase(theme) {
+    const heroName = document.getElementById('themeHeroName');
+    const heroDesc = document.getElementById('themeHeroDesc');
+    const heroStatus = document.getElementById('themeHeroStatus');
+    if (!heroName || !heroDesc || !heroStatus || !theme) return;
+    const details = getThemeDetails(theme.id);
+    heroName.textContent = `${theme.name} / ${details.code}`;
+    heroDesc.textContent = details.vibe;
+    heroStatus.textContent = '当前配色';
+}
+
 function applyTheme(themeId) {
     const theme = F1_THEMES[themeId] || F1_THEMES.ferrari;
     currentTheme = theme;
     document.documentElement.dataset.themeMode = 'dark';
     setCssVars(theme);
+    updateThemeShowcase(theme);
     localStorage.setItem('f1_theme', theme.id);
 }
 
@@ -102,15 +132,22 @@ function initThemeSelector() {
     const container = document.getElementById('themeOptionsGrid');
     if (!container) return;
     const currentSaved = localStorage.getItem('f1_theme') || 'ferrari';
+    updateThemeShowcase(F1_THEMES[currentSaved] || F1_THEMES.ferrari);
     container.innerHTML = '';
     Object.values(F1_THEMES).forEach(theme => {
+        const details = getThemeDetails(theme.id);
         const btn = document.createElement('button');
         btn.className = `theme-option-btn${theme.id === currentSaved ? ' active' : ''}`;
-        btn.innerHTML = `<div class="theme-color-preview" style="background: linear-gradient(90deg, ${theme.primary}, ${theme.accent}); border-color: ${theme.primary};"></div><div class="label">${theme.name}</div>`;
+        btn.type = 'button';
+        btn.setAttribute('aria-label', `${theme.name} ${details.code}`.trim());
+        btn.dataset.themeId = theme.id;
+        btn.innerHTML = `<div class="theme-option-topline"><span class="theme-option-code">${details.code}</span><span class="theme-option-badge">${theme.id === currentSaved ? 'LIVE' : 'READY'}</span></div><div class="theme-color-preview" style="background: linear-gradient(135deg, ${theme.dark}, ${theme.primary} 58%, ${theme.accent}); border-color: ${theme.primary};"></div><div class="theme-option-copy"><div class="label">${theme.name}</div><div class="theme-option-vibe">${details.vibe}</div></div>`;
         btn.addEventListener('click', () => {
             applyTheme(theme.id);
             document.querySelectorAll('.theme-option-btn').forEach(node => node.classList.remove('active'));
+            document.querySelectorAll('.theme-option-badge').forEach(node => { node.textContent = 'READY'; });
             btn.classList.add('active');
+            btn.querySelector('.theme-option-badge').textContent = 'LIVE';
             showToast(`已切换至 ${theme.name} 配色`, false);
         });
         container.appendChild(btn);

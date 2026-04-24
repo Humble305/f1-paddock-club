@@ -267,11 +267,42 @@ const DRIVER_PERSONALITIES = {
     }
 };
 
+function getDriverRuntimeRecord(driverId) {
+    return (window.DRIVERS || []).find(driver => driver.id === driverId) || null;
+}
+
+function getDriverTeammateRecord(driverId) {
+    const driver = getDriverRuntimeRecord(driverId);
+    if (!driver) return null;
+    return (window.DRIVERS || []).find(item => item.team === driver.team && item.id !== driver.id) || null;
+}
+
+function getDriverCurrentSeasonContext(driverId) {
+    const driver = getDriverRuntimeRecord(driverId);
+    if (!driver) return '';
+    const teammate = getDriverTeammateRecord(driverId);
+    const teammateText = teammate
+        ? `${teammate.name}，你们目前都在 ${driver.team}`
+        : `当前没有可用的队友信息，但你仍然效力于 ${driver.team}`;
+
+    return `
+【当前赛季身份事实】
+- 现在是本作当前时间线下的 2026 赛季，你必须优先以这里的设定为准，不要把自己说回 2024 或更早的旧阵容。
+- 你当前效力车队：${driver.team}
+- 你当前队友：${teammateText}
+- 只要聊到车队、搭档、围场关系、赛季处境，都必须以这套当前阵容为准，不要沿用过期记忆。
+- 如果你记忆中的现实信息和当前设定冲突，以当前设定优先。
+`.trim();
+}
+
 function getDriverPersonalityContext(driverId) {
     const p = DRIVER_PERSONALITIES[driverId];
-    if (!p) return F1_KNOWLEDGE_BASE;
+    const currentSeasonContext = getDriverCurrentSeasonContext(driverId);
+    if (!p) return `${F1_KNOWLEDGE_BASE}\n\n${currentSeasonContext}`.trim();
 
     return `${F1_KNOWLEDGE_BASE}
+
+${currentSeasonContext}
 
 【该车手的人格与表达】
 - 性格关键词：${p.traits.join("、")}

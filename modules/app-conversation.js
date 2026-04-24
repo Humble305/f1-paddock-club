@@ -132,6 +132,7 @@ function renderChatWorkspaceState() {
             detail.style.display = 'none';
             setChatComposerEnabled(false);
         }
+        renderRaceWeekPromptBar();
         syncMobileChatIsolation(false);
         if (typeof renderChatGiftPanel === 'function') renderChatGiftPanel();
         return;
@@ -154,10 +155,108 @@ function renderChatWorkspaceState() {
     }
     renderChatMessages(currentChatDriver.id);
     setChatComposerEnabled(true);
+    renderRaceWeekPromptBar();
     if (typeof renderChatGiftPanel === 'function') renderChatGiftPanel();
 }
 
 window.renderChatWorkspaceState = renderChatWorkspaceState;
+
+function getRaceWeekChatPrompts(driver) {
+    const event = window.getCurrentRaceWeekendEvent ? window.getCurrentRaceWeekendEvent() : null;
+    if (!driver || !event?.phase) return [];
+    const promptsByPhase = {
+        arrival: [
+            `你们这周围场刚进驻，状态已经切到比赛模式了吗？`,
+            `新一站开始了，你现在最想先把哪部分找对？`,
+            `进站日这种时候，你一般先让自己进入什么节奏？`
+        ],
+        media: [
+            `今天媒体日是不是已经开始被问一堆同样的问题了？`,
+            `媒体日结束后，你自己最在意的其实还是赛车本身吧？`,
+            `这种赛前采访日，你会更想赶紧回车库还是还好？`
+        ],
+        practice: [
+            `练习赛日最重要的是找到节奏还是先确认赛车方向？`,
+            `今天练习赛结束后，你自己对这周末的感觉怎么样？`,
+            `这种练习赛日，你更烦流量限制还是赛道本身？`
+        ],
+        sprint_qualifying: [
+            `冲刺排位这种节奏是不是会让整个周末一下子紧起来？`,
+            `今天这种单圈压力下，你更看重感觉还是执行？`,
+            `冲刺周末一开始就上强度，你会更享受还是更累？`
+        ],
+        qualifying: [
+            `排位赛日这种时候，脑子里会比平时更安静一点吗？`,
+            `今天排位前你会更在意单圈感觉还是轮胎窗口？`,
+            `排位赛这天，最烦的是等开始还是跑完之后复盘？`
+        ],
+        sprint_day: [
+            `冲刺赛这种短节奏比赛，会不会特别容易把情绪也拉高？`,
+            `今天这种冲刺赛日，你更在意起步还是后面的节奏管理？`,
+            `冲刺赛跑完之后，整个人还会一直挂在比赛状态里吗？`
+        ],
+        race_day: [
+            `今天正赛日了，你现在会更想安静一点还是有人陪你说两句？`,
+            `正赛前这种时候，你通常会让自己保持兴奋还是刻意冷下来？`,
+            `不聊场面话的话，今天你最想先把哪件事做好？`
+        ],
+        post_race: [
+            `赛后这种时候，你会先想复盘还是先让自己缓一下？`,
+            `今天跑完之后，你现在脑子里还在转的是哪一段？`,
+            `赛后余波这一天，最烦的是外界声音还是自己一直在复盘？`
+        ],
+        countdown: [
+            `距离下一站不远了，你最近会开始提前进入比赛节奏吗？`,
+            `下一站倒计时这种时候，你更像是在准备还是在憋着一口气？`,
+            `这几天是不是已经慢慢开始把注意力往下一站收了？`
+        ]
+    };
+    const base = promptsByPhase[event.phase.id] || [
+        `这一站前后你最近脑子里最常转的是什么？`,
+        `现在这个阶段，你更想聊比赛还是先离比赛远一点？`,
+        `如果只说一句近况，你会怎么形容自己现在的状态？`
+    ];
+    return base.slice(0, 3);
+}
+
+function renderRaceWeekPromptBar() {
+    const bar = document.getElementById('raceWeekPromptBar');
+    if (!bar) return;
+    if (!currentChatDriver || currentChatDriver.type === 'group') {
+        bar.style.display = 'none';
+        bar.innerHTML = '';
+        return;
+    }
+    const prompts = getRaceWeekChatPrompts(currentChatDriver);
+    if (!prompts.length) {
+        bar.style.display = 'none';
+        bar.innerHTML = '';
+        return;
+    }
+    const event = window.getCurrentRaceWeekendEvent ? window.getCurrentRaceWeekendEvent() : null;
+    const kicker = event?.phase?.label || '比赛周互动';
+    bar.style.display = 'block';
+    bar.innerHTML = `
+        <div class="race-week-prompt-head">
+            <span class="race-week-prompt-kicker">${escapeHtml(kicker)}</span>
+            <span class="race-week-prompt-note">点一下直接发给 ${escapeHtml(currentChatDriver.name)}</span>
+        </div>
+        <div class="race-week-prompt-list">
+            ${prompts.map((prompt, index) => `<button type="button" class="race-week-prompt-chip" data-race-week-prompt="${index}">${escapeHtml(prompt)}</button>`).join('')}
+        </div>
+    `;
+    bar.querySelectorAll('[data-race-week-prompt]').forEach(button => {
+        button.addEventListener('click', async () => {
+            if (!currentChatDriver || messageInProgress) return;
+            const index = Number(button.getAttribute('data-race-week-prompt'));
+            const text = prompts[index];
+            if (!text) return;
+            await sendMessageToDriver(currentChatDriver, text, {
+                messageMeta: { type: 'race-week-prompt', phase: event?.phase?.id || '' }
+            });
+        });
+    });
+}
 
 let groupChatDraftSelection = [];
 let groupChatModalMode = 'create';

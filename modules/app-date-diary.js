@@ -11,7 +11,7 @@ function buildDateUserAvatarMarkup() {
 function buildDateDriverAvatarMarkup(driverId) {
     const driver = window.DRIVERS.find(item => item.id === driverId);
     const avatarBg = getDriverAvatarStyle(driverId);
-    const fallback = escapeHtml(driver?.avatarLetter || '🏎️');
+    const fallback = escapeHtml(driver?.avatarLetter || 'DR');
     return `<div class="date-message-avatar bot"${avatarBg ? ` style="background-image:${avatarBg};background-size:cover;background-position:center;"` : ''}>${avatarBg ? '' : fallback}</div>`;
 }
 
@@ -147,9 +147,9 @@ function renderDatePage() {
         const driverCards = availableDrivers.map(driver => {
             const favor = favorability[driver.id] || 0;
             const avatarBg = getDriverAvatarStyle(driver.id);
-            return `<button class="date-driver-card" data-driver-id="${driver.id}"><div class="driver-avatar-mini"${avatarBg ? ` style="background-image:${avatarBg};background-size:cover;background-position:center;"` : ''}>${avatarBg ? '' : driver.avatarLetter}</div><div class="driver-info-mini"><div class="driver-name-mini">${driver.name}</div><div class="driver-team-mini">${driver.team}</div><div class="driver-favor-mini">♥ ${favor}</div></div></button>`;
+            return `<button class="date-driver-card" data-driver-id="${driver.id}"><div class="driver-avatar-mini"${avatarBg ? ` style="background-image:${avatarBg};background-size:cover;background-position:center;"` : ''}>${avatarBg ? '' : driver.avatarLetter}</div><div class="driver-info-mini"><div class="driver-name-mini">${driver.name}</div><div class="driver-team-mini">${driver.team}</div><div class="driver-favor-mini">好感 ${favor}</div></div></button>`;
         }).join('');
-        const sceneCards = window.DATE_SCENES.map(scene => `<button class="date-scene-card" data-scene-id="${scene.id}"><div class="scene-icon">${scene.name.split(' ')[0]}</div><div class="scene-name">${scene.name}</div><div class="scene-desc">${scene.desc}</div></button>`).join('');
+        const sceneCards = window.DATE_SCENES.map(scene => `<button class="date-scene-card" data-scene-id="${scene.id}"><div class="scene-icon">${window.getUiIconMarkup ? window.getUiIconMarkup(scene.iconKey || 'spark', 'scene-icon-svg', scene.name) : ''}</div><div class="scene-name">${scene.name}</div><div class="scene-desc">${scene.desc}</div></button>`).join('');
         container.innerHTML = `<div class="date-selector"><div class="date-driver-section"><h4>选择车手</h4><div class="date-driver-cards">${driverCards}</div></div><div class="date-scene-section"><h4>选择场景</h4><div class="date-scene-cards">${sceneCards}</div></div><button id="startDateBtn" class="date-start-btn">开始约会</button></div>`;
         let selectedDriverId = availableDrivers[0]?.id || '';
         let selectedSceneId = window.DATE_SCENES[0]?.id || '';

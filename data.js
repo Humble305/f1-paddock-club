@@ -159,7 +159,16 @@ window.DRIVERS = DRIVERS;
 window.DRIVER_PROFILES = DRIVER_PROFILES;
 window.teamStandings = teamStandings;
 window.driverStandings = driverStandings;
-window.DATE_SCENES = DATE_SCENES;
+const DATE_SCENES_UI = [
+    { id: "beach", name: "海边漫步", iconKey: "palm", desc: "夕阳下的沙滩，海浪轻拍" },
+    { id: "restaurant", name: "晚餐约会", iconKey: "wine", desc: "灯光昏黄的餐厅，氛围刚刚好" },
+    { id: "paddock", name: "围场参观", iconKey: "wheel", desc: "近距离感受赛车，私密导览" }
+];
+window.DATE_SCENES = DATE_SCENES_UI;
 window.F1_CALENDAR = F1_CALENDAR;
-window.ANNOUNCEMENTS = ANNOUNCEMENTS;
+const ANNOUNCEMENTS_UI = [
+    { version: "v4.2.0", content: "围场动态重做 & 比赛周事件系统上线\n• 围场动态全面升级为更像真实 X / 社媒流：车手发帖、互相串场和回你评论都会优先参考原帖内容与本人语气，不再是机械模板句\n• 车手互动关系改成“内容里体现”而不是显式关系网：关系近的更容易评论，关系一般的更多只会点赞，动态下方也新增了可见的点赞列表\n• 用户评论现在会得到更像公开评论区的回复，格式统一为自然的社媒互动风格；如果是明确回复你，也会显示成“回复 xxx：...”\n• 赛历页新增比赛周状态卡，能够自动识别当前处于进站日、媒体日、练习赛、排位赛、冲刺赛、正赛日、赛后余波或下一站倒计时\n• 比赛周上下文已经联动进围场动态、评论回复、聊天与约会提示，同一时期大家讨论的内容会更贴近真实围场节奏\n• 聊天页新增比赛周快捷互动入口，不同阶段会给出不同的专属提问，一键即可发给当前车手，让互动更像真的在跟着赛历推进" },
+    ...ANNOUNCEMENTS.slice(1)
+];
+window.ANNOUNCEMENTS = ANNOUNCEMENTS_UI;
 window.mediaNewsItems = mediaNewsItems;

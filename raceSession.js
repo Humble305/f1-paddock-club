@@ -455,3 +455,140 @@ window.getDriverRankingAnalysis = getDriverRankingAnalysis;
 window.parseRaceDate = parseRaceDate;
 window.getCurrentRaceContext = getCurrentRaceContext;
 window.getUpcomingRacesPreview = getUpcomingRacesPreview;
+
+function parseRaceDateRange(dateStr) {
+    const text = String(dateStr || '');
+    const match = text.match(/(\d+)\D+(\d+)(?:\D+(\d+))?/);
+    if (!match) {
+        const fallback = new Date(2026, 0, 1);
+        fallback.setHours(0, 0, 0, 0);
+        return { start: fallback, end: fallback };
+    }
+    const month = Math.max(0, parseInt(match[1], 10) - 1);
+    const startDay = parseInt(match[2], 10);
+    const endDay = match[3] ? parseInt(match[3], 10) : startDay;
+    const start = new Date(2026, month, startDay);
+    let end = new Date(2026, month, endDay);
+    if (endDay < startDay) end = new Date(2026, month + 1, endDay);
+    start.setHours(0, 0, 0, 0);
+    end.setHours(0, 0, 0, 0);
+    return { start, end };
+}
+
+function parseRaceDate(dateStr) {
+    return parseRaceDateRange(dateStr).end;
+}
+
+function getDateDiffInDays(from, to) {
+    const left = new Date(from);
+    const right = new Date(to);
+    left.setHours(0, 0, 0, 0);
+    right.setHours(0, 0, 0, 0);
+    return Math.round((right - left) / 86400000);
+}
+
+function getRaceWeekendPhase(today, race) {
+    const { start, end } = parseRaceDateRange(race.date);
+    const diffToStart = getDateDiffInDays(today, start);
+    const diffToEnd = getDateDiffInDays(today, end);
+    const phaseMap = race.sprint
+        ? {
+            2: { id: 'arrival', label: '进站日', note: '围场陆续抵达，媒体和车队准备开始升温。', short: '进站日' },
+            1: { id: 'media', label: '媒体日', note: '媒体采访、工程会议和赛前定调会明显变多。', short: '媒体日' },
+            0: { id: 'sprint_qualifying', label: '冲刺排位日', note: '车手会更关注单圈和周末节奏的初次定型。', short: '冲刺排位' }
+        }
+        : {
+            2: { id: 'arrival', label: '进站日', note: '车队刚进驻围场，赛前气氛开始抬头。', short: '进站日' },
+            1: { id: 'media', label: '媒体日', note: '采访、拍摄和工程简报齐上阵，车手话题会更偏比赛周。', short: '媒体日' },
+            0: { id: 'practice', label: '练习赛日', note: '大家会更在意调校、长距离和单圈手感。', short: '练习赛' }
+        };
+    if (diffToStart >= 0 && diffToStart <= 2) return { ...phaseMap[diffToStart], live: true, daysToRace: diffToEnd };
+    if (diffToStart === -1) {
+        return {
+            id: race.sprint ? 'sprint_day' : 'qualifying',
+            label: race.sprint ? '冲刺赛日' : '排位赛日',
+            note: race.sprint ? '冲刺赛结果和节奏会直接影响围场话题。' : '所有人都会更在意单圈、失误和场上风向。',
+            short: race.sprint ? '冲刺赛' : '排位赛',
+            live: true,
+            daysToRace: diffToEnd
+        };
+    }
+    if (diffToEnd === 0) return { id: 'race_day', label: '正赛日', note: '围场焦点会集中到发车、节奏、策略和赛后情绪。', short: '正赛日', live: true, daysToRace: 0 };
+    if (diffToEnd === -1) return { id: 'post_race', label: '赛后余波', note: '赛后总结、媒体复盘和围场情绪还没完全散去。', short: '赛后余波', live: true, daysToRace: -1 };
+    return null;
+}
+
+function getCurrentRaceWeekendEvent() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const races = window.F1_CALENDAR || [];
+    if (!races.length) return null;
+    let current = null;
+    let next = null;
+    races.forEach(race => {
+        const { start, end } = parseRaceDateRange(race.date);
+        const phase = getRaceWeekendPhase(today, race);
+        if (!current && phase) current = { race, phase, start, end, status: 'live' };
+        if (!next && start >= today) next = { race, start, end, status: 'upcoming' };
+    });
+    if (current) return current;
+    if (!next) {
+        const lastRace = races[races.length - 1];
+        const lastRange = parseRaceDateRange(lastRace.date);
+        return {
+            race: lastRace,
+            start: lastRange.start,
+            end: lastRange.end,
+            status: 'season_complete',
+            phase: { id: 'season_complete', label: '休赛期', note: '本赛季赛程已全部完成，围场进入收尾和总结阶段。', short: '休赛期', live: false, daysToRace: null }
+        };
+    }
+    const daysToStart = getDateDiffInDays(today, next.start);
+    return {
+        race: next.race,
+        start: next.start,
+        end: next.end,
+        status: 'countdown',
+        phase: {
+            id: 'countdown',
+            label: daysToStart <= 7 ? '比赛周倒计时' : '下一站待机',
+            note: daysToStart <= 7 ? '下一站已经进入准备期，围场话题会逐渐转向这场比赛。' : '目前仍在两站之间的过渡期，话题更偏训练、旅行和升级。',
+            short: daysToStart <= 7 ? '倒计时' : '待机',
+            live: false,
+            daysToRace: daysToStart
+        }
+    };
+}
+
+function getRaceWeekendHeadline(event) {
+    if (!event?.race || !event?.phase) return '暂无比赛周信息';
+    if (event.status === 'season_complete') return `本赛季已结束，最后一站是 ${event.race.gp}`;
+    if (event.status === 'countdown') return event.phase.daysToRace <= 7 ? `${event.race.gp} 倒计时 ${event.phase.daysToRace} 天` : `下一站：${event.race.gp}`;
+    return `${event.race.gp} · ${event.phase.label}`;
+}
+
+function getRaceWeekendPromptContext() {
+    const event = getCurrentRaceWeekendEvent();
+    if (!event?.race || !event?.phase) return '';
+    if (event.status === 'season_complete') return '当前赛程状态：本赛季已完成，围场处于赛后收尾阶段。';
+    if (event.status === 'countdown') return `当前比赛周状态：距离 ${event.race.gp} 还有 ${event.phase.daysToRace} 天，地点 ${event.race.location}。阶段：${event.phase.label}。${event.phase.note}`;
+    return `当前比赛周状态：${event.race.gp} 正处于${event.phase.label}，地点 ${event.race.location}。${event.phase.note}`;
+}
+
+function getCurrentRaceContext() {
+    const event = getCurrentRaceWeekendEvent();
+    if (!event?.race) return '暂无赛历信息。';
+    if (event.status === 'season_complete') return `本赛季已经结束。最后一站是 ${event.race.date} ${event.race.gp}，地点 ${event.race.location}。`;
+    if (event.status === 'countdown') {
+        const sprintText = event.race.sprint ? '，含冲刺赛周末' : '';
+        return `下一站是第 ${event.race.round} 站 ${event.race.gp}，时间 ${event.race.date}，地点 ${event.race.location}${sprintText}。当前阶段：${event.phase.label}。${event.phase.note}`;
+    }
+    return `当前正在经历 ${event.race.gp} 的${event.phase.label}，地点 ${event.race.location}。${event.phase.note}`;
+}
+
+window.parseRaceDate = parseRaceDate;
+window.parseRaceDateRange = parseRaceDateRange;
+window.getCurrentRaceWeekendEvent = getCurrentRaceWeekendEvent;
+window.getRaceWeekendPromptContext = getRaceWeekendPromptContext;
+window.getRaceWeekendHeadline = getRaceWeekendHeadline;
+window.getCurrentRaceContext = getCurrentRaceContext;

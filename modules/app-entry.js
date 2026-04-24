@@ -83,7 +83,7 @@ function openHistoryTodayPage() {
     const container = document.getElementById('historyEventsList');
     if (!container) return;
     container.innerHTML = safeEvents
-        .map(event => `<div class="history-card"><div class="history-year">🏁 ${escapeHtml(String(event.year || ''))}</div><div class="history-title">${escapeHtml(event.title || '')}</div><div class="history-desc">${escapeHtml(event.desc || '')}</div></div>`)
+        .map(event => `<div class="history-card"><div class="history-year">${window.getUiIconMarkup ? window.getUiIconMarkup('flag', 'history-year-icon', '历史事件') : ''}<span>${escapeHtml(String(event.year || ''))}</span></div><div class="history-title">${escapeHtml(event.title || '')}</div><div class="history-desc">${escapeHtml(event.desc || '')}</div></div>`)
         .join('');
 }
 
@@ -290,8 +290,8 @@ function initFeedPosts() {
         name: driver.name,
         handle: driver.handle,
         avatar: driver.avatarLetter,
-        content: stripChatStageDirections(driver.initialMsg),
-        likes: 80 + index * 17,
+        content: typeof buildLocalFeedPost === 'function' ? buildLocalFeedPost(driver, index) : stripChatStageDirections(driver.initialMsg),
+        likes: typeof estimatePostLikes === 'function' ? estimatePostLikes(driver, index) : 80 + index * 17,
         comments: [],
         timeAgo: `${index + 1} 小时前`
     }));
