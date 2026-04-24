@@ -70,7 +70,7 @@ function getDriverExtendedCircle(driverId) {
 
 function buildPostInteractionMap(authorDriver, index = 0) {
     if (!authorDriver) {
-        return { commentIds: [], likeIds: [] };
+        return getUserPostInteractionMap(index);
     }
     const closeIds = getDriverSocialCircle(authorDriver.id);
     const extendedIds = getDriverExtendedCircle(authorDriver.id).filter(id => !closeIds.includes(id));
@@ -82,6 +82,27 @@ function buildPostInteractionMap(authorDriver, index = 0) {
         ...extendedIds.filter((_, slotIndex) => ((slotIndex + index) % 2 === 0)).slice(0, 4)
     ])].slice(0, 6);
     return { commentIds, likeIds };
+}
+
+function getUserPostInteractionMap(index = 0) {
+    const drivers = (window.DRIVERS || []).slice();
+    const highFavorDrivers = drivers
+        .filter(driver => (favorability?.[driver.id] || 0) >= 65)
+        .sort((left, right) => (favorability?.[right.id] || 0) - (favorability?.[left.id] || 0));
+    const remainingDrivers = drivers.filter(driver => !highFavorDrivers.some(item => item.id === driver.id));
+    const randomCommentIds = remainingDrivers
+        .filter((_, slotIndex) => ((slotIndex + index) % 3 === 0))
+        .slice(0, 2)
+        .map(driver => driver.id);
+    const randomLikeIds = remainingDrivers
+        .filter((_, slotIndex) => ((slotIndex + index) % 2 === 0))
+        .slice(0, 5)
+        .map(driver => driver.id);
+    const favoredIds = highFavorDrivers.map(driver => driver.id);
+    return {
+        commentIds: [...new Set([...favoredIds, ...randomCommentIds])].slice(0, Math.max(2, favoredIds.length + 2)),
+        likeIds: [...new Set([...favoredIds, ...randomLikeIds])].slice(0, Math.max(4, favoredIds.length + 5))
+    };
 }
 
 function pickFeedCommentTone(driverId) {
@@ -165,6 +186,78 @@ function buildLocalUserCircleComment(driver, post, slotIndex = 0) {
     return sanitizeFeedPost(`${openerPool[slotIndex % openerPool.length]} ${tail}`);
 }
 
+function buildLocalDriverCommentOnUserPost(driver, post, slotIndex = 0) {
+    const tone = pickFeedCommentTone(driver.id);
+    const favor = favorability?.[driver.id] || 0;
+    const content = String(post?.content || '').trim().toLowerCase();
+    const warmOpeners = ['这条我看到了。', '你这条发得不错。', '我看到这句的时候停了一下。'];
+    const teaseOpeners = ['行，这条是故意发给我看的吧。', '你这条很会挑时机。', '好，这句我看见了。'];
+    const coolOpeners = ['这条挺直接。', '你这句还挺准。', '我懂你在说什么。'];
+    const openerPool = tone === 'tease' ? teaseOpeners : (tone === 'respect' ? coolOpeners : warmOpeners);
+    const raceTail = favor >= 65
+        ? ['我会记着这条，周末尽量给你点能回头看的东西。', '这种时候被你看到，感觉还不错。', '等比赛跑完，再回来看看这条。']
+        : ['先把这周末跑完再说。', '现在先把该做的部分做好。', '这种话比赛周会更容易记住。'];
+    const lifeTail = favor >= 65
+        ? ['你最近很会挑这种时机出现。', '这条我就先收下了。', '你这一句，确实会让人心情好一点。']
+        : ['这条内容倒是挺像你。', '至少这句不空。', '这条我会点头。'];
+    const tailPool = /比赛|排位|正赛|周末|围场|车库|练习/.test(content) ? raceTail : lifeTail;
+    return sanitizeFeedPost(`${openerPool[slotIndex % openerPool.length]} ${tailPool[(slotIndex + 1) % tailPool.length]}`);
+}
+
+function buildDriverCommentOnUserPostPrompt(driver, post) {
+    const personalityContext = window.getDriverPersonalityContext ? window.getDriverPersonalityContext(driver.id) : '';
+    const weekendContext = window.getRaceWeekendPromptContext ? window.getRaceWeekendPromptContext() : '';
+    const favor = favorability?.[driver.id] || 0;
+    return `今天是${getCurrentDateInfo()}。
+你是 F1 车手 ${driver.name}（${driver.team}），现在要在一位用户发布的围场动态下公开留言。
+${getRoleOutputSafetyPrompt('feed')}
+${personalityContext}
+${weekendContext}
+【用户信息】
+- 用户名：${userProfile.name}
+- 你和用户当前好感度：${favor}/100
+【用户动态】
+- ${post?.content || '围场近况'}
+【留言要求】
+- 这是公开评论区留言，不是私聊。
+- 你必须先读懂用户发的内容，再决定怎么回，不能空泛敷衍。
+- 如果你和用户好感较高，要明显更愿意互动，但仍然保持公开社媒语气，不要写成暧昧私聊。
+- 语气要像真实车手会在评论区留的一句：短、自然、有人味，可以带一点熟悉感或玩笑感。
+- 如果帖子提到比赛、围场、成绩、排位或正赛，只能站在当前现实信息内回复，不要编造结果、事故、转会、处罚或伤病。
+- 不要加括号动作，不要加引号，不要写解释。
+- 长度控制在 10 到 34 个汉字。
+现在直接输出评论正文。`;
+}
+
+async function generateDriverCommentOnUserPost(driver, post, slotIndex = 0) {
+    if (!useAI || !apiConfig.key || !apiConfig.url || !apiConfig.model) {
+        return buildLocalDriverCommentOnUserPost(driver, post, slotIndex);
+    }
+    try {
+        const response = await fetch(`${apiConfig.url.replace(/\/$/, '')}/chat/completions`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${apiConfig.key}`
+            },
+            body: JSON.stringify({
+                model: apiConfig.model,
+                messages: [{ role: 'system', content: buildDriverCommentOnUserPostPrompt(driver, post) }],
+                temperature: 0.92,
+                max_tokens: 90
+            })
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const payload = await response.json();
+        const content = sanitizeFeedPost(payload?.choices?.[0]?.message?.content?.trim());
+        if (!content) throw new Error('API 返回空内容');
+        return content;
+    } catch (error) {
+        console.warn('用户动态互动评论生成失败，回退本地模板。', error);
+        return buildLocalDriverCommentOnUserPost(driver, post, slotIndex);
+    }
+}
+
 function buildDriverCircleCommentPrompt(commentDriver, postDriver, post) {
     const personalityContext = window.getDriverPersonalityContext ? window.getDriverPersonalityContext(commentDriver.id) : '';
     const postFacts = summarizeFeedReality(postDriver);
@@ -231,7 +324,7 @@ async function hydratePostCircleMeta(post, index = 0) {
             crewDrivers.map(async (driver, slotIndex) => {
                 const text = authorDriver
                     ? await generateDriverCircleComment(driver, authorDriver, post, slotIndex + index)
-                    : buildLocalUserCircleComment(driver, post, slotIndex + index);
+                    : await generateDriverCommentOnUserPost(driver, post, slotIndex + index);
                 return {
                     user: driver.name,
                     driverId: driver.id,
