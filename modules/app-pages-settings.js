@@ -32,6 +32,7 @@ function exportGameData() {
         chatHistories,
         groupChats,
         groupChatsCollapsed,
+        teamSectionsCollapsed,
         driverAvatars,
         userProfile,
         feedPosts,
@@ -60,6 +61,7 @@ function applyLoadedData(saveData) {
     chatHistories = saveData.chatHistories || chatHistories;
     groupChats = saveData.groupChats || groupChats;
     groupChatsCollapsed = saveData.groupChatsCollapsed ?? groupChatsCollapsed;
+    teamSectionsCollapsed = saveData.teamSectionsCollapsed || teamSectionsCollapsed;
     driverAvatars = saveData.driverAvatars || driverAvatars;
     userProfile = { ...userProfile, ...(saveData.userProfile || {}) };
     feedPosts = saveData.feedPosts || feedPosts;
@@ -75,6 +77,7 @@ function applyLoadedData(saveData) {
     secureStorageSet('f1_chat_histories', chatHistories);
     secureStorageSet('f1_group_chats', groupChats);
     secureStorageSet('f1_group_chats_collapsed', groupChatsCollapsed);
+    secureStorageSet('f1_team_sections_collapsed', teamSectionsCollapsed);
     secureStorageSet('f1_driver_avatars', driverAvatars);
     secureStorageSet('f1_user_profile', userProfile);
     secureStorageSet('f1_api_config', apiConfig);

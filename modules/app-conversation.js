@@ -145,7 +145,7 @@ function renderChatWorkspaceState() {
         const avatarDiv = document.getElementById('chatDetailAvatar');
         if (avatarDiv) renderGroupChatAvatarOnElement(avatarDiv, currentChatDriver.id, '40px');
         const token = document.getElementById('tokenDisplay');
-        if (token) token.innerText = `群聊 · ${currentChatDriver.memberIds?.length || 0} 人 · 点头像查看成员`;
+        if (token) token.innerText = `群聊 · ${currentChatDriver.memberIds?.length || 0} 人 · ${currentChatDriver.notice ? '有群公告' : '点头像查看资料'}`;
         if (avatarClick) avatarClick.title = '查看和编辑群聊成员';
         initGroupChatHistory(currentChatDriver);
     } else {
@@ -262,15 +262,83 @@ let groupChatDraftSelection = [];
 let groupChatModalMode = 'create';
 let editingGroupChatId = null;
 let groupChatDraftAvatarDataUrl = '';
+let groupChatDraftNotice = '';
+let groupChatDraftPinned = false;
+let groupChatDraftMuted = false;
+let groupChatMemberSearch = '';
 
 function getGroupChatById(groupId) {
-    return (groupChats || []).find(group => group.id === groupId) || null;
+    const group = (groupChats || []).find(item => item.id === groupId) || null;
+    return ensureGroupChatDefaults(group);
 }
 
 function getGroupChatMembers(group) {
     return (group?.memberIds || [])
         .map(memberId => (window.DRIVERS || []).find(driver => driver.id === memberId))
         .filter(Boolean);
+}
+
+function ensureGroupChatDefaults(group) {
+    if (!group) return null;
+    if (typeof group.notice !== 'string') group.notice = '';
+    if (typeof group.pinned !== 'boolean') group.pinned = false;
+    if (typeof group.muted !== 'boolean') group.muted = false;
+    if (!group.createdAt) group.createdAt = new Date().toISOString();
+    if (!group.updatedAt) group.updatedAt = group.createdAt;
+    return group;
+}
+
+function formatGroupChatDate(iso) {
+    if (!iso) return '刚刚建立';
+    const parsed = new Date(iso);
+    if (Number.isNaN(parsed.getTime())) return '刚刚更新';
+    const month = parsed.getMonth() + 1;
+    const date = parsed.getDate();
+    return `${month} 月 ${date} 日`;
+}
+
+function getGroupChatHistory(groupId) {
+    return (chatHistories[groupId] || []).filter(msg => msg.role !== 'system');
+}
+
+function getGroupChatPreview(group) {
+    const history = getGroupChatHistory(group.id);
+    const lastMsg = [...history].reverse().find(item => item.role === 'assistant' || item.role === 'user');
+    if (!lastMsg) return { text: '点击开始群聊', source: '群聊刚建立', count: 0 };
+    if (lastMsg.role === 'user') {
+        return {
+            text: String(lastMsg.content || '').slice(0, 36),
+            source: '你',
+            count: history.length
+        };
+    }
+    const lines = parseGroupReplyLines(group, lastMsg.content);
+    const firstLine = lines[0];
+    return {
+        text: stripChatStageDirections(firstLine?.content || lastMsg.content || '').slice(0, 42),
+        source: firstLine?.speaker || '群聊',
+        count: history.length
+    };
+}
+
+function getGroupChatStatusLabel(group) {
+    const flags = [];
+    if (group?.pinned) flags.push('置顶');
+    if (group?.muted) flags.push('免打扰');
+    return flags.join(' · ') || '正常消息';
+}
+
+function touchGroupChatActivity(groupId) {
+    const group = getGroupChatById(groupId);
+    if (!group) return;
+    group.updatedAt = new Date().toISOString();
+    saveGroupChats();
+}
+
+function toggleGroupChatSetting(settingKey) {
+    if (settingKey === 'pinned') groupChatDraftPinned = !groupChatDraftPinned;
+    if (settingKey === 'muted') groupChatDraftMuted = !groupChatDraftMuted;
+    updateGroupChatModalState();
 }
 
 function buildGroupAvatarLabel(group) {
@@ -282,7 +350,7 @@ function renderGroupChatModalAvatar() {
     const resetBtn = document.getElementById('resetGroupChatAvatarBtn');
     if (!avatar) return;
     const currentGroup = editingGroupChatId ? getGroupChatById(editingGroupChatId) : null;
-    const fallbackGroup = currentGroup || { name: document.getElementById('groupChatNameInput')?.value.trim() || '群聊' };
+    const fallbackGroup = { ...(currentGroup || {}), name: document.getElementById('groupChatNameInput')?.value.trim() || currentGroup?.name || '群聊' };
     const avatarUrl = groupChatDraftAvatarDataUrl || currentGroup?.avatarDataUrl || '';
     if (avatarUrl) {
         avatar.style.backgroundImage = `url(${avatarUrl})`;
@@ -307,6 +375,67 @@ function getDefaultGroupChatName(memberIds = []) {
     return `${names.slice(0, 3).join(' · ')} 群聊`;
 }
 
+function renderGroupChatSelectedMembers() {
+    const mount = document.getElementById('groupChatSelectedMembers');
+    if (!mount) return;
+    const selected = groupChatDraftSelection
+        .map(memberId => (window.DRIVERS || []).find(driver => driver.id === memberId))
+        .filter(Boolean);
+    if (!selected.length) {
+        mount.innerHTML = '<div class="group-chat-empty-chip">还没拉人进群</div>';
+        return;
+    }
+    mount.innerHTML = selected.map(driver => `
+        <button type="button" class="group-chat-selected-chip" data-remove-group-member="${driver.id}">
+            <span class="group-chat-selected-chip-avatar" data-group-selected-avatar="${driver.id}">${escapeHtml(driver.name.slice(0, 1))}</span>
+            <span>${escapeHtml(driver.name)}</span>
+            <span class="group-chat-selected-chip-remove">×</span>
+        </button>
+    `).join('');
+    mount.querySelectorAll('[data-group-selected-avatar]').forEach(avatar => {
+        renderAvatarOnElement(avatar, avatar.dataset.groupSelectedAvatar, '26px');
+    });
+    mount.querySelectorAll('[data-remove-group-member]').forEach(button => {
+        button.addEventListener('click', () => {
+            groupChatDraftSelection = groupChatDraftSelection.filter(id => id !== button.dataset.removeGroupMember);
+            renderGroupChatMemberPicker();
+            updateGroupChatModalState();
+        });
+    });
+}
+
+function renderGroupChatStats() {
+    const mount = document.getElementById('groupChatStats');
+    if (!mount) return;
+    const currentGroup = editingGroupChatId ? getGroupChatById(editingGroupChatId) : null;
+    const history = currentGroup ? getGroupChatHistory(currentGroup.id) : [];
+    const cards = [
+        { label: '群成员', value: `${groupChatDraftSelection.length || 0} 人` },
+        { label: '群状态', value: groupChatDraftMuted ? '安静模式' : '开放聊天' },
+        { label: '聊天记录', value: currentGroup ? `${history.length} 条` : '新群待开启' },
+        { label: '建立时间', value: currentGroup ? formatGroupChatDate(currentGroup.createdAt) : '本次创建' }
+    ];
+    mount.innerHTML = cards.map(card => `
+        <div class="group-chat-stat-card">
+            <span>${card.label}</span>
+            <strong>${card.value}</strong>
+        </div>
+    `).join('');
+}
+
+function renderGroupChatQuickActions() {
+    const pinBtn = document.getElementById('groupChatPinToggleBtn');
+    const muteBtn = document.getElementById('groupChatMuteToggleBtn');
+    const status = document.getElementById('groupChatStatusText');
+    const mode = document.getElementById('groupChatModeBadge');
+    if (pinBtn) pinBtn.classList.toggle('active', groupChatDraftPinned);
+    if (muteBtn) muteBtn.classList.toggle('active', groupChatDraftMuted);
+    if (pinBtn) pinBtn.innerHTML = `<span>📌</span><span>${groupChatDraftPinned ? '已置顶' : '置顶群聊'}</span>`;
+    if (muteBtn) muteBtn.innerHTML = `<span>🔕</span><span>${groupChatDraftMuted ? '已免打扰' : '消息提醒'}</span>`;
+    if (status) status.innerText = [groupChatDraftPinned ? '置顶' : '', groupChatDraftMuted ? '免打扰' : '正常消息'].filter(Boolean).join(' · ');
+    if (mode) mode.innerText = groupChatModalMode === 'edit' ? 'Group Profile' : 'Create Group';
+}
+
 function getGroupChatSharedMemoryContext(memberIds = []) {
     return memberIds
         .map(memberId => {
@@ -326,7 +455,8 @@ function initGroupChatHistory(group) {
     const personalitySummary = members
         .map(driver => `【${driver.name}】${window.getDriverPersonalityContext ? window.getDriverPersonalityContext(driver.id) : ''}`)
         .join('\n');
-    const prompt = `你现在在一个 F1 围场群聊里。群名：${group.name}。群成员有：${memberSummary}。\n你要扮演群里的这些车手一起和用户聊天。\n【群聊写作要求】\n- 回复时可以由 1 到 3 位车手接话，不必每个人都强行发言。\n- 每一行都必须以“车手名：内容”的格式输出，只输出群聊正文，不要解释。\n- 车手说话风格必须符合各自性格，不要混成一个人。\n- 同一轮里不要让所有人都说很长，整体保持像真实群聊一样自然。\n${getUserProfilePriorityPrompt()}\n${personalitySummary}\n${getGroupChatSharedMemoryContext(group.memberIds)}`;
+    const noticePrompt = group.notice ? `\n【群公告】${group.notice}` : '';
+    const prompt = `你现在在一个 F1 围场群聊里。群名：${group.name}。群成员有：${memberSummary}。${noticePrompt}\n你要扮演群里的这些车手一起和用户聊天。\n【群聊写作要求】\n- 回复时可以由 1 到 3 位车手接话，不必每个人都强行发言。\n- 每一行都必须以“车手名：内容”的格式输出，只输出群聊正文，不要解释。\n- 车手说话风格必须符合各自性格，不要混成一个人。\n- 同一轮里不要让所有人都说很长，整体保持像真实群聊一样自然。\n${getUserProfilePriorityPrompt()}\n${personalitySummary}\n${getGroupChatSharedMemoryContext(group.memberIds)}`;
     chatHistories[group.id] = [
         { role: 'system', content: prompt },
         { role: 'assistant', content: `${members[0]?.name || '车手们'}：${group.name} 已经建好了，想聊什么？`, timestamp: getCurrentTime(), dateKey: getLocalDateKey(), meta: { type: 'group-reply' } }
@@ -340,25 +470,44 @@ function toggleGroupChatsCollapsed() {
     renderDriverList();
 }
 
+function toggleTeamSectionCollapsed(team) {
+    teamSectionsCollapsed = {
+        ...teamSectionsCollapsed,
+        [team]: !Boolean(teamSectionsCollapsed?.[team])
+    };
+    saveTeamSectionUiState();
+    renderDriverList();
+}
+
 function updateGroupChatModalState() {
     const summary = document.getElementById('groupChatMemberSummary');
     const createBtn = document.getElementById('createGroupChatBtn');
     const title = document.getElementById('groupChatModalTitle');
     const hint = document.getElementById('groupChatModalHint');
     const deleteBtn = document.getElementById('deleteGroupChatBtn');
+    const coverMeta = document.getElementById('groupChatCoverMeta');
     if (summary) summary.innerText = `已选 ${groupChatDraftSelection.length} 位车手`;
     if (createBtn) createBtn.disabled = groupChatDraftSelection.length < 2;
     if (createBtn) createBtn.innerText = groupChatModalMode === 'edit' ? '保存群聊' : '创建群聊';
     if (title) title.innerText = groupChatModalMode === 'edit' ? '编辑群聊' : '新建群聊';
     if (hint) hint.innerText = groupChatModalMode === 'edit' ? '这里可以查看当前群成员，也可以修改群聊名称和成员配置。' : '选择多位车手，把他们拉进同一个群里。';
     if (deleteBtn) deleteBtn.style.display = groupChatModalMode === 'edit' ? 'inline-flex' : 'none';
+    if (coverMeta) coverMeta.innerText = `${groupChatDraftSelection.length || 0} 位成员 · ${getGroupChatStatusLabel({ pinned: groupChatDraftPinned, muted: groupChatDraftMuted })}`;
     renderGroupChatModalAvatar();
+    renderGroupChatQuickActions();
+    renderGroupChatSelectedMembers();
+    renderGroupChatStats();
 }
 
 function renderGroupChatMemberPicker() {
     const mount = document.getElementById('groupChatMemberList');
     if (!mount) return;
-    mount.innerHTML = (window.DRIVERS || []).map(driver => `
+    const query = String(groupChatMemberSearch || '').trim().toLowerCase();
+    const visibleDrivers = (window.DRIVERS || []).filter(driver => {
+        if (!query) return true;
+        return driver.name.toLowerCase().includes(query) || driver.team.toLowerCase().includes(query);
+    });
+    mount.innerHTML = visibleDrivers.map(driver => `
         <label class="group-chat-member-option${groupChatDraftSelection.includes(driver.id) ? ' active' : ''}">
             <input type="checkbox" data-group-member="${driver.id}" ${groupChatDraftSelection.includes(driver.id) ? 'checked' : ''}>
             <div class="group-chat-member-copy">
@@ -367,6 +516,9 @@ function renderGroupChatMemberPicker() {
             </div>
         </label>
     `).join('');
+    if (!visibleDrivers.length) {
+        mount.innerHTML = '<div class="group-chat-empty">没有找到对应车手，换个名字或车队试试。</div>';
+    }
     mount.querySelectorAll('.group-chat-member-option').forEach(option => {
         option.addEventListener('click', event => {
             const input = option.querySelector('[data-group-member]');
@@ -394,9 +546,17 @@ function openGroupChatModal() {
     editingGroupChatId = null;
     groupChatDraftSelection = [];
     groupChatDraftAvatarDataUrl = '';
+    groupChatDraftNotice = '';
+    groupChatDraftPinned = false;
+    groupChatDraftMuted = false;
+    groupChatMemberSearch = '';
     const input = document.getElementById('groupChatNameInput');
+    const noticeInput = document.getElementById('groupChatNoticeInput');
+    const searchInput = document.getElementById('groupChatMemberSearchInput');
     const modal = document.getElementById('groupChatModal');
     if (input) input.value = '';
+    if (noticeInput) noticeInput.value = '';
+    if (searchInput) searchInput.value = '';
     renderGroupChatMemberPicker();
     updateGroupChatModalState();
     if (modal) modal.style.display = 'flex';
@@ -405,9 +565,17 @@ function openGroupChatModal() {
 function closeGroupChatModal() {
     document.getElementById('groupChatModal')?.style.setProperty('display', 'none');
     const input = document.getElementById('groupChatNameInput');
+    const noticeInput = document.getElementById('groupChatNoticeInput');
+    const searchInput = document.getElementById('groupChatMemberSearchInput');
     if (input) input.value = '';
+    if (noticeInput) noticeInput.value = '';
+    if (searchInput) searchInput.value = '';
     groupChatDraftSelection = [];
     groupChatDraftAvatarDataUrl = '';
+    groupChatDraftNotice = '';
+    groupChatDraftPinned = false;
+    groupChatDraftMuted = false;
+    groupChatMemberSearch = '';
     groupChatModalMode = 'create';
     editingGroupChatId = null;
     renderGroupChatModalAvatar();
@@ -415,17 +583,23 @@ function closeGroupChatModal() {
 
 function createGroupChat() {
     const input = document.getElementById('groupChatNameInput');
+    const noticeInput = document.getElementById('groupChatNoticeInput');
     if (groupChatDraftSelection.length < 2) {
         updateGroupChatModalState();
         return;
     }
     const name = (input?.value || '').trim() || getDefaultGroupChatName(groupChatDraftSelection);
+    const notice = (noticeInput?.value || groupChatDraftNotice || '').trim();
     if (groupChatModalMode === 'edit' && editingGroupChatId) {
         const target = getGroupChatById(editingGroupChatId);
         if (!target) return;
         target.name = name;
         target.memberIds = [...groupChatDraftSelection];
         target.avatarDataUrl = groupChatDraftAvatarDataUrl || '';
+        target.notice = notice;
+        target.pinned = groupChatDraftPinned;
+        target.muted = groupChatDraftMuted;
+        target.updatedAt = new Date().toISOString();
         saveGroupChats();
         delete chatHistories[target.id];
         initGroupChatHistory(target);
@@ -444,7 +618,11 @@ function createGroupChat() {
         name,
         memberIds: [...groupChatDraftSelection],
         avatarDataUrl: groupChatDraftAvatarDataUrl || '',
-        createdAt: new Date().toISOString()
+        notice,
+        pinned: groupChatDraftPinned,
+        muted: groupChatDraftMuted,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
     };
     groupChats = [group, ...(groupChats || [])];
     saveGroupChats();
@@ -456,13 +634,21 @@ function createGroupChat() {
 function openEditGroupChatModal(groupId) {
     const group = getGroupChatById(groupId);
     const input = document.getElementById('groupChatNameInput');
+    const noticeInput = document.getElementById('groupChatNoticeInput');
+    const searchInput = document.getElementById('groupChatMemberSearchInput');
     const modal = document.getElementById('groupChatModal');
     if (!group || !input || !modal) return;
     groupChatModalMode = 'edit';
     editingGroupChatId = groupId;
     groupChatDraftSelection = [...(group.memberIds || [])];
     groupChatDraftAvatarDataUrl = group.avatarDataUrl || '';
+    groupChatDraftNotice = group.notice || '';
+    groupChatDraftPinned = Boolean(group.pinned);
+    groupChatDraftMuted = Boolean(group.muted);
+    groupChatMemberSearch = '';
     input.value = group.name || '';
+    if (noticeInput) noticeInput.value = groupChatDraftNotice;
+    if (searchInput) searchInput.value = '';
     renderGroupChatMemberPicker();
     updateGroupChatModalState();
     modal.style.display = 'flex';
@@ -489,6 +675,8 @@ window.createGroupChat = createGroupChat;
 window.updateGroupChatModalState = updateGroupChatModalState;
 window.openEditGroupChatModal = openEditGroupChatModal;
 window.deleteGroupChat = deleteGroupChat;
+window.renderGroupChatMemberPicker = renderGroupChatMemberPicker;
+window.toggleGroupChatSetting = toggleGroupChatSetting;
 
 function renderGroupChatSection(container) {
     const section = document.createElement('div');
@@ -509,20 +697,138 @@ function renderGroupChatSection(container) {
         body.innerHTML = '<div class="group-chat-empty">还没有群聊，点右上角的 ＋ 新建一个小群。</div>';
         return;
     }
-    (groupChats || []).forEach(group => {
+    [...(groupChats || [])]
+        .map(group => ensureGroupChatDefaults(group))
+        .sort((a, b) => Number(Boolean(b?.pinned)) - Number(Boolean(a?.pinned)) || new Date(b?.updatedAt || 0).getTime() - new Date(a?.updatedAt || 0).getTime())
+        .forEach(group => {
+        const members = getGroupChatMembers(group);
+        const preview = getGroupChatPreview(group);
         const card = document.createElement('div');
         card.className = `driver-card group-chat-card${currentChatDriver?.id === group.id ? ' active' : ''}`;
         card.innerHTML = `
-            <div class="group-chat-avatar" data-group-chat-avatar="${escapeHtml(group.id)}">${escapeHtml(buildGroupAvatarLabel(group))}</div>
-            <div class="driver-info group-chat-card-copy">
-                <div class="driver-name">${escapeHtml(group.name)}</div>
+            <div class="group-chat-avatar-cluster">
+                <div class="group-chat-avatar" data-group-chat-avatar="${escapeHtml(group.id)}">${escapeHtml(buildGroupAvatarLabel(group))}</div>
             </div>
+            <div class="driver-info group-chat-card-copy">
+                <div class="group-chat-card-topline">
+                    <div class="driver-name">${escapeHtml(group.name)}</div>
+                    <div class="group-chat-card-badges">
+                        ${group.pinned ? '<span class="group-chat-pill">置顶</span>' : ''}
+                        ${group.muted ? '<span class="group-chat-pill group-chat-pill-muted">免打扰</span>' : ''}
+                    </div>
+                </div>
+                <div class="group-chat-card-meta">${members.length} 人 · ${escapeHtml(preview.source)} 刚刚说过</div>
+                <div class="chat-preview">${escapeHtml(preview.text || '点击开始群聊')}</div>
+            </div>
+            <button type="button" class="group-chat-card-settings" data-group-settings="${escapeHtml(group.id)}">···</button>
         `;
         card.addEventListener('click', () => openChat(group));
         const avatar = card.querySelector('[data-group-chat-avatar]');
         if (avatar) renderGroupChatAvatarOnElement(avatar, group.id, '40px');
+        card.querySelector('[data-group-settings]')?.addEventListener('click', event => {
+            event.stopPropagation();
+            openEditGroupChatModal(group.id);
+        });
         body.appendChild(card);
     });
+}
+
+function buildDriverListCard(driver) {
+    const history = chatHistories[driver.id] || [];
+    const lastMsg = [...history].reverse().find(item => item.role === 'assistant');
+    const cleanedPreview = lastMsg ? stripChatStageDirections(lastMsg.content) : '';
+    const preview = cleanedPreview ? `${cleanedPreview.slice(0, 35)}${cleanedPreview.length > 35 ? '...' : ''}` : '点击开始对话';
+    const card = document.createElement('div');
+    card.className = `driver-card${currentChatDriver?.id === driver.id ? ' active' : ''}`;
+    const avatarWrapper = document.createElement('div');
+    avatarWrapper.className = 'avatar-wrapper';
+    const avatar = document.createElement('div');
+    avatar.className = 'driver-avatar';
+    renderAvatarOnElement(avatar, driver.id);
+    const changeBtn = document.createElement('div');
+    changeBtn.className = 'change-avatar-btn';
+    changeBtn.innerText = '＋';
+    changeBtn.addEventListener('click', event => {
+        event.stopPropagation();
+        openAvatarUpload(driver.id);
+    });
+    avatarWrapper.appendChild(avatar);
+    avatarWrapper.appendChild(changeBtn);
+    const info = document.createElement('div');
+    info.className = 'driver-info';
+    info.innerHTML = `<div class="driver-name">${driver.name}</div><div class="driver-team">${driver.team}</div><div class="chat-preview">${escapeHtml(preview)}</div>`;
+    const right = document.createElement('div');
+    right.className = 'driver-right';
+    const pinBtn = document.createElement('button');
+    pinBtn.className = `star-btn ${isPinned(driver.id) ? 'pinned' : ''}`;
+    pinBtn.innerText = isPinned(driver.id) ? '★' : '☆';
+    pinBtn.title = isPinned(driver.id) ? '取消置顶' : '置顶';
+    pinBtn.addEventListener('click', event => {
+        event.stopPropagation();
+        togglePinDriver(driver.id);
+    });
+    const favorSpan = document.createElement('div');
+    favorSpan.className = 'favor-preview';
+    favorSpan.innerText = `♥ ${favorability[driver.id] || 0}`;
+    right.appendChild(pinBtn);
+    right.appendChild(favorSpan);
+    info.appendChild(right);
+    card.appendChild(avatarWrapper);
+    card.appendChild(info);
+    card.addEventListener('click', () => openChat(driver));
+    return card;
+}
+
+function renderPinnedContactsSection(container) {
+    const pinnedContacts = (window.DRIVERS || [])
+        .filter(driver => isPinned(driver.id))
+        .sort((a, b) => a.name.localeCompare(b.name));
+    const section = document.createElement('div');
+    section.className = 'group-chat-section pinned-contact-section';
+    section.innerHTML = `
+        <div class="group-chat-section-head pinned-contact-head">
+            <div class="group-chat-toggle static">★ 置顶联系人</div>
+            <div class="pinned-contact-count">${pinnedContacts.length} 位</div>
+        </div>
+        <div class="group-chat-section-body"></div>
+    `;
+    const body = section.querySelector('.group-chat-section-body');
+    if (body) {
+        if (!pinnedContacts.length) {
+            body.innerHTML = '<div class="group-chat-empty">把常聊的车手点成星标，他们就会固定出现在这里。</div>';
+        } else {
+            pinnedContacts.forEach(driver => body.appendChild(buildDriverListCard(driver)));
+        }
+    }
+    container.appendChild(section);
+}
+
+function renderTeamSection(container, team, drivers) {
+    const collapsed = Boolean(teamSectionsCollapsed?.[team]);
+    const groupDiv = document.createElement('div');
+    groupDiv.className = 'team-group';
+    groupDiv.innerHTML = `
+        <div class="group-chat-section-head team-section-head">
+            <button type="button" class="group-chat-toggle" data-team-toggle="${escapeHtml(team)}">${collapsed ? '▸' : '▾'} ${escapeHtml(team)}</button>
+            <div class="team-section-count">${drivers.length} 位</div>
+        </div>
+        <div class="team-section-body${collapsed ? ' collapsed' : ''}" data-team-body="${escapeHtml(team)}"></div>
+    `;
+    const headerBtn = groupDiv.querySelector('[data-team-toggle]');
+    headerBtn?.addEventListener('click', () => toggleTeamSectionCollapsed(team));
+    const body = groupDiv.querySelector('[data-team-body]');
+    if (!body || collapsed) {
+        container.appendChild(groupDiv);
+        return;
+    }
+    drivers
+        .filter(driver => !isPinned(driver.id))
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .forEach(driver => body.appendChild(buildDriverListCard(driver)));
+    if (!body.childElementCount) {
+        body.innerHTML = '<div class="group-chat-empty">这一组的联系人都已经被你置顶到上面了。</div>';
+    }
+    container.appendChild(groupDiv);
 }
 
 let activeMessageMenuKey = null;
@@ -905,21 +1211,147 @@ function renderChatMessages(driverId) {
     updateTokenDisplay(history);
 }
 
-function localFavorJudgment(message) {
-    const lower = String(message || '').toLowerCase();
-    const positives = ['加油', '支持', '棒', '厉害', '相信', '喜欢', '爱', '谢谢', '感谢', '冠军', '胜利'];
-    let score = positives.reduce((sum, item) => sum + (lower.includes(item) ? 1 : 0), 0);
-    if (lower.includes('你好') || lower.includes('嗨')) score += 1;
-    return Math.min(3, score);
+const FAVOR_TOPIC_LIBRARY = [
+    {
+        id: 'technical',
+        profileCues: ['模拟器', '数据', '工程', '技术', '驾驶输入', '圈速', '刹车', '抓地', '车感', '轮胎', '策略', '排位', '赛道', '录像', '开发', '可靠性', '分析'],
+        keywords: ['技术', '数据', '工程', '调校', '设定', '圈速', '单圈', '刹车', '前轴', '转向', '抓地', '车感', '轮胎', '进站', '策略', '排位', '节奏', '长距离', '下压力', '空力', '模拟器', 'sim', '录像', '防守', '超车', '车尾', '开发', '可靠性', '输入']
+    },
+    {
+        id: 'lifestyle',
+        profileCues: ['时尚', '音乐', '钢琴', '生活', '文化', '摄影', '环保', '平权', '慈善', '咖啡', '美食', '旅行', '户外', '冲浪', '露营', '葡萄酒'],
+        keywords: ['时尚', '穿搭', 'look', '音乐', '歌单', '钢琴', '艺术', '设计', '环保', '平权', '慈善', '文化', '摄影', '拍照', '咖啡', '美食', '吃的', '旅行', '假期', '冲浪', '露营', '葡萄酒', '红酒']
+    },
+    {
+        id: 'fitness',
+        profileCues: ['训练', '身心状态', '压力管理', '心态', '耐力', '抗压', '恢复', '成长', '证明自己', '学习'],
+        keywords: ['训练', '健身', '体能', '恢复', '状态', '心态', '专注', '压力', '耐力', '自律', '睡眠', '饮食', '成长', '进步', '学习', '目标', '自信']
+    },
+    {
+        id: 'social',
+        profileCues: ['家庭', '家人', '朋友', '团队相处', '团队建设', '车迷互动', '围场人情', '私人空间'],
+        keywords: ['家人', '家庭', '朋友', '队友', '团队', '相处', '陪伴', '车迷', '粉丝', '互动', '默契', '氛围']
+    },
+    {
+        id: 'sports',
+        profileCues: ['足球', '网球', '冰球', '游戏', '电竞', '骑行', '自行车', '山地', '耐力赛'],
+        keywords: ['足球', '网球', '冰球', '游戏', '电竞', '骑行', '自行车', '山地', '耐力赛', '球赛']
+    },
+    {
+        id: 'battle',
+        profileCues: ['wheel-to-wheel', '位置战', '临场判断', '比赛阅读', '长线判断', '逆风生存', '比赛控制', '极限', '求生'],
+        keywords: ['缠斗', '攻防', '位置战', '防守', '超车', '轮对轮', 'wheel to wheel', 'wheel-to-wheel', '临场', '判断', '求生', '逆风', '比赛阅读', '控制比赛', '极限']
+    }
+];
+
+const FAVOR_GENERIC_POSITIVES = ['加油', '支持', '棒', '厉害', '相信', '喜欢', '爱', '谢谢', '感谢', '冠军', '胜利', '帅', '牛'];
+
+const DRIVER_FAVOR_TOPIC_WEIGHTS = {
+    nor: { favorite: ['technical', 'sports', 'social'], casual: ['battle', 'fitness'], off: ['lifestyle'] },
+    pia: { favorite: ['technical', 'fitness'], casual: ['social'], off: ['lifestyle', 'sports'] },
+    lec: { favorite: ['lifestyle', 'technical'], casual: ['fitness', 'social'], off: ['sports'] },
+    ham: { favorite: ['lifestyle', 'fitness'], casual: ['technical', 'social'], off: ['sports'] },
+    rus: { favorite: ['technical', 'fitness'], casual: ['battle', 'lifestyle'], off: ['sports'] },
+    ant: { favorite: ['technical', 'fitness'], casual: ['social', 'lifestyle'], off: ['battle'] },
+    ver: { favorite: ['technical', 'battle'], casual: ['sports', 'social'], off: ['lifestyle'] },
+    hadjar: { favorite: ['battle', 'fitness'], casual: ['technical', 'social'], off: ['lifestyle'] },
+    alo: { favorite: ['battle', 'technical'], casual: ['lifestyle', 'fitness'], off: ['sports'] },
+    str: { favorite: ['battle', 'technical'], casual: ['sports', 'social'], off: ['lifestyle'] },
+    alb: { favorite: ['social', 'lifestyle'], casual: ['technical', 'sports'], off: ['battle'] },
+    sai: { favorite: ['technical', 'lifestyle'], casual: ['fitness', 'social'], off: ['battle'] },
+    gas: { favorite: ['social', 'fitness'], casual: ['lifestyle', 'battle'], off: ['sports'] },
+    col: { favorite: ['social', 'sports'], casual: ['battle', 'fitness'], off: ['lifestyle'] },
+    oco: { favorite: ['fitness', 'battle'], casual: ['technical', 'social'], off: ['lifestyle'] },
+    bea: { favorite: ['technical', 'fitness'], casual: ['lifestyle', 'social'], off: ['battle'] },
+    hul: { favorite: ['technical', 'lifestyle'], casual: ['social', 'fitness'], off: ['battle'] },
+    bor: { favorite: ['sports', 'social'], casual: ['fitness', 'technical'], off: ['battle'] },
+    law: { favorite: ['battle', 'lifestyle'], casual: ['technical', 'fitness'], off: ['social'] },
+    lin: { favorite: ['technical', 'sports'], casual: ['lifestyle', 'fitness'], off: ['social'] },
+    per: { favorite: ['social', 'lifestyle'], casual: ['technical', 'battle'], off: ['sports'] },
+    bot: { favorite: ['lifestyle', 'technical'], casual: ['fitness', 'social'], off: ['battle'] }
+};
+
+function normalizeFavorText(text) {
+    return String(text || '').trim().toLowerCase();
+}
+
+function countContainedKeywords(text, keywords = []) {
+    return keywords.reduce((sum, keyword) => sum + (text.includes(keyword) ? 1 : 0), 0);
+}
+
+function getDriverFavorTopics(driver) {
+    const explicitWeights = DRIVER_FAVOR_TOPIC_WEIGHTS[driver?.id];
+    if (explicitWeights) {
+        return FAVOR_TOPIC_LIBRARY
+            .map(topic => {
+                if (explicitWeights.favorite.includes(topic.id)) return { ...topic, affinity: 3 };
+                if (explicitWeights.casual.includes(topic.id)) return { ...topic, affinity: 2 };
+                if (explicitWeights.off.includes(topic.id)) return { ...topic, affinity: 0 };
+                return null;
+            })
+            .filter(Boolean)
+            .sort((a, b) => b.affinity - a.affinity);
+    }
+    const personality = window.DRIVER_PERSONALITIES?.[driver?.id];
+    const profileText = normalizeFavorText(`${personality?.interests || ''} ${personality?.expertise || ''} ${personality?.ruleView || ''}`);
+    const topics = FAVOR_TOPIC_LIBRARY
+        .map(topic => {
+            const affinity = countContainedKeywords(profileText, topic.profileCues);
+            return affinity > 0 ? { ...topic, affinity } : null;
+        })
+        .filter(Boolean)
+        .sort((a, b) => b.affinity - a.affinity);
+    return topics.length ? topics : FAVOR_TOPIC_LIBRARY.slice(0, 1).map(topic => ({ ...topic, affinity: 1 }));
+}
+
+function localFavorJudgment(driver, message) {
+    const lower = normalizeFavorText(message);
+    if (!lower) return 0;
+
+    const preferedTopics = getDriverFavorTopics(driver);
+    const isThoughtfulPrompt = ['？', '?', '怎么看', '为什么', '会不会', '你觉得', '想不想', '最喜欢', '更在意'].some(item => lower.includes(item));
+    const praiseHits = countContainedKeywords(lower, FAVOR_GENERIC_POSITIVES);
+    let bestScore = 0;
+
+    preferedTopics.forEach(topic => {
+        if (topic.affinity <= 0) return;
+        const topicHits = countContainedKeywords(lower, topic.keywords);
+        if (!topicHits) return;
+
+        let score = topic.affinity >= 3 ? 2 : 1;
+        if (topicHits >= 2) score += 1;
+        if (isThoughtfulPrompt) score += 1;
+        if (praiseHits && score < 3) score += 1;
+        bestScore = Math.max(bestScore, Math.min(3, score));
+    });
+
+    return bestScore;
 }
 
 function pickGroupReplyMembers(group, userText) {
     const members = getGroupChatMembers(group);
     if (!members.length) return [];
     const text = String(userText || '').trim();
+    const lower = normalizeFavorText(text);
     const mentionedMembers = members.filter(member => text.includes(member.name));
-    if (mentionedMembers.length) return mentionedMembers;
-    return [members[Math.floor(Math.random() * members.length)]];
+    if (mentionedMembers.length) return mentionedMembers.slice(0, 3);
+
+    const ranked = members
+        .map(member => {
+            let score = localFavorJudgment(member, userText);
+            const memberFavor = favorability[member.id] || 0;
+            if (memberFavor >= 75) score += 2;
+            else if (memberFavor >= 40) score += 1;
+            if (lower.includes(member.team.toLowerCase())) score += 1;
+            if (['你们', '大家', '群里', '都', '一起'].some(keyword => lower.includes(keyword))) score += 0.5;
+            return { member, score };
+        })
+        .sort((a, b) => b.score - a.score || Math.random() - 0.5);
+
+    const topScore = ranked[0]?.score || 0;
+    if (topScore <= 0) return [ranked[0]?.member || members[Math.floor(Math.random() * members.length)]].filter(Boolean);
+    const replyCount = ranked[1]?.score >= Math.max(2, topScore - 1) ? 2 : 1;
+    return ranked.slice(0, replyCount).map(item => item.member);
 }
 
 function generateLocalReply(driver, msg, options = {}) {
@@ -973,11 +1405,12 @@ async function getGroupReply(group, userText) {
         const text = String(userText || '').trim();
         const pickedNames = pickedMembers.map(driver => driver.name).join('、');
         const mentionRule = text && pickedMembers.length && pickedMembers.every(driver => text.includes(driver.name))
-            ? `用户这次明确提到了：${pickedNames}。这次只让这些被点到的车手回复。`
-            : '用户这次没有明确点名，请只随机让 1 位最合适的车手回复。';
+            ? `用户这次明确提到了：${pickedNames}。这次优先只让这些被点到的车手回复。`
+            : `这次最可能接话的车手是：${pickedNames || '群里某位成员'}。优先让 1 到 2 位最合适的人回复，不要强行平均分配。`;
+        const noticePrompt = group.notice ? `\n【群公告】${group.notice}` : '';
         const systemMsg = {
             role: 'system',
-            content: `今天是${getCurrentDateInfo()}。你正在一个围场群聊里回复用户，群名：${group.name}。群成员：${memberSummary}。\n【群聊输出规则】\n- 默认只输出 1 行，也就是只让 1 位车手回复。\n- 只有当用户明确提到某位或某几位车手名字时，才让对应被点到的车手回复。\n- 每一行必须以“车手名：内容”的格式输出。\n- 不要让所有成员强行都说话，也不要输出解释、旁白或括号动作。\n- 群聊记忆和用户全局资料共通，回复时可以参考各成员已有记忆。\n- ${mentionRule}\n${getUserProfilePriorityPrompt()}\n${personalitySummary}\n${getGroupChatSharedMemoryContext(group.memberIds)}`
+            content: `今天是${getCurrentDateInfo()}。你正在一个围场群聊里回复用户，群名：${group.name}。群成员：${memberSummary}。${noticePrompt}\n【群聊输出规则】\n- 默认输出 1 到 2 行，只有真的有必要时才到 3 行。\n- 如果用户明确点了名字，就优先让被点到的车手接话。\n- 如果没人被点名，就由最可能对这个话题有兴趣、和用户更熟、或者此刻最自然会插话的人回复。\n- 每一行必须以“车手名：内容”的格式输出。\n- 不要让所有成员强行都说话，也不要输出解释、旁白或括号动作。\n- 群聊记忆和用户全局资料共通，回复时可以参考各成员已有记忆。\n- ${mentionRule}\n${getUserProfilePriorityPrompt()}\n${personalitySummary}\n${getGroupChatSharedMemoryContext(group.memberIds)}`
         };
         const response = await fetch(`${apiConfig.url.replace(/\/$/, '')}/chat/completions`, {
             method: 'POST',
@@ -1003,7 +1436,7 @@ async function getGroupReply(group, userText) {
 async function getDriverReplyWithFavor(driver, userMessage, options = {}) {
     const giftContext = options.giftContext || null;
     const historyOverride = Array.isArray(options.historyOverride) ? options.historyOverride : null;
-    const baseInc = giftContext ? 0 : localFavorJudgment(userMessage);
+    const baseInc = giftContext ? 0 : localFavorJudgment(driver, userMessage);
     if (!useAI || !apiConfig.key || !apiConfig.url || !apiConfig.model) {
         return { reply: generateLocalReply(driver, userMessage, options), inc: baseInc };
     }
@@ -1081,6 +1514,7 @@ async function sendMessageToGroup(group, userText, options = {}) {
             dateKey: getLocalDateKey(),
             meta: options.messageMeta || null
         });
+        touchGroupChatActivity(group.id);
         saveChatHistories();
         renderChatMessages(group.id);
         const { reply } = await getGroupReply(group, userText);
@@ -1092,6 +1526,7 @@ async function sendMessageToGroup(group, userText, options = {}) {
             meta: { type: 'group-reply', memberIds: group.memberIds || [] }
         });
         trimChatHistory(group.id);
+        touchGroupChatActivity(group.id);
         saveChatHistories();
         renderChatMessages(group.id);
         renderDriverList();
@@ -1200,62 +1635,10 @@ function renderDriverList() {
     const teamOrder = ['法拉利', '梅赛德斯', '迈凯伦', '红牛', '阿斯顿马丁', '威廉姆斯', 'Alpine', '哈斯', '奥迪', 'Racing Bulls', '凯迪拉克'];
     container.innerHTML = '';
     renderGroupChatSection(container);
+    renderPinnedContactsSection(container);
     teamOrder.forEach(team => {
         if (!groups[team]?.length) return;
-        const groupDiv = document.createElement('div');
-        groupDiv.className = 'team-group';
-        const header = document.createElement('div');
-        header.className = 'team-header';
-        header.innerText = team;
-        groupDiv.appendChild(header);
-        groups[team]
-            .sort((a, b) => Number(isPinned(b.id)) - Number(isPinned(a.id)) || a.name.localeCompare(b.name))
-            .forEach(driver => {
-                const history = chatHistories[driver.id] || [];
-                const lastMsg = [...history].reverse().find(item => item.role === 'assistant');
-                const cleanedPreview = lastMsg ? stripChatStageDirections(lastMsg.content) : '';
-                const preview = cleanedPreview ? `${cleanedPreview.slice(0, 35)}${cleanedPreview.length > 35 ? '...' : ''}` : '点击开始对话';
-                const card = document.createElement('div');
-                card.className = `driver-card${currentChatDriver?.id === driver.id ? ' active' : ''}`;
-                const avatarWrapper = document.createElement('div');
-                avatarWrapper.className = 'avatar-wrapper';
-                const avatar = document.createElement('div');
-                avatar.className = 'driver-avatar';
-                renderAvatarOnElement(avatar, driver.id);
-                const changeBtn = document.createElement('div');
-                changeBtn.className = 'change-avatar-btn';
-                changeBtn.innerText = '＋';
-                changeBtn.addEventListener('click', event => {
-                    event.stopPropagation();
-                    openAvatarUpload(driver.id);
-                });
-                avatarWrapper.appendChild(avatar);
-                avatarWrapper.appendChild(changeBtn);
-                const info = document.createElement('div');
-                info.className = 'driver-info';
-                info.innerHTML = `<div class="driver-name">${driver.name}</div><div class="driver-team">${driver.team}</div><div class="chat-preview">${escapeHtml(preview)}</div>`;
-                const right = document.createElement('div');
-                right.className = 'driver-right';
-                const pinBtn = document.createElement('button');
-                pinBtn.className = `star-btn ${isPinned(driver.id) ? 'pinned' : ''}`;
-                pinBtn.innerText = isPinned(driver.id) ? '★' : '☆';
-                pinBtn.title = isPinned(driver.id) ? '取消置顶' : '置顶';
-                pinBtn.addEventListener('click', event => {
-                    event.stopPropagation();
-                    togglePinDriver(driver.id);
-                });
-                const favorSpan = document.createElement('div');
-                favorSpan.className = 'favor-preview';
-                favorSpan.innerText = `♥ ${favorability[driver.id] || 0}`;
-                right.appendChild(pinBtn);
-                right.appendChild(favorSpan);
-                info.appendChild(right);
-                card.appendChild(avatarWrapper);
-                card.appendChild(info);
-                card.addEventListener('click', () => openChat(driver));
-                groupDiv.appendChild(card);
-            });
-        container.appendChild(groupDiv);
+        renderTeamSection(container, team, groups[team]);
     });
 }
 

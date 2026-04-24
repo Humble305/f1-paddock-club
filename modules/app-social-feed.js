@@ -334,7 +334,11 @@ async function hydratePostCircleMeta(post, index = 0) {
                 };
             })
         );
-        post.circleMeta.autoComments = autoComments.filter(Boolean).slice(0, authorDriver ? 2 : 1);
+        const favoredCommentCount = authorDriver
+            ? 0
+            : (post.circleMeta.commentDriverIds || []).filter(driverId => (favorability?.[driverId] || 0) >= 65).length;
+        const commentLimit = authorDriver ? 2 : Math.max(2, favoredCommentCount || 0, 3);
+        post.circleMeta.autoComments = autoComments.filter(Boolean).slice(0, commentLimit);
         post.circleMeta.hydrated = true;
     } finally {
         post.circleMeta.loading = false;
@@ -856,6 +860,8 @@ function renderStandings() {
 const MEDIA_NEWS_FEEDS = [
     { source: 'Crash.net', sourceIcon: 'CR', feedUrl: 'https://www.crash.net/rss/f1', kind: 'rss' },
     { source: 'Motorsport.com', sourceIcon: 'MS', feedUrl: 'https://www.motorsport.com/rss/f1/news/', kind: 'rss' },
+    { source: '每日赛车', sourceIcon: '赛', feedUrl: 'https://news.google.com/rss/search?q=F1+(site:romielf.com)&hl=zh-CN&gl=CN&ceid=CN:zh-Hans', kind: 'rss' },
+    { source: '腾讯体育 F1', sourceIcon: '腾', feedUrl: 'https://news.google.com/rss/search?q=F1+(site:sports.qq.com+OR+site:new.qq.com)&hl=zh-CN&gl=CN&ceid=CN:zh-Hans', kind: 'rss' },
     { source: 'Google News F1', sourceIcon: 'GN', feedUrl: 'https://news.google.com/rss/search?q=Formula+1+OR+F1&hl=en-US&gl=US&ceid=US:en', kind: 'rss' },
     { source: 'Google News 中文F1', sourceIcon: '中', feedUrl: 'https://news.google.com/rss/search?q=F1+%E8%B5%9B%E8%BD%A6+OR+F1+%E5%A4%A7%E5%A5%96%E8%B5%9B&hl=zh-CN&gl=CN&ceid=CN:zh-Hans', kind: 'rss' },
     { source: 'Google News 国内报道', sourceIcon: 'CN', feedUrl: 'https://news.google.com/rss/search?q=F1+(site:thepaper.cn+OR+site:xinhuanet.com+OR+site:sina.com.cn+OR+site:163.com+OR+site:people.com.cn)&hl=zh-CN&gl=CN&ceid=CN:zh-Hans', kind: 'rss' }
@@ -922,8 +928,8 @@ function getMediaKeywordOptions() {
 function detectMediaRegion(news) {
     const source = String(news?.source || '');
     const url = String(news?.url || '');
-    if (/thepaper\.cn|xinhuanet\.com|sina\.com\.cn|163\.com|people\.com\.cn/i.test(url)) return 'cn';
-    if (/Google News 中文F1|Google News 国内报道|中文|国内|澎湃|新华社|新浪|网易|人民网/u.test(source)) return 'cn';
+    if (/thepaper\.cn|xinhuanet\.com|sina\.com\.cn|163\.com|people\.com\.cn|romielf\.com|sports\.qq\.com|new\.qq\.com/i.test(url)) return 'cn';
+    if (/Google News 中文F1|Google News 国内报道|中文|国内|澎湃|新华社|新浪|网易|人民网|每日赛车|腾讯体育/u.test(source)) return 'cn';
     return 'en';
 }
 

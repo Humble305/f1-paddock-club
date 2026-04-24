@@ -41,6 +41,7 @@ let currentTheme = null;
 let chatViewMode = 'mobile';
 let groupChats = [];
 let groupChatsCollapsed = false;
+let teamSectionsCollapsed = {};
 
 const F1_THEMES = {
     ferrari: { id: 'ferrari', name: '法拉利', primary: '#D92E2B', dark: '#8F1412', accent: '#F5C542', phoneBg: '#13090A', text: '#FFF8F5' },

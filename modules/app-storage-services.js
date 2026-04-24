@@ -388,6 +388,14 @@ function loadGroupChatUiState() {
     groupChatsCollapsed = Boolean(secureStorageGet('f1_group_chats_collapsed', groupChatsCollapsed));
 }
 
+function saveTeamSectionUiState() {
+    secureStorageSet('f1_team_sections_collapsed', teamSectionsCollapsed);
+}
+
+function loadTeamSectionUiState() {
+    teamSectionsCollapsed = secureStorageGet('f1_team_sections_collapsed', teamSectionsCollapsed) || {};
+}
+
 function addFavorability(driverId, inc) {
     const oldValue = favorability[driverId] || 0;
     const nextValue = Math.min(100, oldValue + inc);

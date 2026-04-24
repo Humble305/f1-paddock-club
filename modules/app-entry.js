@@ -237,11 +237,24 @@ function bindEvents() {
     document.getElementById('groupChatNameInput')?.addEventListener('input', () => {
         if (typeof updateGroupChatModalState === 'function') updateGroupChatModalState();
     });
+    document.getElementById('groupChatNoticeInput')?.addEventListener('input', event => {
+        groupChatDraftNotice = event.target.value || '';
+    });
+    document.getElementById('groupChatMemberSearchInput')?.addEventListener('input', event => {
+        groupChatMemberSearch = event.target.value || '';
+        if (typeof renderGroupChatMemberPicker === 'function') renderGroupChatMemberPicker();
+    });
     document.getElementById('groupChatAvatarBtn')?.addEventListener('click', () => {
         if (typeof openGroupChatAvatarUpload === 'function') openGroupChatAvatarUpload(editingGroupChatId);
     });
     document.getElementById('resetGroupChatAvatarBtn')?.addEventListener('click', () => {
         if (typeof resetGroupChatAvatar === 'function') resetGroupChatAvatar(editingGroupChatId);
+    });
+    document.getElementById('groupChatPinToggleBtn')?.addEventListener('click', () => {
+        if (typeof toggleGroupChatSetting === 'function') toggleGroupChatSetting('pinned');
+    });
+    document.getElementById('groupChatMuteToggleBtn')?.addEventListener('click', () => {
+        if (typeof toggleGroupChatSetting === 'function') toggleGroupChatSetting('muted');
     });
     document.getElementById('closeDiaryModalBtn')?.addEventListener('click', closeDiaryModal);
     document.getElementById('saveDiaryBtn')?.addEventListener('click', saveDiaryEntry);
@@ -308,6 +321,7 @@ function init() {
     loadChatHistories();
     loadGroupChats();
     loadGroupChatUiState();
+    loadTeamSectionUiState();
     loadUserProfile();
     loadApiConfig();
     loadPinnedDrivers();
