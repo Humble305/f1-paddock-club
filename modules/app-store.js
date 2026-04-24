@@ -30,18 +30,18 @@ function getGiftInventoryCount(giftId) {
 }
 
 function saveGiftStoreState() {
-    localStorage.setItem('f1_gift_inventory', JSON.stringify(giftInventory));
-    localStorage.setItem('f1_gift_history', JSON.stringify(giftHistory));
+    secureStorageSet('f1_gift_inventory', giftInventory);
+    secureStorageSet('f1_gift_history', giftHistory);
 }
 
 function loadGiftStoreState() {
     try {
-        giftInventory = JSON.parse(localStorage.getItem('f1_gift_inventory') || '{}') || {};
+        giftInventory = secureStorageGet('f1_gift_inventory', {}) || {};
     } catch (_) {
         giftInventory = {};
     }
     try {
-        giftHistory = JSON.parse(localStorage.getItem('f1_gift_history') || '[]') || [];
+        giftHistory = secureStorageGet('f1_gift_history', []) || [];
     } catch (_) {
         giftHistory = [];
     }

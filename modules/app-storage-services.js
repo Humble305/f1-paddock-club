@@ -1,17 +1,123 @@
 // 本地存储、签到、头像、关系记忆与 API 辅助
 
-function loadSignData() {
-    const savedCoins = localStorage.getItem('f1_user_coins');
-    userCoins = savedCoins !== null && !Number.isNaN(Number(savedCoins)) ? Number(savedCoins) : 100;
-    const savedSign = localStorage.getItem('f1_sign_data');
-    if (savedSign) {
-        try { signData = JSON.parse(savedSign); } catch (_) {}
+const SAVE_SECURITY_SECRET = 'f1-paddock-club::save-shield::2026';
+const SAVE_SECURITY_VERSION = 1;
+
+function hashSecureText(text) {
+    const source = `${SAVE_SECURITY_SECRET}::${String(text || '')}`;
+    let hash = 2166136261;
+    for (let index = 0; index < source.length; index += 1) {
+        hash ^= source.charCodeAt(index);
+        hash = Math.imul(hash, 16777619);
+    }
+    return (hash >>> 0).toString(16).padStart(8, '0');
+}
+
+function bytesToBase64(bytes) {
+    let binary = '';
+    bytes.forEach(byte => {
+        binary += String.fromCharCode(byte);
+    });
+    return btoa(binary);
+}
+
+function base64ToBytes(base64) {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) {
+        bytes[index] = binary.charCodeAt(index);
+    }
+    return bytes;
+}
+
+function xorBytes(bytes, keyText) {
+    const keyBytes = new TextEncoder().encode(keyText);
+    return bytes.map((byte, index) => byte ^ keyBytes[index % keyBytes.length]);
+}
+
+function encryptSecureString(text) {
+    const sourceBytes = new TextEncoder().encode(String(text || ''));
+    return bytesToBase64(xorBytes(sourceBytes, SAVE_SECURITY_SECRET));
+}
+
+function decryptSecureString(cipherText) {
+    const cipherBytes = base64ToBytes(String(cipherText || ''));
+    const plainBytes = xorBytes(cipherBytes, SAVE_SECURITY_SECRET);
+    return new TextDecoder().decode(plainBytes);
+}
+
+function encodeSecureEnvelope(value, kind = 'storage') {
+    const plainText = JSON.stringify(value);
+    const cipherText = encryptSecureString(plainText);
+    return JSON.stringify({
+        v: SAVE_SECURITY_VERSION,
+        kind,
+        data: cipherText,
+        sig: hashSecureText(cipherText)
+    });
+}
+
+function decodeLegacyStorageValue(rawValue, fallbackValue) {
+    if (rawValue === null || rawValue === undefined || rawValue === '') return fallbackValue;
+    try {
+        return JSON.parse(rawValue);
+    } catch (_) {
+        if (typeof fallbackValue === 'number') {
+            const numeric = Number(rawValue);
+            return Number.isNaN(numeric) ? fallbackValue : numeric;
+        }
+        if (typeof fallbackValue === 'boolean') return rawValue === '1' || rawValue === 'true';
+        return rawValue;
     }
 }
 
+function decodeSecureEnvelope(rawValue, fallbackValue) {
+    if (!rawValue) return fallbackValue;
+    let parsed;
+    try {
+        parsed = JSON.parse(rawValue);
+    } catch (_) {
+        return decodeLegacyStorageValue(rawValue, fallbackValue);
+    }
+    if (!parsed || typeof parsed !== 'object' || !parsed.data || !parsed.sig) return parsed ?? fallbackValue;
+    if (parsed.sig !== hashSecureText(parsed.data)) {
+        console.warn('检测到本地存档校验失败，已忽略被修改的数据。');
+        return fallbackValue;
+    }
+    try {
+        return JSON.parse(decryptSecureString(parsed.data));
+    } catch (error) {
+        console.warn('本地存档解密失败，已忽略异常数据。', error);
+        return fallbackValue;
+    }
+}
+
+function secureStorageSet(key, value) {
+    localStorage.setItem(key, encodeSecureEnvelope(value, 'storage'));
+}
+
+function secureStorageGet(key, fallbackValue) {
+    return decodeSecureEnvelope(localStorage.getItem(key), fallbackValue);
+}
+
+function exportSecureSavePayload(payload) {
+    return encodeSecureEnvelope(payload, 'save-file');
+}
+
+function importSecureSavePayload(text) {
+    const parsed = decodeSecureEnvelope(String(text || ''), null);
+    if (parsed !== null) return parsed;
+    return JSON.parse(String(text || ''));
+}
+
+function loadSignData() {
+    userCoins = secureStorageGet('f1_user_coins', 100);
+    signData = secureStorageGet('f1_sign_data', signData);
+}
+
 function saveSignData() {
-    localStorage.setItem('f1_user_coins', String(userCoins));
-    localStorage.setItem('f1_sign_data', JSON.stringify(signData));
+    secureStorageSet('f1_user_coins', userCoins);
+    secureStorageSet('f1_sign_data', signData);
 }
 
 function performSign() {
@@ -68,13 +174,11 @@ function ensureDriverDiaryStore(driverId) {
 }
 
 function saveDriverDiaries() {
-    localStorage.setItem('f1_driver_diaries', JSON.stringify(driverDiaries));
+    secureStorageSet('f1_driver_diaries', driverDiaries);
 }
 
 function loadDriverDiaries() {
-    const saved = localStorage.getItem('f1_driver_diaries');
-    if (!saved) return;
-    try { driverDiaries = JSON.parse(saved) || {}; } catch (_) {}
+    driverDiaries = secureStorageGet('f1_driver_diaries', driverDiaries) || {};
 }
 
 function getDriverDiaryEntry(driverId, dateKey) {
@@ -87,9 +191,7 @@ function getDriverDiaryTimeline(driverId, limit = 3) {
 }
 
 function loadDateMemories() {
-    const saved = localStorage.getItem('f1_date_memories');
-    if (!saved) return;
-    try { driverDateMemories = JSON.parse(saved) || {}; } catch (_) {}
+    driverDateMemories = secureStorageGet('f1_date_memories', driverDateMemories) || {};
 }
 
 function getMessagesForDate(driverId, dateKey) {
@@ -251,10 +353,7 @@ async function fetchAvailableModels() {
 }
 
 function loadFavorability() {
-    const saved = localStorage.getItem('f1_favorability');
-    if (saved) {
-        try { favorability = JSON.parse(saved) || {}; } catch (_) {}
-    }
+    favorability = secureStorageGet('f1_favorability', favorability) || {};
     window.DRIVERS.forEach(driver => {
         if (favorability[driver.id] === undefined) favorability[driver.id] = 0;
     });
@@ -262,35 +361,31 @@ function loadFavorability() {
 }
 
 function saveFavorability() {
-    localStorage.setItem('f1_favorability', JSON.stringify(favorability));
+    secureStorageSet('f1_favorability', favorability);
 }
 
 function saveChatHistories() {
-    localStorage.setItem('f1_chat_histories', JSON.stringify(chatHistories));
+    secureStorageSet('f1_chat_histories', chatHistories);
 }
 
 function loadChatHistories() {
-    const saved = localStorage.getItem('f1_chat_histories');
-    if (!saved) return;
-    try { chatHistories = JSON.parse(saved) || {}; } catch (_) {}
+    chatHistories = secureStorageGet('f1_chat_histories', chatHistories) || {};
 }
 
 function saveGroupChats() {
-    localStorage.setItem('f1_group_chats', JSON.stringify(groupChats));
+    secureStorageSet('f1_group_chats', groupChats);
 }
 
 function loadGroupChats() {
-    const saved = localStorage.getItem('f1_group_chats');
-    if (!saved) return;
-    try { groupChats = JSON.parse(saved) || []; } catch (_) {}
+    groupChats = secureStorageGet('f1_group_chats', groupChats) || [];
 }
 
 function saveGroupChatUiState() {
-    localStorage.setItem('f1_group_chats_collapsed', groupChatsCollapsed ? '1' : '0');
+    secureStorageSet('f1_group_chats_collapsed', groupChatsCollapsed);
 }
 
 function loadGroupChatUiState() {
-    groupChatsCollapsed = localStorage.getItem('f1_group_chats_collapsed') === '1';
+    groupChatsCollapsed = Boolean(secureStorageGet('f1_group_chats_collapsed', groupChatsCollapsed));
 }
 
 function addFavorability(driverId, inc) {
@@ -313,13 +408,11 @@ function getFavorMood(favor) {
 }
 
 function loadPinnedDrivers() {
-    const saved = localStorage.getItem('f1_pinned_drivers');
-    if (!saved) return;
-    try { pinnedDrivers = JSON.parse(saved) || []; } catch (_) {}
+    pinnedDrivers = secureStorageGet('f1_pinned_drivers', pinnedDrivers) || [];
 }
 
 function savePinnedDrivers() {
-    localStorage.setItem('f1_pinned_drivers', JSON.stringify(pinnedDrivers));
+    secureStorageSet('f1_pinned_drivers', pinnedDrivers);
 }
 
 function togglePinDriver(driverId) {
@@ -335,14 +428,12 @@ function isPinned(driverId) {
 }
 
 function loadAvatars() {
-    const saved = localStorage.getItem('f1_driver_avatars');
-    if (!saved) return;
-    try { driverAvatars = JSON.parse(saved) || {}; } catch (_) {}
+    driverAvatars = secureStorageGet('f1_driver_avatars', driverAvatars) || {};
 }
 
 function saveAvatarToLocal(driverId, dataUrl) {
     driverAvatars[driverId] = dataUrl;
-    localStorage.setItem('f1_driver_avatars', JSON.stringify(driverAvatars));
+    secureStorageSet('f1_driver_avatars', driverAvatars);
 }
 
 function getBundledDriverAvatarUrl(driverId) {
@@ -359,7 +450,7 @@ function getDriverAvatarStyle(driverId) {
 
 function getUserAvatarStyle() {
     const profileAvatar = userProfile?.avatar || userProfile?.avatarUrl || userProfile?.avatarDataUrl || '';
-    const storedAvatar = localStorage.getItem('f1_user_avatar') || '';
+    const storedAvatar = secureStorageGet('f1_user_avatar', '') || '';
     const dataUrl = profileAvatar || storedAvatar;
     return dataUrl ? `url(${dataUrl})` : '';
 }
@@ -444,7 +535,7 @@ function refreshDriverAvatarViews(driverId) {
 function resetDriverAvatar(driverId) {
     if (!driverId) return;
     delete driverAvatars[driverId];
-    localStorage.setItem('f1_driver_avatars', JSON.stringify(driverAvatars));
+    secureStorageSet('f1_driver_avatars', driverAvatars);
     refreshDriverAvatarViews(driverId);
     if (typeof renderDatePage === 'function' && currentDateDriver?.id === driverId) renderDatePage();
     showToast('已恢复初始头像', false);

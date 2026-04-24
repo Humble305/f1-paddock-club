@@ -94,7 +94,7 @@ function updateDriverDateMemory(driverId, sceneName, messages) {
     const userMessages = messages.filter(msg => msg.role === 'user').slice(-3);
     const keyTopics = userMessages.length ? userMessages.map(msg => String(msg.content).slice(0, 40)).join('、') : '愉快的聊天';
     driverDateMemories[driverId] = { scene: sceneName, date: new Date().toISOString(), dateKey: getLocalDateKey(), summary: `你们曾在${sceneName}约会，聊到了${keyTopics}。`, keyTopics };
-    localStorage.setItem('f1_date_memories', JSON.stringify(driverDateMemories));
+    secureStorageSet('f1_date_memories', driverDateMemories);
 }
 
 function endDate() {

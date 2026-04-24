@@ -21,6 +21,8 @@ function exportGameData() {
         driverDiaries,
         pinnedDrivers,
         chatHistories,
+        groupChats,
+        groupChatsCollapsed,
         driverAvatars,
         userProfile,
         feedPosts,
@@ -31,11 +33,11 @@ function exportGameData() {
         giftHistory,
         currentTheme: currentTheme?.id || 'ferrari'
     };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const blob = new Blob([exportSecureSavePayload(payload)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `f1-paddock-save-${getTodayDateStr()}.json`;
+    a.download = `f1-paddock-save-${getTodayDateStr()}.f1save`;
     a.click();
     URL.revokeObjectURL(url);
     showToast('存档已导出', false);
@@ -47,6 +49,8 @@ function applyLoadedData(saveData) {
     driverDiaries = saveData.driverDiaries || driverDiaries;
     pinnedDrivers = saveData.pinnedDrivers || pinnedDrivers;
     chatHistories = saveData.chatHistories || chatHistories;
+    groupChats = saveData.groupChats || groupChats;
+    groupChatsCollapsed = saveData.groupChatsCollapsed ?? groupChatsCollapsed;
     driverAvatars = saveData.driverAvatars || driverAvatars;
     userProfile = { ...userProfile, ...(saveData.userProfile || {}) };
     feedPosts = saveData.feedPosts || feedPosts;
@@ -55,18 +59,20 @@ function applyLoadedData(saveData) {
     signData = saveData.signData || signData;
     giftInventory = saveData.giftInventory || giftInventory;
     giftHistory = saveData.giftHistory || giftHistory;
-    localStorage.setItem('f1_favorability', JSON.stringify(favorability));
-    localStorage.setItem('f1_date_memories', JSON.stringify(driverDateMemories));
-    localStorage.setItem('f1_driver_diaries', JSON.stringify(driverDiaries));
-    localStorage.setItem('f1_pinned_drivers', JSON.stringify(pinnedDrivers));
-    localStorage.setItem('f1_chat_histories', JSON.stringify(chatHistories));
-    localStorage.setItem('f1_driver_avatars', JSON.stringify(driverAvatars));
-    localStorage.setItem('f1_user_profile', JSON.stringify(userProfile));
-    localStorage.setItem('f1_api_config', JSON.stringify(apiConfig));
-    localStorage.setItem('f1_user_coins', String(userCoins));
-    localStorage.setItem('f1_sign_data', JSON.stringify(signData));
-    localStorage.setItem('f1_gift_inventory', JSON.stringify(giftInventory));
-    localStorage.setItem('f1_gift_history', JSON.stringify(giftHistory));
+    secureStorageSet('f1_favorability', favorability);
+    secureStorageSet('f1_date_memories', driverDateMemories);
+    secureStorageSet('f1_driver_diaries', driverDiaries);
+    secureStorageSet('f1_pinned_drivers', pinnedDrivers);
+    secureStorageSet('f1_chat_histories', chatHistories);
+    secureStorageSet('f1_group_chats', groupChats);
+    secureStorageSet('f1_group_chats_collapsed', groupChatsCollapsed);
+    secureStorageSet('f1_driver_avatars', driverAvatars);
+    secureStorageSet('f1_user_profile', userProfile);
+    secureStorageSet('f1_api_config', apiConfig);
+    secureStorageSet('f1_user_coins', userCoins);
+    secureStorageSet('f1_sign_data', signData);
+    secureStorageSet('f1_gift_inventory', giftInventory);
+    secureStorageSet('f1_gift_history', giftHistory);
     if (saveData.currentTheme) applyTheme(saveData.currentTheme);
     loadUserProfile();
     loadApiConfig();
@@ -85,7 +91,7 @@ function importGameDataFromFile(file) {
     const reader = new FileReader();
     reader.onload = () => {
         try {
-            applyLoadedData(JSON.parse(reader.result));
+            applyLoadedData(importSecureSavePayload(reader.result));
             showToast('存档导入成功', false);
         } catch (error) {
             handleApiError(error, '存档导入');
@@ -98,10 +104,7 @@ function openSaveModal() { document.getElementById('saveModal').style.display = 
 function closeSaveModal() { document.getElementById('saveModal').style.display = 'none'; clearSidebarActive(); }
 
 function loadUserProfile() {
-    const saved = localStorage.getItem('f1_user_profile');
-    if (saved) {
-        try { userProfile = { ...userProfile, ...JSON.parse(saved) }; } catch (_) {}
-    }
+    userProfile = { ...userProfile, ...(secureStorageGet('f1_user_profile', {}) || {}) };
     document.getElementById('profileName').value = userProfile.name;
     document.getElementById('profileGender').value = userProfile.gender;
     document.getElementById('profileAge').value = userProfile.age;
@@ -130,7 +133,7 @@ function saveUserProfile() {
         hobby: document.getElementById('profileHobby').value.trim() || '赛车',
         background: document.getElementById('profileBackground').value.trim()
     };
-    localStorage.setItem('f1_user_profile', JSON.stringify(userProfile));
+    secureStorageSet('f1_user_profile', userProfile);
     closeProfileModal();
     showToast('资料卡已更新', false);
 }
@@ -144,10 +147,7 @@ function openProfileModal() { document.getElementById('profileModal').style.disp
 function closeProfileModal() { document.getElementById('profileModal').style.display = 'none'; clearSidebarActive(); }
 
 function loadApiConfig() {
-    const saved = localStorage.getItem('f1_api_config');
-    if (saved) {
-        try { apiConfig = { ...apiConfig, ...JSON.parse(saved) }; } catch (_) {}
-    }
+    apiConfig = { ...apiConfig, ...(secureStorageGet('f1_api_config', {}) || {}) };
     document.getElementById('apiUrl').value = apiConfig.url || '';
     document.getElementById('apiKey').value = apiConfig.key || '';
     setModelOptions(availableApiModels.length ? availableApiModels : [apiConfig.model || 'deepseek-chat'], apiConfig.model || 'deepseek-chat');
@@ -162,7 +162,7 @@ function saveApiConfig() {
         key: document.getElementById('apiKey').value.trim(),
         model: getSelectedModelName() || 'deepseek-chat'
     };
-    localStorage.setItem('f1_api_config', JSON.stringify(apiConfig));
+    secureStorageSet('f1_api_config', apiConfig);
     useAI = Boolean(apiConfig.key && apiConfig.url && apiConfig.model);
     setApiStatus(useAI ? '已保存并启用真实 API' : '缺少完整配置，仍使用模拟模式', useAI ? 'success' : 'warning');
     showToast('AI 设置已保存', false);

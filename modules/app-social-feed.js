@@ -1,108 +1,34 @@
+﻿// app-social-feed.js
 // 围场动态、媒体、积分与排名视图
 
-const FEED_SCENE_POOLS = {
-    routine: ['晨跑完回到围场，耳边还在回放工程师刚才那段无线电。', '今天的节奏很满，训练、会议、进模拟器，一个都没少。', '刚结束体能训练，腿有点发酸，但脑子反而更清醒了。'],
-    paddock: ['围场里今天风有点大，走到车房门口时差点把手里的笔记吹跑。', '刚从车房出来，大家都在忙，我反而更喜欢这种有点乱但很专注的感觉。', '今天在围场里来回跑了很多趟，最后还是会不自觉站回赛车旁边。'],
-    food: ['午饭比想象中简单，最后还是多拿了一份水果，不然下午撑不住。', '刚喝到今天第一口像样的咖啡，感觉整个人终于上线了。', '围场餐食偶尔会有惊喜，今天那份热食算是让我心情加了点分。'],
-    setup: ['今天和工程师把几个细节重新顺了一遍，车的反馈开始更像我想要的样子。', '有些设定看起来只是小修小改，真正坐进车里差别会很明显。', '今天最满意的不是单圈，而是终于把那点别扭的感觉调顺了。'],
-    mood: ['最近状态不算吵闹，就是很专注，知道自己下一步该做什么。', '有些日子不需要太多形容，只要按自己的节奏往前推就够了。', '今天不是那种热血上头的好，而是一种很稳的好。'],
-    offtrack: ['离开车房以后终于安静了一会儿，发现自己最想念的还是普通一点的生活感。', '晚上想早点休息，但大概率还是会再回看一遍今天的数据。', '收工以后最舒服的时刻，往往就是把手机放下的前一分钟。'],
-    banter: ['队友刚才看了我一眼，那个表情已经说明他也觉得今天挺漫长。', '工程师说得很克制，但我听得出来他对今天这个进展挺满意。', '今天车房里有人一直在哼歌，害我后来满脑子都是那段旋律。']
-};
-
-const FEED_PERSONA_HINTS = {
-    nor: '语气轻松、嘴硬带一点俏皮，像把围场日常随手发出来。',
-    pia: '冷静、简短、干净，偶尔带一点很淡的幽默。',
-    lec: '细腻、克制、讲究氛围感，像随手记录一天里的小片刻。',
-    ham: '成熟、温柔、有自我要求，但不要写成口号。',
-    rus: '理性、认真、有条理，带一点职业车手的自律感。',
-    ant: '年轻、兴奋但不吵，像在快速适应顶级赛事生活。',
-    ver: '直接、锋利、嫌废话多，但不是冷漠。',
-    hadjar: '年轻、带点不服输，偶尔有一点轻微的张扬。',
-    alo: '老练、淡定，像什么都见过，所以更知道什么值得说。',
-    str: '低调、平稳，不要写得太外放。',
-    alb: '友好、轻松、带一点会逗人的温度。',
-    sai: '讲究节奏和生活质感，像在认真过一天。',
-    gas: '随性、利落、带一点法式松弛感，但仍然专注。',
-    col: '年轻、真诚、带点新鲜感。',
-    oco: '克制、直给、工作状态很强。',
-    bea: '年轻、礼貌、带点还在上升期的兴奋。',
-    hul: '成熟、干脆、略带老将式幽默。',
-    bor: '真诚、轻快、有一点新人视角。',
-    law: '稳、利落、不拖泥带水。',
-    lin: '新秀感、冲劲足，但要显得真实。',
-    per: '圆融、亲和、会把复杂一天说得轻一点。',
-    bot: '松弛、平静，带一点北欧式干净幽默。'
-};
-
-function pickFeedSeeds() {
-    const poolKeys = Object.keys(FEED_SCENE_POOLS).sort(() => Math.random() - 0.5).slice(0, 3);
-    return poolKeys.map(key => FEED_SCENE_POOLS[key][Math.floor(Math.random() * FEED_SCENE_POOLS[key].length)]);
-}
-
-function buildFeedPrompt(driver) {
-    const currentRace = window.f1RaceDatabase?.currentRaceName || '当前分站周';
-    const currentRound = window.raceSessionData?.currentRound || window.f1RaceDatabase?.currentRound || '';
-    const personalityHint = FEED_PERSONA_HINTS[driver.id] || '语气自然、克制、像真实车手日常发动态。';
-    const seeds = pickFeedSeeds();
-    return `今天是${getCurrentDateInfo()}。你是 F1 车手 ${driver.name}（${driver.team}）。
-请写一条适合围场动态流发布的近况，长度控制在 45 到 90 字。
-【场景参考】${currentRound ? `第 ${currentRound} 站` : ''}${currentRace}
-【人设要求】${personalityHint}
-【内容方向】
-- 更像真实生活里的随手动态，不要写成采访回答、媒体通稿或总结发言。
-- 可以写训练、车房、工程会议、饮食、恢复、天气、队友互动、行程节奏、围场小观察，但必须贴近现实，不要夸张失真。
-- 允许一点幽默、调侃、疲惫感或松弛感，但不要违背角色人设。
-- 可以带 1 到 2 个自然的 emoji 点缀气氛，但不要堆砌，也不要每条都像营业文案。
-- 只写一条正文，不要分段，不要标题，不要括号动作。
-- 除角色固定口癖外，只能使用中文和中文标点，不要出现任何外语单词、缩写、账号名、标签或网址。
-【灵感种子】${seeds.join(' / ')}
-${getRoleOutputSafetyPrompt('feed')}`;
-}
-
-function generateLocalFeedPost(driver) {
-    const personaLead = {
-        nor: ['今天的节奏有点满，但还挺好玩。', '刚忙完一轮，脑子还在转。'],
-        pia: ['今天整体还算顺。', '事情很多，但节奏还在掌控里。'],
-        lec: ['今天有几个安静的小瞬间让我印象很深。', '忙了一整天，反而是在车房外那几分钟最放松。'],
-        ham: ['今天更多是在和自己较劲。', '有些进步不需要说得太大声。'],
-        ver: ['今天没什么花哨的，就是把该做的事做完。', '状态还行，剩下的继续往下推。']
-    };
-    const leads = personaLead[driver.id] || ['今天在围场里待了很久。', '这一天下来，脑子里还是赛车的声音。'];
-    const details = pickFeedSeeds();
-    const tail = ['现在只想安静一会儿，明天继续。', '这种普通但扎实的一天，其实也不错。', '先收工，剩下的留给明天。'];
-    return sanitizeRoleOutput(`${leads[Math.floor(Math.random() * leads.length)]}${details[0]}${tail[Math.floor(Math.random() * tail.length)]}`, 'feed');
-}
-
 async function generateAIPost() {
+    if (!useAI || !apiConfig.key || !apiConfig.url || !apiConfig.model) return null;
     const driver = window.DRIVERS[Math.floor(Math.random() * window.DRIVERS.length)];
-    if (!useAI || !apiConfig.key || !apiConfig.url || !apiConfig.model) {
-        return { id: Date.now(), name: driver.name, handle: driver.handle, avatar: driver.avatarLetter, content: generateLocalFeedPost(driver), likes: Math.floor(Math.random() * 800) + 100, comments: [], timeAgo: '刚刚' };
-    }
-    const systemPrompt = buildFeedPrompt(driver);
+    const systemPrompt = `你是 F1 车手 ${driver.name}，请写一条适合围场动态流的简短近况，长度控制在 40-90 字。语气符合本人，不要带括号动作。`;
     try {
         const response = await fetch(`${apiConfig.url.replace(/\/$/, '')}/chat/completions`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiConfig.key}` },
-            body: JSON.stringify({ model: apiConfig.model, messages: [{ role: 'system', content: systemPrompt }], temperature: 1.0, max_tokens: 140 })
+            body: JSON.stringify({ model: apiConfig.model, messages: [{ role: 'user', content: systemPrompt }], temperature: 0.9, max_tokens: 120 })
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const payload = await response.json();
-        const content = sanitizeRoleOutput(payload?.choices?.[0]?.message?.content?.trim(), 'feed');
+        const content = payload?.choices?.[0]?.message?.content?.trim();
         if (!content) throw new Error('API 返回空内容');
-        return { id: Date.now(), name: driver.name, handle: driver.handle, avatar: driver.avatarLetter, content, likes: Math.floor(Math.random() * 800) + 100, comments: [], timeAgo: '刚刚' };
+        return {
+            id: Date.now(),
+            name: driver.name,
+            handle: driver.handle,
+            avatar: driver.avatarLetter,
+            content,
+            likes: Math.floor(Math.random() * 800) + 100,
+            comments: [],
+            timeAgo: '刚刚'
+        };
     } catch (error) {
         handleApiError(error, '围场动态生成');
-        return { id: Date.now(), name: driver.name, handle: driver.handle, avatar: driver.avatarLetter, content: generateLocalFeedPost(driver), likes: Math.floor(Math.random() * 800) + 100, comments: [], timeAgo: '刚刚' };
+        return null;
     }
-}
-
-async function userPost() {
-    const content = prompt('想发一条什么动态？');
-    if (!content) return;
-    feedPosts.unshift({ id: Date.now(), name: userProfile.name, handle: 'you', avatar: '我', content, likes: 0, comments: [], timeAgo: '刚刚' });
-    renderFeed();
-    showToast('动态已发布', false);
 }
 
 async function commentOnPost(post, commentText) {
@@ -125,7 +51,22 @@ function renderFeed() {
         const avatarBg = driver ? getDriverAvatarStyle(driver.id) : null;
         const card = document.createElement('div');
         card.className = 'post-card';
-        card.innerHTML = `<div class="post-header"><div class="post-avatar" style="${avatarBg ? `background-image:${avatarBg};background-size:cover;` : ''}">${avatarBg ? '' : (post.avatar || '我')}</div><div><div class="post-user">${escapeHtml(post.name)}</div><div class="post-handle">@${escapeHtml(post.handle)}</div></div><div class="post-time">${escapeHtml(post.timeAgo || '刚刚')}</div></div><div class="post-content">${escapeHtml(post.content)}</div><div class="post-stats"><button class="like-btn" data-idx="${index}">❤ ${post.likes || 0}</button><button class="comment-btn" data-idx="${index}">💬 ${(post.comments || []).length}</button></div><div class="comment-section" id="commentSection_${index}"></div>`;
+        card.innerHTML = `
+            <div class="post-header">
+                <div class="post-avatar" style="${avatarBg ? `background-image:${avatarBg};background-size:cover;` : ''}">${avatarBg ? '' : (post.avatar || '我')}</div>
+                <div>
+                    <div class="post-user">${escapeHtml(post.name)}</div>
+                    <div class="post-handle">@${escapeHtml(post.handle)}</div>
+                </div>
+                <div class="post-time">${escapeHtml(post.timeAgo || '刚刚')}</div>
+            </div>
+            <div class="post-content">${escapeHtml(post.content)}</div>
+            <div class="post-stats">
+                <button class="like-btn" data-idx="${index}">♥ ${post.likes || 0}</button>
+                <button class="comment-btn" data-idx="${index}">评论 ${(post.comments || []).length}</button>
+            </div>
+            <div class="comment-section" id="commentSection_${index}"></div>
+        `;
         container.appendChild(card);
         const commentSection = document.getElementById(`commentSection_${index}`);
         (post.comments || []).slice().reverse().forEach(comment => {
@@ -141,21 +82,23 @@ function renderFeed() {
         inputWrap.innerHTML = `<input type="text" id="commentInput_${index}" class="chat-input" style="flex:1; padding:6px 12px;" placeholder="写评论..."><button id="submitComment_${index}" class="send-msg-btn" style="padding:6px 12px;">回复</button>`;
         commentSection.appendChild(inputWrap);
     });
-
-    document.querySelectorAll('.like-btn').forEach(button => button.addEventListener('click', () => {
-        const index = Number(button.dataset.idx);
-        if (feedPosts[index]) feedPosts[index].likes = (feedPosts[index].likes || 0) + 1;
-        renderFeed();
-    }));
-
-    document.querySelectorAll('[id^="submitComment_"]').forEach(button => button.addEventListener('click', async () => {
-        const index = Number(button.id.split('_')[1]);
-        const input = document.getElementById(`commentInput_${index}`);
-        const text = input.value.trim();
-        if (!text) return;
-        input.value = '';
-        await commentOnPost(feedPosts[index], text);
-    }));
+    document.querySelectorAll('.like-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            const index = Number(button.dataset.idx);
+            if (feedPosts[index]) feedPosts[index].likes = (feedPosts[index].likes || 0) + 1;
+            renderFeed();
+        });
+    });
+    document.querySelectorAll('[id^="submitComment_"]').forEach(button => {
+        button.addEventListener('click', async () => {
+            const index = Number(button.id.split('_')[1]);
+            const input = document.getElementById(`commentInput_${index}`);
+            const text = input.value.trim();
+            if (!text) return;
+            input.value = '';
+            await commentOnPost(feedPosts[index], text);
+        });
+    });
 }
 
 async function refreshFeedWithAI() {
@@ -165,8 +108,6 @@ async function refreshFeedWithAI() {
     renderFeed();
     showLoading(false);
 }
-
-const FEED_POST_MAX_LENGTH = 140;
 
 function getPostComposerElements() {
     return {
@@ -183,8 +124,8 @@ function updatePostComposerState() {
     const rawValue = input.value || '';
     const trimmedValue = rawValue.trim();
     const length = rawValue.length;
-    const isTooLong = length > FEED_POST_MAX_LENGTH;
-    count.innerText = `${length}/${FEED_POST_MAX_LENGTH}`;
+    const isTooLong = length > 140;
+    count.innerText = `${length}/140`;
     count.classList.toggle('is-over', isTooLong);
     submitBtn.disabled = !trimmedValue || isTooLong;
 }
@@ -194,7 +135,7 @@ function closePostComposerModal() {
     if (modal) modal.style.display = 'none';
     if (input) input.value = '';
     if (count) {
-        count.innerText = `0/${FEED_POST_MAX_LENGTH}`;
+        count.innerText = '0/140';
         count.classList.remove('is-over');
     }
     if (submitBtn) submitBtn.disabled = true;
@@ -216,8 +157,8 @@ function submitPostComposer() {
         updatePostComposerState();
         return;
     }
-    if (content.length > FEED_POST_MAX_LENGTH) {
-        showToast(`动态最多 ${FEED_POST_MAX_LENGTH} 字`, true);
+    if (content.length > 140) {
+        showToast('动态最多 140 字', true);
         updatePostComposerState();
         return;
     }
@@ -248,34 +189,7 @@ window.updatePostComposerState = updatePostComposerState;
 function renderStandings() {
     const container = document.getElementById('standingsContainer');
     if (!container) return;
-    const seasonDrivers = window.raceSessionData?.seasonStandings?.drivers || [];
-    const currentRound = window.raceSessionData?.currentRound || window.f1RaceDatabase?.currentRound || '-';
-    const currentRaceName = window.f1RaceDatabase?.currentRaceName || '当前分站';
-    const qualifyingTop3 = window.raceSessionData?.qualifying?.top10?.slice(0, 3) || [];
-    const raceTop3 = (window.raceSessionData?.race?.top10 || window.raceSessionData?.race?.raceResult || []).slice(0, 3);
-    const topDriver = seasonDrivers[0];
-
     container.innerHTML = `
-        <div class="standings-section">
-            <div class="section-title">赛季概览</div>
-            <div class="profile-card-info-row"><span>当前轮次</span><span>第 ${currentRound} 站</span></div>
-            <div class="profile-card-info-row"><span>当前分站</span><span>${escapeHtml(currentRaceName)}</span></div>
-            <div class="profile-card-info-row"><span>车手领跑者</span><span>${topDriver ? `${escapeHtml(topDriver.name)} · ${topDriver.points} 分` : '暂无'}</span></div>
-        </div>
-        <div class="standings-section">
-            <div class="section-title">当前站排位 Top 3</div>
-            <table class="standings-table">
-                <thead><tr><th>Pos</th><th>车手</th><th>车队</th><th>成绩</th></tr></thead>
-                <tbody>${qualifyingTop3.length ? qualifyingTop3.map(item => `<tr><td class="pos">${item.pos}</td><td>${escapeHtml(item.driver)}</td><td>${escapeHtml(item.team)}</td><td class="points">${escapeHtml(item.time)}</td></tr>`).join('') : '<tr><td colspan="4">暂无排位数据</td></tr>'}</tbody>
-            </table>
-        </div>
-        <div class="standings-section">
-            <div class="section-title">当前站正赛 Top 3</div>
-            <table class="standings-table">
-                <thead><tr><th>Pos</th><th>车手</th><th>车队</th><th>积分</th></tr></thead>
-                <tbody>${raceTop3.length ? raceTop3.map(item => `<tr><td class="pos">${item.pos}</td><td>${escapeHtml(item.driver)}</td><td>${escapeHtml(item.team)}</td><td class="points">${item.points}</td></tr>`).join('') : '<tr><td colspan="4">暂无正赛数据</td></tr>'}</tbody>
-            </table>
-        </div>
         <div class="standings-section">
             <div class="section-title">车队积分榜</div>
             <table class="standings-table">
@@ -290,12 +204,331 @@ function renderStandings() {
                 <tbody>${window.driverStandings.map((driver, index) => `<tr><td class="pos">${index + 1}</td><td>${driver.name}</td><td style="font-size:0.7rem">${driver.team}</td><td class="points">${driver.points}</td></tr>`).join('')}</tbody>
             </table>
         </div>
-        <div class="standings-section">
-            <div class="section-title">赛季排名详情</div>
-            <table class="standings-table">
-                <thead><tr><th>Pos</th><th>车手</th><th>车队</th><th>积分</th><th>胜场</th></tr></thead>
-                <tbody>${seasonDrivers.length ? seasonDrivers.map(item => `<tr><td class="pos">${item.pos}</td><td>${escapeHtml(item.name)}</td><td>${escapeHtml(item.team)}</td><td class="points">${item.points}</td><td>${item.wins ?? 0}</td></tr>`).join('') : '<tr><td colspan="5">暂无赛季排名数据</td></tr>'}</tbody>
-            </table>
+    `;
+}
+
+const MEDIA_NEWS_FEEDS = [
+    { source: 'Crash.net', sourceIcon: 'CR', feedUrl: 'https://www.crash.net/rss/f1', kind: 'rss' },
+    { source: 'Motorsport.com', sourceIcon: 'MS', feedUrl: 'https://www.motorsport.com/rss/f1/news/', kind: 'rss' },
+    { source: 'Google News F1', sourceIcon: 'GN', feedUrl: 'https://news.google.com/rss/search?q=Formula+1+OR+F1&hl=en-US&gl=US&ceid=US:en', kind: 'rss' },
+    { source: 'Google News 中文F1', sourceIcon: '中', feedUrl: 'https://news.google.com/rss/search?q=F1+%E8%B5%9B%E8%BD%A6+OR+F1+%E5%A4%A7%E5%A5%96%E8%B5%9B&hl=zh-CN&gl=CN&ceid=CN:zh-Hans', kind: 'rss' },
+    { source: 'Google News 国内报道', sourceIcon: 'CN', feedUrl: 'https://news.google.com/rss/search?q=F1+(site:thepaper.cn+OR+site:xinhuanet.com+OR+site:sina.com.cn+OR+site:163.com+OR+site:people.com.cn)&hl=zh-CN&gl=CN&ceid=CN:zh-Hans', kind: 'rss' }
+];
+
+const MEDIA_NEWS_CACHE_KEY = 'f1_media_news_cache';
+const MEDIA_NEWS_CACHE_TIME_KEY = 'f1_media_news_cache_time';
+const MEDIA_NEWS_STATUS_KEY = 'f1_media_news_status';
+const MEDIA_NEWS_FILTER_KEY = 'f1_media_news_filter';
+const MEDIA_NEWS_CACHE_TTL = 30 * 60 * 1000;
+
+let mediaNewsRefreshPromise = null;
+let hasAttemptedInitialMediaRefresh = false;
+let mediaNewsStatus = {
+    mode: 'fallback',
+    label: '静态资讯',
+    detail: '当前显示内置资讯',
+    updatedAt: null,
+    sourceCount: 0
+};
+let mediaNewsFilter = { region: 'all', keyword: 'all' };
+
+function decodeHtmlEntities(text = '') {
+    const parser = new DOMParser();
+    return parser.parseFromString(String(text), 'text/html').documentElement.textContent || '';
+}
+
+function stripHtmlTags(text = '') {
+    return String(text)
+        .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+        .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function normalizeMediaText(text = '') {
+    return decodeHtmlEntities(stripHtmlTags(text))
+        .replace(/\u00a0/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function getMediaKeywordOptions() {
+    const base = [
+        { id: 'all', label: '全部关键词', patterns: [] },
+        { id: 'ferrari', label: '法拉利', patterns: ['ferrari', '法拉利', 'leclerc', 'hamilton', 'charles', 'lewis'] },
+        { id: 'verstappen', label: '维斯塔潘', patterns: ['verstappen', 'max', '维斯塔潘'] },
+        { id: 'hamilton', label: '汉密尔顿', patterns: ['hamilton', 'lewis', '汉密尔顿'] }
+    ];
+    const dynamic = (window.DRIVERS || []).map(driver => ({
+        id: driver.id,
+        label: driver.name,
+        patterns: [String(driver.name || '').toLowerCase(), String(driver.team || '').toLowerCase(), ...String(driver.name || '').toLowerCase().split(/\s+/)]
+    }));
+    const seen = new Set();
+    return [...base, ...dynamic].filter(option => {
+        if (seen.has(option.id)) return false;
+        seen.add(option.id);
+        return true;
+    });
+}
+
+function detectMediaRegion(news) {
+    const source = String(news?.source || '');
+    const url = String(news?.url || '');
+    if (/thepaper\.cn|xinhuanet\.com|sina\.com\.cn|163\.com|people\.com\.cn/i.test(url)) return 'cn';
+    if (/Google News 中文F1|Google News 国内报道|中文|国内|澎湃|新华社|新浪|网易|人民网/u.test(source)) return 'cn';
+    return 'en';
+}
+
+function getMediaSourceTone(news) {
+    const source = String(news?.source || '');
+    if (/google news/i.test(source)) return 'agg';
+    return detectMediaRegion(news);
+}
+
+function getMediaSourceToneLabel(news) {
+    const tone = getMediaSourceTone(news);
+    if (tone === 'cn') return '国内';
+    if (tone === 'agg') return '聚合';
+    return '英文';
+}
+
+function getCurrentMediaKeywordOption() {
+    return getMediaKeywordOptions().find(option => option.id === mediaNewsFilter.keyword) || getMediaKeywordOptions()[0];
+}
+
+function matchesMediaKeyword(news, option) {
+    if (!option || option.id === 'all') return true;
+    const haystack = `${news.title || ''} ${news.summary || ''} ${news.source || ''}`.toLowerCase();
+    return option.patterns.some(pattern => haystack.includes(String(pattern || '').toLowerCase()));
+}
+
+function filterMediaItems(items) {
+    const keywordOption = getCurrentMediaKeywordOption();
+    return items.filter(item => {
+        const regionOk = mediaNewsFilter.region === 'all' ? true : detectMediaRegion(item) === mediaNewsFilter.region;
+        return regionOk && matchesMediaKeyword(item, keywordOption);
+    });
+}
+
+function setMediaNewsFilter(nextFilter = {}) {
+    mediaNewsFilter = { ...mediaNewsFilter, ...nextFilter };
+    try {
+        localStorage.setItem(MEDIA_NEWS_FILTER_KEY, JSON.stringify(mediaNewsFilter));
+    } catch (error) {
+        console.warn('缓存资讯筛选失败', error);
+    }
+}
+
+function loadMediaNewsFilter() {
+    try {
+        const raw = localStorage.getItem(MEDIA_NEWS_FILTER_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') mediaNewsFilter = { ...mediaNewsFilter, ...parsed };
+    } catch (error) {
+        console.warn('读取资讯筛选失败', error);
+    }
+}
+
+function getMediaStatusMarkup() {
+    const updatedText = mediaNewsStatus.updatedAt ? formatMediaTime(mediaNewsStatus.updatedAt) : '未更新';
+    const sourceCount = mediaNewsStatus.sourceCount || 0;
+    return `
+        <div class="media-news-status" data-media-status-mode="${escapeHtml(mediaNewsStatus.mode || 'fallback')}">
+            <div class="media-news-status-main">
+                <span class="media-news-status-badge">${escapeHtml(mediaNewsStatus.label || '静态资讯')}</span>
+                <span class="media-news-status-text">${escapeHtml(mediaNewsStatus.detail || '')}</span>
+            </div>
+            <div class="media-news-status-meta">最近更新：${escapeHtml(updatedText)} · 来源数：${sourceCount}</div>
+        </div>
+    `;
+}
+
+function setMediaNewsStatus(nextStatus = {}) {
+    mediaNewsStatus = { ...mediaNewsStatus, ...nextStatus };
+    try {
+        localStorage.setItem(MEDIA_NEWS_STATUS_KEY, JSON.stringify(mediaNewsStatus));
+    } catch (error) {
+        console.warn('缓存资讯状态失败', error);
+    }
+}
+
+function loadMediaNewsStatus() {
+    try {
+        const raw = localStorage.getItem(MEDIA_NEWS_STATUS_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') mediaNewsStatus = { ...mediaNewsStatus, ...parsed };
+    } catch (error) {
+        console.warn('读取资讯状态失败', error);
+    }
+}
+
+function buildMediaSummary(item, fallbackSource) {
+    const rawDescription = item.querySelector('description')?.textContent || item.querySelector('content\\:encoded')?.textContent || '';
+    const cleaned = normalizeMediaText(rawDescription);
+    if (cleaned) return cleaned.slice(0, 140) + (cleaned.length > 140 ? '...' : '');
+    return `${fallbackSource} 最新 F1 资讯，点击查看全文。`;
+}
+
+function extractMediaSourceMeta(item, fallbackFeed) {
+    let sourceName = normalizeMediaText(item.querySelector('source')?.textContent || '') || fallbackFeed.source;
+    sourceName = sourceName.replace(/\s*-\s*Google News$/i, '').trim();
+    const sourceIcon = sourceName
+        .split(/[\s./-]+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map(part => part[0]?.toUpperCase() || '')
+        .join('')
+        .slice(0, 2) || fallbackFeed.sourceIcon;
+    return { source: sourceName, sourceIcon };
+}
+
+function parseMediaFeedXml(xmlText, fallbackFeed) {
+    const xml = new DOMParser().parseFromString(xmlText, 'text/xml');
+    if (xml.querySelector('parsererror')) throw new Error(`${fallbackFeed.source} feed parse failed`);
+    return Array.from(xml.querySelectorAll('item')).map((item, index) => {
+        const title = normalizeMediaText(item.querySelector('title')?.textContent || '');
+        const url = normalizeMediaText(item.querySelector('link')?.textContent || '');
+        const timestamp = item.querySelector('pubDate')?.textContent || item.querySelector('published')?.textContent || new Date().toISOString();
+        const { source, sourceIcon } = extractMediaSourceMeta(item, fallbackFeed);
+        return {
+            id: `${fallbackFeed.source}-${index}-${url || title}`,
+            source,
+            sourceIcon,
+            title,
+            summary: buildMediaSummary(item, source),
+            url,
+            timestamp
+        };
+    }).filter(item => item.title && item.url);
+}
+
+async function fetchMediaFeed(feed) {
+    const proxyUrls = [
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(feed.feedUrl)}`,
+        `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed.feedUrl)}`
+    ];
+    let lastError = null;
+    for (const proxyUrl of proxyUrls) {
+        try {
+            const response = await fetch(proxyUrl, { cache: 'no-store' });
+            if (!response.ok) throw new Error(`${feed.source} HTTP ${response.status}`);
+            if (proxyUrl.includes('rss2json')) {
+                const payload = await response.json();
+                if (!Array.isArray(payload?.items)) throw new Error(`${feed.source} JSON feed invalid`);
+                return payload.items.map((item, index) => {
+                    const rawSummary = normalizeMediaText(item.description || '');
+                    return {
+                        id: `${feed.source}-${index}-${item.link || item.title}`,
+                        source: normalizeMediaText(item.author || feed.source),
+                        sourceIcon: feed.sourceIcon,
+                        title: normalizeMediaText(item.title || ''),
+                        summary: rawSummary.slice(0, 140) + (rawSummary.length > 140 ? '...' : ''),
+                        url: normalizeMediaText(item.link || ''),
+                        timestamp: item.pubDate || new Date().toISOString()
+                    };
+                }).filter(item => item.title && item.url);
+            }
+            const xmlText = await response.text();
+            return parseMediaFeedXml(xmlText, feed);
+        } catch (error) {
+            lastError = error;
+        }
+    }
+    throw lastError || new Error(`${feed.source} feed fetch failed`);
+}
+
+function dedupeMediaItems(items) {
+    const seen = new Set();
+    return items.filter(item => {
+        const key = `${item.url}::${item.title}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+}
+
+function cacheMediaNews(items) {
+    try {
+        localStorage.setItem(MEDIA_NEWS_CACHE_KEY, JSON.stringify(items));
+        localStorage.setItem(MEDIA_NEWS_CACHE_TIME_KEY, String(Date.now()));
+    } catch (error) {
+        console.warn('缓存媒体资讯失败', error);
+    }
+}
+
+function loadCachedMediaNews() {
+    try {
+        const raw = localStorage.getItem(MEDIA_NEWS_CACHE_KEY);
+        const ts = Number(localStorage.getItem(MEDIA_NEWS_CACHE_TIME_KEY) || 0);
+        if (!raw || !ts || Date.now() - ts > MEDIA_NEWS_CACHE_TTL) return null;
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : null;
+    } catch (error) {
+        console.warn('读取媒体资讯缓存失败', error);
+        return null;
+    }
+}
+
+async function refreshMediaNews(force = false) {
+    if (mediaNewsRefreshPromise && !force) return mediaNewsRefreshPromise;
+    mediaNewsRefreshPromise = (async () => {
+        const cached = !force ? loadCachedMediaNews() : null;
+        if (cached?.length) {
+            window.mediaNewsItems = cached;
+            setMediaNewsStatus({
+                mode: 'cache',
+                label: '使用缓存',
+                detail: '已从本地缓存恢复最近资讯',
+                updatedAt: localStorage.getItem(MEDIA_NEWS_CACHE_TIME_KEY) || new Date().toISOString(),
+                sourceCount: new Set(cached.map(item => item.source)).size
+            });
+            return cached;
+        }
+
+        const settled = await Promise.allSettled(MEDIA_NEWS_FEEDS.map(fetchMediaFeed));
+        const freshItems = dedupeMediaItems(
+            settled
+                .filter(result => result.status === 'fulfilled')
+                .flatMap(result => result.value)
+        );
+        if (!freshItems.length) throw new Error('没有拉取到最新资讯');
+
+        const latest = sortMediaNewsByTime(freshItems).slice(0, 12);
+        window.mediaNewsItems = latest;
+        cacheMediaNews(latest);
+        setMediaNewsStatus({
+            mode: 'live',
+            label: '实时拉取',
+            detail: '已联网更新最新媒体报道',
+            updatedAt: new Date().toISOString(),
+            sourceCount: new Set(latest.map(item => item.source)).size
+        });
+        return latest;
+    })();
+
+    try {
+        return await mediaNewsRefreshPromise;
+    } finally {
+        mediaNewsRefreshPromise = null;
+    }
+}
+
+function getMediaFilterBarMarkup() {
+    const regionMarkup = [
+        { id: 'all', label: '全部' },
+        { id: 'cn', label: '只看国内' },
+        { id: 'en', label: '只看英文' }
+    ].map(option => `<button type="button" class="media-filter-chip ${mediaNewsFilter.region === option.id ? 'active' : ''}" data-media-region="${option.id}">${escapeHtml(option.label)}</button>`).join('');
+    const keywordMarkup = getMediaKeywordOptions().map(option => `<button type="button" class="media-filter-chip media-filter-chip-keyword ${mediaNewsFilter.keyword === option.id ? 'active' : ''}" data-media-keyword="${option.id}">${escapeHtml(option.label)}</button>`).join('');
+    return `
+        <div class="media-filter-bar">
+            <div class="media-filter-row">${regionMarkup}</div>
+            <div class="media-filter-row media-filter-row-head"><div class="media-filter-label">车手 / 车队筛选</div></div>
+            <div class="media-filter-row media-filter-row-scroll">${keywordMarkup}</div>
         </div>
     `;
 }
@@ -304,14 +537,102 @@ function renderMediaPage() {
     const container = document.getElementById('mediaContainer');
     if (!container) return;
     const sorted = sortMediaNewsByTime(window.mediaNewsItems || []);
-    const cards = sorted.map(news => `<div class="media-news-card"><div class="media-news-header"><div class="media-source-icon">${news.sourceIcon}</div><div class="media-source-name">${escapeHtml(news.source)}</div><div class="media-news-time">${formatMediaTime(news.timestamp)}</div></div><div class="media-news-title">${escapeHtml(news.title)}</div><div class="media-news-summary">${escapeHtml(news.summary)}</div><a href="${news.url}" target="_blank" class="media-read-more">阅读全文 →</a></div>`).join('');
-    container.innerHTML = `<button id="refreshMediaBtn" class="refresh-media">刷新资讯</button>${cards}`;
-    document.getElementById('refreshMediaBtn')?.addEventListener('click', () => {
-        renderMediaPage();
-        showToast('资讯已刷新', false);
+    const filtered = filterMediaItems(sorted);
+    const cards = filtered.length ? filtered.map(news => `
+        <div class="media-news-card">
+            <div class="media-news-header">
+                <div class="media-source-icon">${news.sourceIcon}</div>
+                <div class="media-source-stack">
+                    <div class="media-source-name">${escapeHtml(news.source)}</div>
+                    <div class="media-source-tags">
+                        <span class="media-source-tag media-source-tag-${getMediaSourceTone(news)}">${escapeHtml(getMediaSourceToneLabel(news))}</span>
+                        <span class="media-source-tag media-source-tag-${detectMediaRegion(news)}">${detectMediaRegion(news) === 'cn' ? '中文/国内' : '英文/海外'}</span>
+                    </div>
+                </div>
+                <div class="media-news-time">${formatMediaTime(news.timestamp)}</div>
+            </div>
+            <div class="media-news-title">${escapeHtml(news.title)}</div>
+            <div class="media-news-summary">${escapeHtml(news.summary)}</div>
+            <a href="${news.url}" target="_blank" rel="noopener noreferrer" class="media-read-more">阅读全文 →</a>
+        </div>
+    `).join('') : `<div class="media-news-card"><div class="media-news-title">当前筛选下没有结果</div><div class="media-news-summary">可以切回“全部”，或者换一个车手关键词试试。</div></div>`;
+    container.innerHTML = `<button id="refreshMediaBtn" class="refresh-media">刷新资讯</button>${getMediaStatusMarkup()}${getMediaFilterBarMarkup()}${cards}`;
+    document.getElementById('refreshMediaBtn')?.addEventListener('click', async event => {
+        const button = event.currentTarget;
+        if (button instanceof HTMLButtonElement) {
+            button.disabled = true;
+            button.innerText = '拉取中...';
+        }
+        showLoading(true);
+        try {
+            await refreshMediaNews(true);
+            renderMediaPage();
+            showToast('最新资讯已更新', false);
+        } catch (error) {
+            setMediaNewsStatus({
+                mode: 'fallback',
+                label: '回退静态',
+                detail: '联网失败，暂时显示缓存或内置资讯',
+                updatedAt: mediaNewsStatus.updatedAt || null,
+                sourceCount: new Set((window.mediaNewsItems || []).map(item => item.source)).size
+            });
+            renderMediaPage();
+            handleApiError(error, '媒体资讯刷新');
+        } finally {
+            showLoading(false);
+            if (button instanceof HTMLButtonElement) {
+                button.disabled = false;
+                button.innerText = '刷新资讯';
+            }
+        }
     });
+
+    if (!hasAttemptedInitialMediaRefresh) {
+        hasAttemptedInitialMediaRefresh = true;
+        refreshMediaNews(false)
+            .then(() => renderMediaPage())
+            .catch(error => {
+                setMediaNewsStatus({
+                    mode: 'fallback',
+                    label: '静态兜底',
+                    detail: '首次拉取失败，当前显示内置资讯',
+                    updatedAt: null,
+                    sourceCount: new Set((window.mediaNewsItems || []).map(item => item.source)).size
+                });
+                console.warn('初始化媒体资讯失败', error);
+                renderMediaPage();
+            });
+    }
+    document.querySelectorAll('[data-media-region]').forEach(button => button.addEventListener('click', event => {
+        const target = event.currentTarget;
+        if (!(target instanceof HTMLButtonElement)) return;
+        setMediaNewsFilter({ region: target.dataset.mediaRegion || 'all' });
+        renderMediaPage();
+    }));
+    document.querySelectorAll('[data-media-keyword]').forEach(button => button.addEventListener('click', event => {
+        const target = event.currentTarget;
+        if (!(target instanceof HTMLButtonElement)) return;
+        setMediaNewsFilter({ keyword: target.dataset.mediaKeyword || 'all' });
+        renderMediaPage();
+    }));
 }
 
 function renderRaceRankings() {
-    renderStandings();
+    const container = document.getElementById('raceRankingsContainer');
+    if (!container) return;
+    const standings = window.raceSessionData?.seasonStandings?.drivers || [];
+    if (!standings.length) {
+        container.innerHTML = '<div class="rankings-section"><div class="section-title">当前暂无排名数据</div></div>';
+        return;
+    }
+    container.innerHTML = `
+        <div class="rankings-section">
+            <div class="section-title">当前赛季排名</div>
+            <table class="rankings-table">
+                <thead><tr><th>Pos</th><th>车手</th><th>车队</th><th>积分</th></tr></thead>
+                <tbody>${standings.map((item, index) => `<tr><td class="rank">${index + 1}</td><td>${escapeHtml(item.name)}</td><td>${escapeHtml(item.team)}</td><td class="points">${item.points}</td></tr>`).join('')}</tbody>
+            </table>
+        </div>
+    `;
 }
+

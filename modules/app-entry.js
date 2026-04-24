@@ -300,6 +300,8 @@ function initFeedPosts() {
 function init() {
     startStatusBarClock();
     loadTheme();
+    if (typeof loadMediaNewsStatus === 'function') loadMediaNewsStatus();
+    if (typeof loadMediaNewsFilter === 'function') loadMediaNewsFilter();
     loadChatViewMode();
     loadFavorability();
     loadAvatars();
