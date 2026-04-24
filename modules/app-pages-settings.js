@@ -3,14 +3,23 @@
 function renderCalendar() {
     const container = document.getElementById('calendarContainer');
     if (!container) return;
+    const weekendEvent = window.getCurrentRaceWeekendEvent ? window.getCurrentRaceWeekendEvent() : null;
     const list = (window.F1_CALENDAR || []).map(race => `
-        <li class="calendar-item">
+        <li class="calendar-item${weekendEvent?.race?.round === race.round && weekendEvent?.status !== 'season_complete' ? ' is-current' : ''}">
             <span class="calendar-round">${race.round}</span>
             <span class="calendar-date">${race.date}</span>
-            <span class="calendar-name">${race.gp}${race.sprint ? '<span class="calendar-sprint"> (Sprint)</span>' : ''}</span>
+            <span class="calendar-name">${race.gp}${race.sprint ? '<span class="calendar-sprint"> (Sprint)</span>' : ''}${weekendEvent?.race?.round === race.round && weekendEvent?.status !== 'season_complete' ? '<span class="calendar-live-badge">LIVE</span>' : ''}</span>
         </li>
     `).join('');
-    container.innerHTML = `<div class="calendar-section"><div class="calendar-header"><div class="calendar-title">2026 F1 赛历</div><button class="calendar-back-btn" id="calendarBackBtn">← 返回</button></div><ul class="calendar-list">${list}</ul></div>`;
+    const weekendCard = weekendEvent ? `
+        <div class="calendar-event-card${weekendEvent.status === 'live' ? ' is-live' : ''}">
+            <div class="calendar-event-kicker">${weekendEvent.status === 'live' ? 'RACE WEEK' : (weekendEvent.status === 'countdown' ? 'COUNTDOWN' : 'SEASON STATUS')}</div>
+            <div class="calendar-event-title">${escapeHtml(window.getRaceWeekendHeadline ? window.getRaceWeekendHeadline(weekendEvent) : '当前比赛周')}</div>
+            <div class="calendar-event-meta">Round ${escapeHtml(String(weekendEvent.race.round || ''))} · ${escapeHtml(weekendEvent.race.location || '')}${weekendEvent.race.sprint ? ' · Sprint' : ''}</div>
+            <div class="calendar-event-note">${escapeHtml(weekendEvent.phase?.note || '')}</div>
+        </div>
+    ` : '';
+    container.innerHTML = `<div class="calendar-section"><div class="calendar-header"><div class="calendar-title">2026 F1 赛历</div><button class="calendar-back-btn icon-text-btn" id="calendarBackBtn">${window.getUiIconMarkup ? window.getUiIconMarkup('chevronLeft', 'calendar-back-icon', '返回') : ''}<span>返回</span></button></div>${weekendCard}<ul class="calendar-list">${list}</ul></div>`;
     document.getElementById('calendarBackBtn')?.addEventListener('click', () => switchTab('chat'));
 }
 
@@ -287,7 +296,23 @@ function showDriverProfile(driverId) {
 }
 
 function showAnnouncements() {
-    const content = (window.ANNOUNCEMENTS || []).map(item => `<div style="margin-bottom:16px; border-bottom:1px solid #2a313b; padding-bottom:12px;"><div style="color:#e10600; font-weight:bold;">${item.version}</div><div style="white-space:pre-line; margin-top:6px;">${escapeHtml(item.content)}</div></div>`).join('');
+    const content = (window.ANNOUNCEMENTS || []).map((item, index) => {
+        const rawLines = String(item.content || '').split('\n').map(line => line.trim()).filter(Boolean);
+        const title = rawLines.shift() || '版本更新';
+        const bullets = rawLines.map(line => line.replace(/^[•\-]\s*/, '').trim()).filter(Boolean);
+        return `
+            <section class="announce-entry${index === 0 ? ' is-latest' : ''}">
+                <div class="announce-entry-top">
+                    <div>
+                        <div class="announce-entry-version">${escapeHtml(item.version || '')}</div>
+                        <h4 class="announce-entry-title">${escapeHtml(title)}</h4>
+                    </div>
+                    ${index === 0 ? '<span class="announce-entry-badge">LATEST</span>' : ''}
+                </div>
+                ${bullets.length ? `<div class="announce-entry-list">${bullets.map(text => `<div class="announce-entry-item"><span class="announce-entry-dot"></span><span>${escapeHtml(text)}</span></div>`).join('')}</div>` : `<div class="announce-entry-body">${escapeHtml(String(item.content || ''))}</div>`}
+            </section>
+        `;
+    }).join('');
     document.getElementById('announceContent').innerHTML = content;
     document.getElementById('announceModal').style.display = 'flex';
 }
@@ -297,3 +322,26 @@ function getLatestAnnouncementVersion() { return window.ANNOUNCEMENTS?.[0]?.vers
 function getSeenAnnouncementVersion() { return localStorage.getItem('f1_seen_announcement_version') || ''; }
 function saveAnnouncementVersion() { localStorage.setItem('f1_seen_announcement_version', getLatestAnnouncementVersion()); }
 function checkAndShowNewAnnouncements() { if (getLatestAnnouncementVersion() && getLatestAnnouncementVersion() !== getSeenAnnouncementVersion()) showAnnouncements(); }
+
+renderCalendar = function renderCalendarOverride() {
+    const container = document.getElementById('calendarContainer');
+    if (!container) return;
+    const weekendEvent = window.getCurrentRaceWeekendEvent ? window.getCurrentRaceWeekendEvent() : null;
+    const list = (window.F1_CALENDAR || []).map(race => `
+        <li class="calendar-item${weekendEvent?.race?.round === race.round && weekendEvent?.status !== 'season_complete' ? ' is-current' : ''}">
+            <span class="calendar-round">${race.round}</span>
+            <span class="calendar-date">${race.date}</span>
+            <span class="calendar-name">${race.gp}${race.sprint ? '<span class="calendar-sprint"> (Sprint)</span>' : ''}${weekendEvent?.race?.round === race.round && weekendEvent?.status !== 'season_complete' ? '<span class="calendar-live-badge">LIVE</span>' : ''}</span>
+        </li>
+    `).join('');
+    const weekendCard = weekendEvent ? `
+        <div class="calendar-event-card${weekendEvent.status === 'live' ? ' is-live' : ''}">
+            <div class="calendar-event-kicker">${weekendEvent.status === 'live' ? 'RACE WEEK' : (weekendEvent.status === 'countdown' ? 'COUNTDOWN' : 'SEASON STATUS')}</div>
+            <div class="calendar-event-title">${escapeHtml(window.getRaceWeekendHeadline ? window.getRaceWeekendHeadline(weekendEvent) : '当前比赛周')}</div>
+            <div class="calendar-event-meta">Round ${escapeHtml(String(weekendEvent.race.round || ''))} · ${escapeHtml(weekendEvent.race.location || '')}${weekendEvent.race.sprint ? ' · Sprint' : ''}</div>
+            <div class="calendar-event-note">${escapeHtml(weekendEvent.phase?.note || '')}</div>
+        </div>
+    ` : '';
+    container.innerHTML = `<div class="calendar-section"><div class="calendar-header"><div class="calendar-title">2026 F1 赛历</div><button class="calendar-back-btn icon-text-btn" id="calendarBackBtn">${window.getUiIconMarkup ? window.getUiIconMarkup('chevronLeft', 'calendar-back-icon', '返回') : ''}<span>返回</span></button></div>${weekendCard}<ul class="calendar-list">${list}</ul></div>`;
+    document.getElementById('calendarBackBtn')?.addEventListener('click', () => switchTab('chat'));
+};

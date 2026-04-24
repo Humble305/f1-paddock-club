@@ -1,6 +1,6 @@
 // helpers.js - 通用工具函数
-function showLoading(show) { const el=document.getElementById('loadingToast'); if(el) el.style.display = show ? 'block' : 'none'; }
-function showToast(msg, isError=false) { const toast = document.createElement('div'); toast.className = 'loading-toast'; toast.innerText = msg; toast.style.background = isError ? '#b91c1c' : '#2a5f5f'; toast.style.display = 'block'; document.body.appendChild(toast); setTimeout(() => toast.remove(), 2000); }
+function showLoading(show) { const el=document.getElementById('loadingToast'); if(el) el.style.display = show ? 'flex' : 'none'; }
+function showToast(msg, isError=false) { const toast = document.createElement('div'); toast.className = 'loading-toast'; toast.innerText = msg; toast.style.background = isError ? '#b91c1c' : '#2a5f5f'; toast.style.display = 'flex'; document.body.appendChild(toast); setTimeout(() => toast.remove(), 2000); }
 function escapeHtml(str) { return String(str).replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
 function getCurrentTime() { return new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }); }
 function getGenderPrefix() { return userProfile && userProfile.gender === '男' ? "先生" : (userProfile && userProfile.gender === '女' ? "女士" : "车迷朋友"); }

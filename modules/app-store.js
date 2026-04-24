@@ -25,6 +25,35 @@
 
 let paddockStoreFilter = 'all';
 
+const GIFT_ICON_KEYS = {
+    nor: 'wheel',
+    pia: 'coffee',
+    lec: 'piano',
+    ham: 'glove',
+    rus: 'wine',
+    ant: 'bowl',
+    ver: 'can',
+    hadjar: 'headphones',
+    alo: 'bicycle',
+    str: 'sport',
+    alb: 'noodles',
+    sai: 'box',
+    gas: 'film',
+    col: 'flame',
+    oco: 'jacket',
+    bea: 'speaker',
+    hul: 'beer',
+    bor: 'palm',
+    law: 'rugby',
+    lin: 'keyboard',
+    per: 'taco',
+    bot: 'wood'
+};
+
+function getGiftIconKey(gift) {
+    return gift?.iconKey || GIFT_ICON_KEYS[gift?.driverId] || 'gift';
+}
+
 function getGiftInventoryCount(giftId) {
     return Math.max(0, Number(giftInventory[giftId] || 0));
 }
@@ -55,7 +84,7 @@ function createFallbackGift(driverId) {
         driverName: driver?.name || driverId,
         name: '围场限定神秘礼盒',
         subtitle: '意外惊喜款',
-        icon: '🎁',
+        iconKey: 'gift',
         price: 20,
         description: '包装得很像真的知道对方会喜欢什么，但答案只能靠你自己慢慢试出来。'
     };
@@ -71,7 +100,7 @@ function getDriverSignatureGift(driverId) {
         driverName: driver?.name || driverId,
         name: gift.name,
         subtitle: gift.subtitle,
-        icon: gift.icon,
+        iconKey: getGiftIconKey({ ...gift, driverId }),
         price: gift.price,
         description: gift.description
     };
@@ -212,7 +241,7 @@ function renderChatGiftPanel() {
     mount.innerHTML = owned.map(item => `
         <article class="chat-gift-card">
             <div class="chat-gift-card-top">
-                <span class="chat-gift-card-icon">${item.icon}</span>
+                <span class="chat-gift-card-icon">${window.getUiIconMarkup ? window.getUiIconMarkup(item.iconKey || 'gift', 'chat-gift-card-icon-svg', item.name) : ''}</span>
                 <span class="chat-gift-card-stock">库存 ${item.stock}</span>
             </div>
             <div class="chat-gift-card-title">${escapeHtml(item.name)}</div>
@@ -277,7 +306,7 @@ function renderPaddockStore() {
                 ${catalog.length ? catalog.map(item => `
                     <article class="paddock-gift-card">
                         <div class="paddock-gift-card-top">
-                            <span class="paddock-gift-icon">${item.icon}</span>
+                            <span class="paddock-gift-icon">${window.getUiIconMarkup ? window.getUiIconMarkup(item.iconKey || 'gift', 'paddock-gift-icon-svg', item.name) : ''}</span>
                             <span class="paddock-gift-stock">库存 ${getGiftInventoryCount(item.id)}</span>
                         </div>
                         <div class="paddock-gift-title">${escapeHtml(item.name)}</div>
