@@ -1,4 +1,4 @@
-// 约会系统与关系日记
+﻿// 绾︿細绯荤粺涓庡叧绯绘棩璁?
 
 const DATE_FAVOR_THRESHOLD = 50;
 
@@ -17,9 +17,9 @@ function buildDateDriverAvatarMarkup(driverId) {
 
 function fallbackDateReply(driver, scene, favor, normalHistory = [], dateHistory = []) {
     const actions = {
-        beach: ['（他偏过脸看你，海风把发梢吹得有些乱。）', '（他放慢脚步，和你并肩沿着海边往前走。）'],
-        restaurant: ['（他把手边的杯子轻轻转了半圈，目光落回你身上。）', '（他靠在椅背上，语气放得比刚才更缓。）'],
-        paddock: ['（他侧身示意你跟上，步子却刻意放慢了一点。）', '（他抬手指了指不远处的赛车，眼神里带着一点认真。）']
+        beach: ['锛堜粬鍋忚繃鑴哥湅浣狅紝娴烽鎶婂彂姊㈠惞寰楁湁浜涗贡銆傦級', '锛堜粬鏀炬參鑴氭锛屽拰浣犲苟鑲╂部鐫€娴疯竟寰€鍓嶈蛋銆傦級'],
+        restaurant: ['锛堜粬鎶婃墜杈圭殑鏉瓙杞昏交杞簡鍗婂湀锛岀洰鍏夎惤鍥炰綘韬笂銆傦級', '锛堜粬闈犲湪妞呰儗涓婏紝璇皵鏀惧緱姣斿垰鎵嶆洿缂撱€傦級'],
+        paddock: ['锛堜粬渚ц韩绀烘剰浣犺窡涓婏紝姝ュ瓙鍗村埢鎰忔斁鎱簡涓€鐐广€傦級', '锛堜粬鎶墜鎸囦簡鎸囦笉杩滃鐨勮禌杞︼紝鐪肩閲屽甫鐫€涓€鐐硅鐪熴€傦級']
     };
     const action = (actions[scene.id] || actions.beach)[Math.floor(Math.random() * 2)];
     const lastUser = [...dateHistory].reverse().find(item => item.role === 'user') || [...normalHistory].reverse().find(item => item.role === 'user');
@@ -109,13 +109,13 @@ function endDate() {
     renderDatePage();
     renderDriverList();
     if (currentChatDriver?.id === finishedDriver.id) renderChatMessages(finishedDriver.id);
-    showToast(favorChange > 0 ? `约会结束，好感度 +${favorChange}` : '约会结束', false);
+    showToast(favorChange > 0 ? `绾︿細缁撴潫锛屽ソ鎰熷害 +${favorChange}` : '绾︿細缁撴潫', false);
 }
 
 function formatDateBubbleContent(text = '', role = 'bot') {
     const safeText = String(text || '');
     if (role !== 'bot') return escapeHtml(safeText);
-    const actionPattern = /([（(][^（）()\n]{1,120}[）)])/gu;
+    const actionPattern = /([锛?][^锛堬級()\n]{1,120}[锛?])/gu;
     const blocks = [];
     let lastIndex = 0;
     let match;
@@ -141,16 +141,16 @@ function renderDatePage() {
     if (!dateInProgress) {
         const availableDrivers = window.DRIVERS.filter(driver => (favorability[driver.id] || 0) >= DATE_FAVOR_THRESHOLD);
         if (!availableDrivers.length) {
-            container.innerHTML = `<div class="date-selector"><div class="date-driver-section"><h4>暂无可约会车手</h4><div class="date-entry-hint">好感度达到 ${DATE_FAVOR_THRESHOLD} 后，对应车手才会出现在这里。</div></div></div>`;
+            container.innerHTML = `<div class="date-selector date-selector-empty"><div class="date-hero-card"><div class="date-hero-kicker">Paddock Date</div><div class="date-hero-title">还没有车手愿意赴约</div><div class="date-hero-copy">好感达到 ${DATE_FAVOR_THRESHOLD} 之后，对应车手才会出现在这里。先去聊聊天、送送礼，再回来挑一个更合适的晚上。</div></div></div>`;
             return;
         }
         const driverCards = availableDrivers.map(driver => {
             const favor = favorability[driver.id] || 0;
             const avatarBg = getDriverAvatarStyle(driver.id);
-            return `<button class="date-driver-card" data-driver-id="${driver.id}"><div class="driver-avatar-mini"${avatarBg ? ` style="background-image:${avatarBg};background-size:cover;background-position:center;"` : ''}>${avatarBg ? '' : driver.avatarLetter}</div><div class="driver-info-mini"><div class="driver-name-mini">${driver.name}</div><div class="driver-team-mini">${driver.team}</div><div class="driver-favor-mini">好感 ${favor}</div></div></button>`;
+            return `<button class="date-driver-card" data-driver-id="${driver.id}"><div class="date-driver-card-glow"></div><div class="driver-avatar-mini"${avatarBg ? ` style="background-image:${avatarBg};background-size:cover;background-position:center;"` : ''}>${avatarBg ? '' : driver.avatarLetter}</div><div class="driver-info-mini"><div class="driver-name-mini">${driver.name}</div><div class="driver-team-mini">${driver.team}</div><div class="driver-favor-mini">好感 ${favor}</div></div><span class="date-card-select">已待命</span></button>`;
         }).join('');
-        const sceneCards = window.DATE_SCENES.map(scene => `<button class="date-scene-card" data-scene-id="${scene.id}"><div class="scene-icon">${window.getUiIconMarkup ? window.getUiIconMarkup(scene.iconKey || 'spark', 'scene-icon-svg', scene.name) : ''}</div><div class="scene-name">${scene.name}</div><div class="scene-desc">${scene.desc}</div></button>`).join('');
-        container.innerHTML = `<div class="date-selector"><div class="date-driver-section"><h4>选择车手</h4><div class="date-driver-cards">${driverCards}</div></div><div class="date-scene-section"><h4>选择场景</h4><div class="date-scene-cards">${sceneCards}</div></div><button id="startDateBtn" class="date-start-btn">开始约会</button></div>`;
+        const sceneCards = window.DATE_SCENES.map(scene => `<button class="date-scene-card" data-scene-id="${scene.id}"><div class="date-scene-track"></div><div class="scene-icon">${window.getUiIconMarkup ? window.getUiIconMarkup(scene.iconKey || 'spark', 'scene-icon-svg', scene.name) : ''}</div><div class="scene-name">${scene.name}</div><div class="scene-desc">${scene.desc}</div><div class="date-scene-meta">Mood Route</div></button>`).join('');
+        container.innerHTML = `<div class="date-selector"><div class="date-hero-card"><div><div class="date-hero-kicker">Paddock Date</div><div class="date-hero-title">挑一个人，再挑一个今晚的氛围</div><div class="date-hero-copy">这不是普通入口页，更像围场深夜里的一张邀约面板。先选车手，再决定这次约会该在海边、餐厅还是围场里发生。</div></div><div class="date-hero-badge">Private Line</div></div><div class="date-driver-grid"><section class="date-driver-section"><div class="date-section-head"><h4>选择车手</h4><span class="date-section-meta">${availableDrivers.length} 位可赴约</span></div><div class="date-driver-cards">${driverCards}</div></section><section class="date-scene-section"><div class="date-section-head"><h4>选择场景</h4><span class="date-section-meta">${window.DATE_SCENES.length} 条氛围路线</span></div><div class="date-scene-cards">${sceneCards}</div></section></div><button id="startDateBtn" class="date-start-btn"><span class="date-start-kicker">Open Session</span><strong>开始这场约会</strong></button></div>`;
         let selectedDriverId = availableDrivers[0]?.id || '';
         let selectedSceneId = window.DATE_SCENES[0]?.id || '';
         const updateActive = () => {
@@ -169,14 +169,14 @@ function renderDatePage() {
             : buildDateDriverAvatarMarkup(currentDateDriver?.id);
         return `<div class="date-message-row ${msg.role}">${msg.role === 'bot' ? avatarMarkup : ''}<div class="date-message ${msg.role}"><div class="date-bubble">${formatDateBubbleContent(msg.content, msg.role)}</div></div>${msg.role === 'user' ? avatarMarkup : ''}</div>`;
     }).join('');
-    container.innerHTML = `<div class="round-counter">第 ${currentRound + 1} / ${maxRounds} 轮 · 与 ${currentDateDriver.name} 的约会</div><div class="date-chat-area" id="dateChatArea">${messagesHtml}</div><div class="date-input-area"><input type="text" id="dateUserInput" class="date-input" placeholder="输入你想说的话..." autocomplete="off"><button id="dateSendBtn" class="send-msg-btn">发送</button></div>`;
+    container.innerHTML = `<div class="round-counter">第 ${currentRound + 1} / ${maxRounds} 轮 · ${currentDateDriver.name} 的约会</div><div class="date-chat-area" id="dateChatArea">${messagesHtml}</div><div class="date-input-area"><input type="text" id="dateUserInput" class="date-input" placeholder="写一点今晚想说的话..." autocomplete="off"><button id="dateSendBtn" class="send-msg-btn"><span>发送</span></button></div>`;
     const roundCounter = container.querySelector('.round-counter');
     if (roundCounter) {
         roundCounter.classList.add('date-panel-pill');
         const driverAvatarBg = getDriverAvatarStyle(currentDateDriver.id);
         const header = document.createElement('div');
         header.className = 'date-panel-header';
-        header.innerHTML = `<div class="date-panel-main"><div class="date-panel-avatar"${driverAvatarBg ? ` style="background-image:${driverAvatarBg};background-size:cover;background-position:center;"` : ''}>${driverAvatarBg ? '' : currentDateDriver.avatarLetter}</div><div class="date-panel-meta"><div class="date-panel-title">${escapeHtml(currentDateDriver.name)}</div><div class="date-panel-subtitle">${escapeHtml(currentDateDriver.team)}</div></div></div>`;
+        header.innerHTML = `<div class="date-panel-main"><div class="date-panel-avatar"${driverAvatarBg ? ` style="background-image:${driverAvatarBg};background-size:cover;background-position:center;"` : ''}>${driverAvatarBg ? '' : currentDateDriver.avatarLetter}</div><div class="date-panel-meta"><div class="date-panel-title">${escapeHtml(currentDateDriver.name)}</div><div class="date-panel-subtitle">${escapeHtml(currentDateDriver.team)} · ${escapeHtml(currentDateScene?.name || '约会中')}</div></div></div><div class="date-panel-scene"><div class="date-panel-scene-label">Scene</div><strong>${escapeHtml(currentDateScene?.name || '')}</strong></div>`;
         roundCounter.replaceWith(header);
         header.appendChild(roundCounter);
     }

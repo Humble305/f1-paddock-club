@@ -108,74 +108,211 @@ function getUserPostInteractionMap(index = 0) {
 function pickFeedCommentTone(driverId) {
     const personality = getFeedDriverPersonality(driverId);
     const voice = `${personality?.voice || ''} ${personality?.social || ''}`;
-    if (/开玩笑|吐槽|冷幽默|轻松|会接梗/.test(voice)) return 'tease';
+    if (/开玩笑|冷幽默|轻松|会接梗|口语/.test(voice)) return 'playful';
     if (/成熟|温和|照顾人|鼓励/.test(voice)) return 'warm';
     if (/直接|硬|执行|专业|老练/.test(voice)) return 'respect';
     return 'hype';
 }
 
+function detectFeedPostScene(post) {
+    const lower = String(post?.content || '').trim().toLowerCase();
+    if (/训练|恢复|健身|骑行|跑步|gym|recovery/.test(lower)) return 'training';
+    if (/路上|落地|时差|机场|飞行|城市|酒店|咖啡/.test(lower)) return 'travel';
+    if (/模拟器|屏幕|数据|圈速|游戏|sim/.test(lower)) return 'sim';
+    if (/看台|留言|谢谢|车迷|支持|粉丝/.test(lower)) return 'fans';
+    if (/周末|比赛|排位|正赛|车库|练习|轮胎|工程师/.test(lower)) return 'weekend';
+    if (/朋友|队友|一起|车队气氛/.test(lower)) return 'friends';
+    if (/音乐|钢琴|晚餐|吃的|穿搭|时尚|海边/.test(lower)) return 'life';
+    return 'general';
+}
+
+const FEED_STYLE_PROFILES = {
+    nor: {
+        prompt: '句子偏短，像随手发出来的，带一点轻松和自嘲感；偶尔可以有极短英文碎词，但不要每条都来。',
+        tails: {
+            post: ['not bad。', '差不多就这样。'],
+            reply: ['fair enough。', '我会看到这种。'],
+            comment: ['很你。', '这句挺本人。']
+        }
+    },
+    pia: {
+        prompt: '句子更短，判断先行，情绪收着；干净、冷静、带一点很淡的冷幽默，不要拖沓。',
+        tails: {
+            post: ['还行。', '差不多。'],
+            reply: ['我记下了。', '这句可以。'],
+            comment: ['挺准。', '这条可以。']
+        }
+    },
+    lec: {
+        prompt: '句子更流动、更细腻一点，情绪真但克制；可以有一点温柔的停顿感和优雅感，不要写成抒情散文。',
+        tails: {
+            post: ['这种时刻我会记一下。', '感觉挺好。'],
+            reply: ['我知道你在说什么。', '我收到了。'],
+            comment: ['这条发得很好。', '这种内容很你。']
+        }
+    },
+    ham: {
+        prompt: '句子更完整，更温暖，会自然照顾读者感受；偶尔有一点鼓励和使命感，但绝不要写成演讲稿。',
+        tails: {
+            post: ['这种感觉我会记住。', '继续工作。'],
+            reply: ['谢谢你留这句。', '这种支持我会记得。'],
+            comment: ['这条很真。', '这个状态很好。']
+        }
+    },
+    ver: {
+        prompt: '更直接，更短，更少修饰；判断很快，不会铺垫太多，重点落在真实感受和赛车本身。',
+        tails: {
+            post: ['就这样。', '够了，继续。'],
+            reply: ['我看到了。', '差不多就是这样。'],
+            comment: ['这句对。', '懂。']
+        }
+    },
+    alo: {
+        prompt: '老练、干脆、略带一点很轻的老将幽默；不是阴阳怪气，而是那种懂围场的人才会有的松弛感。',
+        tails: {
+            post: ['有意思。', '慢慢来。'],
+            reply: ['这条我认。', '这句不错。'],
+            comment: ['挺像你。', '我懂这条。']
+        }
+    },
+    alb: {
+        prompt: '更友好、更口语，像会把气氛接住的人；自然、顺、带一点轻松感。',
+        tails: {
+            post: [' honestly，还不错。', '差不多是这样。'],
+            reply: ['我先回你一下。', '这种留言挺好。'],
+            comment: ['这条挺好。', '会让人看完笑一下。']
+        }
+    },
+    sai: {
+        prompt: '表达更完整、更稳，条理清楚但不官腔；看起来像很会发社媒的人，但不会刻意营业。',
+        tails: {
+            post: ['一步一步来。', '就先这样。'],
+            reply: ['我收到了。', '谢谢你这句。'],
+            comment: ['发得不错。', '这种内容挺好。']
+        }
+    },
+    gas: {
+        prompt: '情绪更明显一点，更有人味，句子会更流动；真诚但不要过度煽情。',
+        tails: {
+            post: ['这种感觉挺真实。', '我会记得这一刻。'],
+            reply: ['这种话会让人停一下。', '谢谢你认真留这句。'],
+            comment: ['这条挺真。', '看完会停一下。']
+        }
+    },
+    bot: {
+        prompt: '更松弛，句子短，带一点不费力的冷幽默；生活感强，不会装深沉。',
+        tails: {
+            post: ['fair enough。', '差不多够了。'],
+            reply: ['我看到了。', '这句还行。'],
+            comment: ['不错。', '会发。']
+        }
+    }
+};
+
+function getFeedStyleProfile(driverId) {
+    return FEED_STYLE_PROFILES[driverId] || {
+        prompt: '保持这个车手本人的社媒感，在句长、停顿、玩笑频率上自然区分，不要写成统一模板。',
+        tails: {
+            post: ['就先这样。'],
+            reply: ['我看到了。'],
+            comment: ['这条不错。']
+        }
+    };
+}
+
+function stylizeFeedText(driver, text, mode = 'post', slotIndex = 0) {
+    const profile = getFeedStyleProfile(driver?.id);
+    let result = sanitizeFeedPost(text);
+    if (!result) return result;
+    const tailPool = profile?.tails?.[mode] || [];
+    const tail = tailPool[slotIndex % tailPool.length];
+    if (tail && !result.includes(tail.replace(/[。]/g, '').trim())) {
+        if (result.length <= 84 && mode === 'post') {
+            result = `${result}${/[。！？.!?]$/.test(result) ? '' : '。'}${tail}`;
+        } else if (mode !== 'post' && result.length <= 32) {
+            result = `${result}${/[。！？.!?]$/.test(result) ? '' : '。'}${tail}`;
+        }
+    }
+    if (driver?.id === 'pia') {
+        result = result.replace(/其实/g, '').replace(/真的/g, '');
+    }
+    if (driver?.id === 'lec') {
+        result = result.replace('。', '，');
+    }
+    if (driver?.id === 'ver') {
+        result = result.replace(/我觉得|我感觉/g, '');
+    }
+    return sanitizeFeedPost(result);
+}
+
 function buildLocalDriverCircleComment(commentDriver, postDriver, post, slotIndex = 0) {
     const tone = pickFeedCommentTone(commentDriver.id);
-    const text = String(post?.content || '').trim();
-    const lower = text.toLowerCase();
+    const scene = detectFeedPostScene(post);
     const openers = {
-        tease: ['行，这条很你。', '我就知道你会发这个。', '这句一看就是你会写的。'],
-        warm: ['这条挺好的。', '这句我认。', '看得出来你状态不错。'],
-        respect: ['这条说得对。', '这句挺准。', '这部分我同意。'],
+        playful: ['这条很像你会发的。', '看到这句基本能猜到是你。', '这条语气很本人。'],
+        warm: ['这条挺真诚的。', '看得出来你这会儿状态不错。', '这句发得挺好。'],
+        respect: ['这条说得挺准。', '这句有内容。', '这一条我认。'],
         hype: ['可以，继续。', '这条状态对了。', '这一句有点东西。']
     };
     const sameTeamTail = [
-        '我们这边最近也一直在抠这些细节。',
-        '车库里的人看到大概都会懂你在说什么。',
-        '这种东西同队的人通常最有感。'
+        '我们这边最近也在抠这些细节。',
+        '同队的人看这种内容 usually 最有感。',
+        '车库里的人大概都会懂你这句。'
     ];
-    const fallbackTail = [
-        '先把这个节奏保持住。',
-        '至少这条我会点头。',
-        '这比空话有用多了。'
-    ];
-    const trainingTail = [
-        '训练日最烦的就是累完还得继续稳住。',
-        '这种内容 usually 比成绩单更真实。',
-        '恢复和准备这些，外面的人总觉得很轻松。'
-    ];
-    const travelTail = [
-        '时差这个东西确实从来不讲道理。',
-        '落地之后还能发这种内容，说明状态还行。',
-        '围场生活有一半时间都在路上。'
-    ];
-    const simTail = [
-        '模拟器待久了人真的会先活在数据里。',
-        '有些感觉确实得先在屏幕里找到。',
-        '这种日子我大概也懂。'
-    ];
-    const fanTail = [
-        '这类话发出来，下面 usually 会很热闹。',
-        '他们看到这种内容肯定会很开心。',
-        '这种时候回一下车迷总是对的。'
-    ];
-    const weekendTail = [
-        '剩下的就看周末怎么兑现了。',
-        '这些话放到比赛周就更有感觉了。',
-        '真正麻烦的部分通常还在后面。'
-    ];
-    let tailPool = fallbackTail;
-    if (/训练|恢复|健身|骑行|跑步/.test(lower)) tailPool = trainingTail;
-    else if (/路上|落地|时差|机场|咖啡|城市/.test(lower)) tailPool = travelTail;
-    else if (/模拟器|屏幕|数据|圈速|游戏/.test(lower)) tailPool = simTail;
-    else if (/看台|留言|谢谢|车迷/.test(lower)) tailPool = fanTail;
-    else if (/周末|比赛|排位|正赛|车库/.test(lower)) tailPool = weekendTail;
-    else if (commentDriver.team === postDriver.team) tailPool = sameTeamTail;
+    const tailMap = {
+        training: [
+            '恢复和准备这种事，只有自己最清楚有多磨人。',
+            '这种日子看起来安静，其实最考验人。',
+            '训练内容发出来，反而更像真实周内状态。'
+        ],
+        travel: [
+            '围场生活有一半时间确实都在路上。',
+            '时差和落地状态，谁碰谁知道。',
+            '这种旅途碎片 usually 比成绩单更像真实日常。'
+        ],
+        sim: [
+            '有些感觉确实先在模拟器里找到。',
+            '这类内容我们都很熟。',
+            '屏幕前待久了，脑子真的会先活在数据里。'
+        ],
+        fans: [
+            '他们看到这条应该会很开心。',
+            '这种时候回一下车迷 usually 是对的。',
+            '这种内容发出来，下面大概会很热闹。'
+        ],
+        weekend: [
+            '剩下的就看周末怎么把它兑现出来了。',
+            '比赛周里，这种心态挺重要。',
+            '讲得对，后面还是得靠赛道回答。'
+        ],
+        friends: [
+            '车队气氛顺的时候，人也会轻松很多。',
+            '这种日常才最像围场里面真实会发生的东西。',
+            '有时候就是这些小瞬间最能提气。'
+        ],
+        life: [
+            '偶尔发这种内容也挺好。',
+            '这种节奏看着就很舒服。',
+            '不是每条都聊比赛，其实更像本人。'
+        ],
+        general: [
+            '这条发得很自然。',
+            '看完会让人停一下的那种。',
+            '这种状态继续保持就很好。'
+        ]
+    };
+    let tailPool = tailMap[scene] || tailMap.general;
+    if (commentDriver.team === postDriver.team && scene === 'general') tailPool = sameTeamTail;
     const openerPool = openers[tone] || openers.hype;
     const opener = openerPool[slotIndex % openerPool.length];
     const tail = tailPool[(slotIndex + 1) % tailPool.length];
-    return sanitizeFeedPost(`${opener} ${tail}`);
+    return stylizeFeedText(commentDriver, `${opener} ${tail}`, 'comment', slotIndex);
 }
 
 function buildLocalUserCircleComment(driver, post, slotIndex = 0) {
     const tone = pickFeedCommentTone(driver.id);
     const openers = {
-        tease: ['我先来占个位置。', '这条下面我得先出现一下。'],
+        playful: ['我先来占个位置。', '这条下面我得先出现一下。'],
         warm: ['这条我先记下。', '先在这里留一句。'],
         respect: ['这一条值得看。', '这条内容可以。'],
         hype: ['这条得先顶一下。', '先来这里报个到。']
@@ -183,31 +320,32 @@ function buildLocalUserCircleComment(driver, post, slotIndex = 0) {
     const content = String(post?.content || '').trim();
     const tail = content ? `你这句发得挺完整。` : '我先在这条下面打个卡。';
     const openerPool = openers[tone] || openers.hype;
-    return sanitizeFeedPost(`${openerPool[slotIndex % openerPool.length]} ${tail}`);
+    return stylizeFeedText(driver, `${openerPool[slotIndex % openerPool.length]} ${tail}`, 'comment', slotIndex);
 }
 
 function buildLocalDriverCommentOnUserPost(driver, post, slotIndex = 0) {
     const tone = pickFeedCommentTone(driver.id);
     const favor = favorability?.[driver.id] || 0;
-    const content = String(post?.content || '').trim().toLowerCase();
+    const scene = detectFeedPostScene(post);
     const warmOpeners = ['这条我看到了。', '你这条发得不错。', '我看到这句的时候停了一下。'];
-    const teaseOpeners = ['行，这条是故意发给我看的吧。', '你这条很会挑时机。', '好，这句我看见了。'];
+    const teaseOpeners = ['你这条挑的时机还挺准。', '这条我当然会看到。', '好，这句我记下了。'];
     const coolOpeners = ['这条挺直接。', '你这句还挺准。', '我懂你在说什么。'];
-    const openerPool = tone === 'tease' ? teaseOpeners : (tone === 'respect' ? coolOpeners : warmOpeners);
+    const openerPool = tone === 'playful' ? teaseOpeners : (tone === 'respect' ? coolOpeners : warmOpeners);
     const raceTail = favor >= 65
         ? ['我会记着这条，周末尽量给你点能回头看的东西。', '这种时候被你看到，感觉还不错。', '等比赛跑完，再回来看看这条。']
         : ['先把这周末跑完再说。', '现在先把该做的部分做好。', '这种话比赛周会更容易记住。'];
     const lifeTail = favor >= 65
-        ? ['你最近很会挑这种时机出现。', '这条我就先收下了。', '你这一句，确实会让人心情好一点。']
-        : ['这条内容倒是挺像你。', '至少这句不空。', '这条我会点头。'];
-    const tailPool = /比赛|排位|正赛|周末|围场|车库|练习/.test(content) ? raceTail : lifeTail;
-    return sanitizeFeedPost(`${openerPool[slotIndex % openerPool.length]} ${tailPool[(slotIndex + 1) % tailPool.length]}`);
+        ? ['你这一句，确实会让人心情好一点。', '这条我就先收下了。', '这种内容我会记一会儿。']
+        : ['这条内容挺有你的感觉。', '这句发得挺自然。', '我看到这条了。'];
+    const tailPool = scene === 'weekend' ? raceTail : lifeTail;
+    return stylizeFeedText(driver, `${openerPool[slotIndex % openerPool.length]} ${tailPool[(slotIndex + 1) % tailPool.length]}`, 'comment', slotIndex);
 }
 
 function buildDriverCommentOnUserPostPrompt(driver, post) {
     const personalityContext = window.getDriverPersonalityContext ? window.getDriverPersonalityContext(driver.id) : '';
     const weekendContext = window.getRaceWeekendPromptContext ? window.getRaceWeekendPromptContext() : '';
     const favor = favorability?.[driver.id] || 0;
+    const styleProfile = getFeedStyleProfile(driver.id);
     return `今天是${getCurrentDateInfo()}。
 你是 F1 车手 ${driver.name}（${driver.team}），现在要在一位用户发布的围场动态下公开留言。
 ${getRoleOutputSafetyPrompt('feed')}
@@ -223,9 +361,12 @@ ${weekendContext}
 - 你必须先读懂用户发的内容，再决定怎么回，不能空泛敷衍。
 - 如果你和用户好感较高，要明显更愿意互动，但仍然保持公开社媒语气，不要写成暧昧私聊。
 - 语气要像真实车手会在评论区留的一句：短、自然、有人味，可以带一点熟悉感或玩笑感。
+- 轻松不等于阴阳怪气；除非原帖本身就是非常明显的熟人玩笑，否则不要写讽刺、挖苦、别扭的反话。
 - 如果帖子提到比赛、围场、成绩、排位或正赛，只能站在当前现实信息内回复，不要编造结果、事故、转会、处罚或伤病。
 - 不要加括号动作，不要加引号，不要写解释。
 - 长度控制在 10 到 34 个汉字。
+【社媒微风格】
+- ${styleProfile.prompt}
 现在直接输出评论正文。`;
 }
 
@@ -262,6 +403,7 @@ function buildDriverCircleCommentPrompt(commentDriver, postDriver, post) {
     const personalityContext = window.getDriverPersonalityContext ? window.getDriverPersonalityContext(commentDriver.id) : '';
     const postFacts = summarizeFeedReality(postDriver);
     const weekendContext = window.getRaceWeekendPromptContext ? window.getRaceWeekendPromptContext() : '';
+    const styleProfile = getFeedStyleProfile(commentDriver.id);
     return `今天是${getCurrentDateInfo()}。
 你是 F1 车手 ${commentDriver.name}（${commentDriver.team}），现在正在另一位车手的公开动态下留言。
 ${getRoleOutputSafetyPrompt('feed')}
@@ -276,10 +418,12 @@ ${weekendContext}
 - 你必须先读懂原帖内容，再有针对性地留言，不能像机器人套模板。
 - 这是车手对车手的公开评论，不是采访，不是私聊。
 - 语气要像真实车手会在 X / IG 评论区顺手留的一句：短、自然、像本人。
-- 可以轻松一点、互相调侃一点，但不要过头，不要像粉丝发言。
+- 可以轻松一点、熟人一点，但不要阴阳怪气、不要带刺，也不要为了显得熟而故意怼人。
 - 如果帖子提到比赛、积分、车队工作或围场情况，必须以当前现实信息为边界，不要编造结果、事故、转会、处罚或伤病。
 - 不要复读原帖，不要写空泛鸡汤，不要带括号动作，不要加引号。
 - 长度控制在 10 到 32 个汉字，读起来像真实留言。
+【社媒微风格】
+- ${styleProfile.prompt}
 【现实参考】
 ${postFacts.length ? postFacts.map(item => `- ${item}`).join('\n') : '- 暂无明确赛事新闻可引用，优先承接原帖内容本身。'}
 现在直接输出评论正文。`;
@@ -419,6 +563,7 @@ function sanitizeFeedPost(text = '') {
 function buildFeedPrompt(driver, topic) {
     const personalityContext = window.getDriverPersonalityContext ? window.getDriverPersonalityContext(driver.id) : '';
     const personality = getFeedDriverPersonality(driver.id);
+    const styleProfile = getFeedStyleProfile(driver.id);
     const facts = summarizeFeedReality(driver);
     const weekendContext = window.getRaceWeekendPromptContext ? window.getRaceWeekendPromptContext() : '';
     return `今天是${getCurrentDateInfo()}。
@@ -430,6 +575,8 @@ ${weekendContext}
 - 本条主题：${topic?.label || '围场近况'}
 - 你在公开社媒上发，不是在接受采访，也不是在私聊用户。
 - 语气要像本人平时会发的短 caption：简洁、自然、有人味，可以有一点轻松幽默，但不要硬写段子。
+- 比起“发表观点”，更像是在随手记录此刻状态、一个很具体的小瞬间、情绪碎片，或者围场里刚发生的小事。
+- 尽量避免空泛鸡汤、官话和模板式积极发言，读起来要像真的有人刚发出去。
 - 可以聊比赛，也可以聊训练、旅途、恢复、朋友、模拟器、音乐、美食、车队日常、和车迷互动。
 - 如果聊比赛或围场新闻，必须以当前现实信息为边界，不要编造冠军、杆位、事故、转会、伤病、处罚或数据。
 - 如果当前没有足够现实依据，就写更生活化、更日常的内容，不要强行点评赛事。
@@ -439,8 +586,9 @@ ${weekendContext}
 ${facts.length ? facts.map(item => `- ${item}`).join('\n') : '- 暂无明确赛事新闻可引用，优先发生活化内容。'}
 【语气补充】
 - 这位车手的社媒感：${personality?.social || '自然、克制、像真人短动态'}
-  - 这位车手的表达禁忌：${personality?.avoid || '不要写得像新闻稿'}
-  现在直接输出动态正文。`;
+- 这位车手的表达禁忌：${personality?.avoid || '不要写得像新闻稿'}
+- 社媒微风格：${styleProfile.prompt}
+现在直接输出动态正文。`;
 }
 
 function buildLocalFeedReply(driver, post, userComment) {
@@ -448,20 +596,24 @@ function buildLocalFeedReply(driver, post, userComment) {
     const signatures = getFeedDriverPersonality(driver.id)?.signatures || [];
     const signOff = signatures[0] ? ` ${signatures[0]}。` : '';
     if (/好帅|帅|爱你|喜欢你|想你/.test(lower)) {
-        return sanitizeFeedPost(`看到这种话还是会笑一下。你这条我收到了，别太会说。${signOff}`);
+        return stylizeFeedText(driver, `看到这种话还是会笑一下。你这条我收到了。${signOff}`, 'reply');
     }
     if (/加油|冲|支持|挺你/.test(lower)) {
-        return sanitizeFeedPost(`收到。你们在下面这么喊，确实会让人更想把这周末跑漂亮一点。${signOff}`);
+        return stylizeFeedText(driver, `收到。你们在下面这么喊，确实会让人更想把这周末跑漂亮一点。${signOff}`, 'reply');
     }
     if (/比赛|排位|正赛|成绩|积分/.test(lower)) {
-        return sanitizeFeedPost(`先把该做的部分做好，后面的结果自然会跟上。现在还没到可以下结论的时候。${signOff}`);
+        return stylizeFeedText(driver, `先把该做的部分做好，后面的结果自然会跟上。现在还没到可以下结论的时候。${signOff}`, 'reply');
     }
-    return sanitizeFeedPost(`看到了，这条留言不错。先在这里回你一下，后面我尽量拿点更像样的内容出来。${signOff}`);
+    if (/训练|恢复|准备|状态/.test(lower)) {
+        return stylizeFeedText(driver, `这种内容我会看到的。最近确实都在做这些。${signOff}`, 'reply');
+    }
+    return stylizeFeedText(driver, `看到了。谢谢你认真留这句，我先在这里回你一下。${signOff}`, 'reply');
 }
 
 function buildFeedReplyPrompt(driver, post, userComment) {
     const personalityContext = window.getDriverPersonalityContext ? window.getDriverPersonalityContext(driver.id) : '';
     const personality = getFeedDriverPersonality(driver.id);
+    const styleProfile = getFeedStyleProfile(driver.id);
     const facts = summarizeFeedReality(driver);
     const weekendContext = window.getRaceWeekendPromptContext ? window.getRaceWeekendPromptContext() : '';
     return `今天是${getCurrentDateInfo()}。
@@ -476,7 +628,7 @@ ${weekendContext}
 - 评论内容：${userComment}
 【回复要求】
 - 这是公开评论区，不是私聊，不要写得像一对一聊天。
-- 语气要像真实车手在 X / IG 评论区顺手回一句：自然、短、有人味，可以轻微调侃，但不要冷冰冰。
+- 语气要像真实车手在 X / IG 评论区顺手回一句：自然、短、有人味，可以轻微熟络，但不要冷冰冰，更不要阴阳怪气。
 - 必须像本人，会参考这位车手平时的语气和社媒风格。
 - 可以承接用户的话，也可以回应自己刚发的那条动态，但不要重复原帖。
 - 如果提到赛事、成绩、排位、积分或围场情况，必须以当前现实信息为边界，不要编造结果、事故、转会、处罚或伤病。
@@ -487,6 +639,7 @@ ${facts.length ? facts.map(item => `- ${item}`).join('\n') : '- 暂无明确赛�
 【语气补充】
 - 这位车手的社媒感：${personality?.social || '自然、克制、像真人短动态'}
 - 这位车手的表达禁忌：${personality?.avoid || '不要写得像新闻稿'}
+- 社媒微风格：${styleProfile.prompt}
 现在直接输出评论回复正文。`;
 }
 
@@ -530,77 +683,77 @@ function buildLocalFeedPost(driver, index = 0) {
     const weekendEvent = window.getCurrentRaceWeekendEvent ? window.getCurrentRaceWeekendEvent() : null;
     const openingMap = {
         weekend: [
-            weekendEvent?.status === 'live' ? `比赛周已经开始了，先把眼前这几件事做好。` : (driverStanding ? `这一站先把该拿的东西拿到，再继续往前。` : `这个周末还有不少东西能继续往前推。`),
-            teamStanding ? `${driver.team} 最近的工作量很扎实，剩下就是兑现。` : `车库里最近一直在抠细节。`
+            weekendEvent?.status === 'live' ? `比赛周开始之后，脑子会自动切到很窄的那条线。` : (driverStanding ? `这一站还是想把该拿到的东西稳稳拿回来。` : `这个周末还有不少空间可以继续往前。`),
+            teamStanding ? `${driver.team} 这段时间的工作量很扎实，现在就看怎么把它兑现出来。` : `车库里最近一直在抠那些很细但很重要的东西。`
         ],
         garage: [
-            weekendEvent?.status === 'live' ? `今天大半时间都在和工程师对比赛周的细节。` : `今天大半时间都在和工程师过数据。`,
-            `围场里很多进步，其实都藏在没人看到的那几小时里。`
+            weekendEvent?.status === 'live' ? `今天大半时间都在和工程师对比赛周的细节。` : `今天大半时间都在和工程师把数据又过了一遍。`,
+            `很多进步其实都藏在外面完全看不见的那几个小时里。`
         ],
         training: [
-            `训练结束，脑子比腿还累。`,
-            `恢复日也不算真正轻松，但这种节奏我喜欢。`
+            `训练结束之后，最累的 usually 还是脑子。`,
+            `恢复日也不算真正轻松，但这种节奏挺熟悉。`
         ],
         travel: [
-            `又在路上了，咖啡先续上。`,
-            `时差不讲道理，只能自己找节奏。`
+            `又在路上了，先靠咖啡把人拉回在线。`,
+            `时差从来不讲道理，只能自己慢慢找回来。`
         ],
         friends: [
-            `今天车队气氛不错，这种时候工作会顺很多。`,
-            `围场里总有人能把很长的一天变得没那么长。`
+            `今天车队里的气氛不错，这种时候很多事会顺很多。`,
+            `围场里总会有人把很长的一天变得没那么长。`
         ],
         fans: [
             `看见看台和留言了，谢谢。`,
             `一直有人在后面推着你往前，这种感觉很难忽视。`
         ],
         life: [
-            `有时候一顿像样的饭就能把一天救回来。`,
-            `不聊圈速的时候，脑子反而转得更快。`
+            `有时候一顿像样的饭真的能把一天救回来。`,
+            `不聊圈速的时候，脑子反而会转得更顺一点。`
         ],
         sim: [
             `今天不是在车里，就是在模拟器里。`,
-            `有些圈速先在屏幕里找到了，接下来要把它带到赛道上。`
+            `有些感觉先在屏幕里找到，接下来再把它带去赛道上。`
         ]
     };
     const closerMap = {
         weekend: [
-            news[0] ? `先把当下处理好，比说大话有用。` : `一步一步来，通常比喊口号靠谱。`,
-            personality?.signatures?.[0] ? `${personality.signatures[0]}，继续。` : `继续。`
+            news[0] ? `先把当下处理好，通常比说大话有用。` : `一步一步来，通常比喊口号靠谱。`,
+            personality?.signatures?.[0] ? `${personality.signatures[0]}，继续往前。` : `继续往前。`
         ],
         garage: [
-            `这些东西现在看不见，周末大概会有答案。`,
-            `细节有时候真的决定一切。`
+            `这些东西现在看不见，周末大概会慢慢给答案。`,
+            `很多时候就是细节决定最后差在哪里。`
         ],
         training: [
-            `状态不是喊出来的，是一点点练出来的。`,
-            `明天应该会感谢今天的自己。`
+            `状态不是喊出来的，还是得一点点做。`,
+            `明天大概会感谢今天没有偷懒。`
         ],
         travel: [
             `先把自己调到在线模式。`,
-            `落地之后再看这周会变成什么样。`
+            `落地之后再看看这周会长成什么样。`
         ],
         friends: [
-            `这种感觉挺重要的。`,
-            `团队顺的时候，人也会更敢推。`
+            `这种感觉其实挺重要。`,
+            `团队顺的时候，人也会更敢往前推。`
         ],
         fans: [
             `我都记得。`,
-            `会努力给你们点值得发出来的东西。`
+            `会努力给你们一些值得等的内容。`
         ],
         life: [
-            `偶尔离赛道远一点，人反而更清楚。`,
+            `偶尔离赛道远一点，脑子反而更清楚。`,
             `差不多就这样，挺好。`
         ],
         sim: [
-            `先在模拟器里赢一点也不错。`,
-            `至少今天的方向是对的。`
+            `先在模拟器里把方向找对也不错。`,
+            `至少今天感觉是对的。`
         ]
     };
     const openings = openingMap[topic.id] || openingMap.life;
     const closers = closerMap[topic.id] || closerMap.life;
     const first = openings[index % openings.length];
     const second = closers[(index + 1) % closers.length];
-    const text = sanitizeFeedPost(`${first}${second}`);
+    const text = stylizeFeedText(driver, `${first}${second}`, 'post', index);
     return text || stripChatStageDirections(driver.initialMsg);
 }
 
