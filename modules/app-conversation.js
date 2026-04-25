@@ -121,6 +121,7 @@ function renderChatWorkspaceState() {
         detail.classList.remove('desktop-visible');
         detail.style.removeProperty('display');
         syncMobileChatIsolation(false);
+        renderGroupDiaryShortcut();
         if (typeof renderChatGiftPanel === 'function') renderChatGiftPanel();
         return;
     }
@@ -133,6 +134,7 @@ function renderChatWorkspaceState() {
             setChatComposerEnabled(false);
         }
         renderRaceWeekPromptBar();
+        renderGroupDiaryShortcut();
         syncMobileChatIsolation(false);
         if (typeof renderChatGiftPanel === 'function') renderChatGiftPanel();
         return;
@@ -156,6 +158,7 @@ function renderChatWorkspaceState() {
     renderChatMessages(currentChatDriver.id);
     setChatComposerEnabled(true);
     renderRaceWeekPromptBar();
+    renderGroupDiaryShortcut();
     if (typeof renderChatGiftPanel === 'function') renderChatGiftPanel();
 }
 
@@ -256,6 +259,23 @@ function renderRaceWeekPromptBar() {
             });
         });
     });
+}
+
+function renderGroupDiaryShortcut() {
+    const button = document.getElementById('openGroupDiaryShortcutBtn');
+    if (!button) return;
+    if (!currentChatDriver || currentChatDriver.type !== 'group') {
+        button.style.display = 'none';
+        button.disabled = true;
+        return;
+    }
+    button.style.display = 'inline-flex';
+    button.disabled = false;
+    button.innerHTML = `
+        <span class="btn-leading-icon" data-ui-icon="journal" data-icon-label="群聊日记"></span>
+        <span>${escapeHtml(currentChatDriver.name)} 的群聊日记</span>
+    `;
+    window.injectUiIcons?.(button);
 }
 
 let groupChatDraftSelection = [];
@@ -436,8 +456,8 @@ function renderGroupChatQuickActions() {
     if (mode) mode.innerText = groupChatModalMode === 'edit' ? 'Group Profile' : 'Create Group';
 }
 
-function getGroupChatSharedMemoryContext(memberIds = []) {
-    return memberIds
+function getGroupChatSharedMemoryContext(memberIds = [], groupId = '') {
+    const memberMemory = memberIds
         .map(memberId => {
             const driver = (window.DRIVERS || []).find(item => item.id === memberId);
             if (!driver) return '';
@@ -446,6 +466,8 @@ function getGroupChatSharedMemoryContext(memberIds = []) {
         })
         .filter(Boolean)
         .join('\n');
+    const groupMemory = typeof getGroupDiaryMemoryContext === 'function' && groupId ? getGroupDiaryMemoryContext(groupId, 3) : '';
+    return [groupMemory, memberMemory].filter(Boolean).join('\n');
 }
 
 function initGroupChatHistory(group) {
@@ -456,7 +478,7 @@ function initGroupChatHistory(group) {
         .map(driver => `【${driver.name}】${window.getDriverPersonalityContext ? window.getDriverPersonalityContext(driver.id) : ''}`)
         .join('\n');
     const noticePrompt = group.notice ? `\n【群公告】${group.notice}` : '';
-    const prompt = `你现在在一个 F1 围场群聊里。群名：${group.name}。群成员有：${memberSummary}。${noticePrompt}\n你要扮演群里的这些车手一起和用户聊天。\n【群聊写作要求】\n- 回复时可以由 1 到 3 位车手接话，不必每个人都强行发言。\n- 每一行都必须以“车手名：内容”的格式输出，只输出群聊正文，不要解释。\n- 车手说话风格必须符合各自性格，不要混成一个人。\n- 同一轮里不要让所有人都说很长，整体保持像真实群聊一样自然。\n${getUserProfilePriorityPrompt()}\n${personalitySummary}\n${getGroupChatSharedMemoryContext(group.memberIds)}`;
+    const prompt = `你现在在一个 F1 围场群聊里。群名：${group.name}。群成员有：${memberSummary}。${noticePrompt}\n你要扮演群里的这些车手一起和用户聊天。\n【群聊写作要求】\n- 回复时可以由 1 到 3 位车手接话，不必每个人都强行发言。\n- 每一行都必须以“车手名：内容”的格式输出，只输出群聊正文，不要解释。\n- 车手说话风格必须符合各自性格，不要混成一个人。\n- 同一轮里不要让所有人都说很长，整体保持像真实群聊一样自然。\n${getUserProfilePriorityPrompt()}\n${personalitySummary}\n${getGroupChatSharedMemoryContext(group.memberIds, group.id)}`;
     chatHistories[group.id] = [
         { role: 'system', content: prompt },
         { role: 'assistant', content: `${members[0]?.name || '车手们'}：${group.name} 已经建好了，想聊什么？`, timestamp: getCurrentTime(), dateKey: getLocalDateKey(), meta: { type: 'group-reply' } }
@@ -663,6 +685,10 @@ function deleteGroupChat(groupId = editingGroupChatId) {
     saveGroupChats();
     delete chatHistories[groupId];
     saveChatHistories();
+    if (groupDiaries?.[groupId]) {
+        delete groupDiaries[groupId];
+        if (typeof saveGroupDiaries === 'function') saveGroupDiaries();
+    }
     if (currentChatDriver?.id === groupId) closeChatDetailView(true);
     closeGroupChatModal();
     renderDriverList();
@@ -1110,6 +1136,20 @@ function parseGroupReplyLines(group, text) {
         });
 }
 
+async function getGroupReplyFavorIncs(group, userText, replyText) {
+    const lines = parseGroupReplyLines(group, replyText);
+    const seen = new Set();
+    const results = await Promise.all(lines.map(async line => {
+        const driver = line.driver;
+        if (!driver || seen.has(driver.id)) return null;
+        seen.add(driver.id);
+        const inc = await judgeFavorabilityWithAI(driver, userText);
+        if (inc <= 0) return null;
+        return { driverId: driver.id, inc };
+    }));
+    return results.filter(Boolean);
+}
+
 function renderChatMessages(driverId) {
     const area = document.getElementById('chatMessagesArea');
     if (!area) return;
@@ -1304,6 +1344,33 @@ function getDriverFavorTopics(driver) {
     return topics.length ? topics : FAVOR_TOPIC_LIBRARY.slice(0, 1).map(topic => ({ ...topic, affinity: 1 }));
 }
 
+function getFavorTopicLabel(topic) {
+    if (!topic) return '';
+    if (topic.affinity >= 3) return `最容易被打动的话题：${topic.profileCues.slice(0, 4).join('、')}`;
+    if (topic.affinity >= 2) return `平时也愿意接的话题：${topic.profileCues.slice(0, 4).join('、')}`;
+    return `通常不会因为这个话题明显拉近关系：${topic.profileCues.slice(0, 4).join('、')}`;
+}
+
+function buildFavorJudgePrompt(driver) {
+    const topics = getDriverFavorTopics(driver);
+    const favoriteTopics = topics.filter(topic => topic.affinity >= 3).slice(0, 2).map(getFavorTopicLabel);
+    const casualTopics = topics.filter(topic => topic.affinity === 2).slice(0, 2).map(getFavorTopicLabel);
+    const offTopics = topics.filter(topic => topic.affinity <= 0).slice(0, 2).map(getFavorTopicLabel);
+    return [
+        `你是一个只负责判断“用户这句话会不会让车手对他更有好感”的分析器。`,
+        `判断对象：F1 车手 ${driver?.name || ''}（${driver?.team || ''}）。`,
+        `请严格基于车手真实的人设倾向、表达风格、兴趣重点和关系节奏来判断，不要因为礼貌夸奖就轻易给分。`,
+        `只有当用户这句话真的聊到了这位车手在意的内容、让他觉得被理解、被认真接住，或者在关系上自然推进时，才加分。`,
+        `打分规则：0=基本不会增加好感；1=有一点点触动；2=明显觉得聊对了；3=非常对味，像是说到了他心里。`,
+        `如果只是空泛夸奖、机械应援、和他本人无关的泛泛聊天、或者明显命中了他不太在意的话题，优先给 0。`,
+        favoriteTopics.length ? `高优先级方向：${favoriteTopics.join('；')}` : '',
+        casualTopics.length ? `次一级方向：${casualTopics.join('；')}` : '',
+        offTopics.length ? `低优先级方向：${offTopics.join('；')}` : '',
+        window.getDriverPersonalityContext ? window.getDriverPersonalityContext(driver.id) : '',
+        `只输出一行 JSON，例如 {"score":2}，不要输出解释。`
+    ].filter(Boolean).join('\n');
+}
+
 function localFavorJudgment(driver, message) {
     const lower = normalizeFavorText(message);
     if (!lower) return 0;
@@ -1326,6 +1393,53 @@ function localFavorJudgment(driver, message) {
     });
 
     return bestScore;
+}
+
+function extractFavorScore(content) {
+    const text = String(content || '').trim();
+    if (!text) return null;
+    try {
+        const parsed = JSON.parse(text);
+        const score = Number(parsed?.score);
+        if (Number.isFinite(score)) return Math.max(0, Math.min(3, Math.round(score)));
+    } catch (error) {
+        const match = text.match(/[0-3]/);
+        if (match) return Number(match[0]);
+    }
+    return null;
+}
+
+async function judgeFavorabilityWithAI(driver, message) {
+    const fallback = localFavorJudgment(driver, message);
+    const normalized = String(message || '').trim();
+    if (!normalized) return fallback;
+    if (!useAI || !apiConfig.key || !apiConfig.url || !apiConfig.model) return fallback;
+    try {
+        const response = await fetch(`${apiConfig.url.replace(/\/$/, '')}/chat/completions`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${apiConfig.key}`
+            },
+            body: JSON.stringify({
+                model: apiConfig.model,
+                messages: [
+                    { role: 'system', content: buildFavorJudgePrompt(driver) },
+                    { role: 'user', content: normalized }
+                ],
+                temperature: 0.1,
+                max_tokens: 40
+            })
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const payload = await response.json();
+        const content = payload?.choices?.[0]?.message?.content?.trim();
+        const score = extractFavorScore(content);
+        return score === null ? fallback : score;
+    } catch (error) {
+        console.warn('AI 好感判定失败，已回退到本地规则', error);
+        return fallback;
+    }
 }
 
 function pickGroupReplyMembers(group, userText) {
@@ -1362,8 +1476,11 @@ function generateLocalReply(driver, msg, options = {}) {
     const lower = String(msg || '').toLowerCase();
 
     if (giftContext) {
-        if (giftContext.matched) {
+        if (giftContext.preferenceLevel === 'favorite' || giftContext.matched) {
             return `这份 ${giftContext.name} 我一眼就记住了。你居然真的挑到这种东西，害我现在心情好得有点明显。`;
+        }
+        if (giftContext.preferenceLevel === 'liked' || giftContext.liked) {
+            return `我收到了，${politeName}。${giftContext.name} 这份礼物我确实挺喜欢的，你这个选择还蛮会挑。`;
         }
         return `我收到了，${politeName}。${giftContext.name} 还挺有意思的，我会好好放着。`;
     }
@@ -1392,7 +1509,8 @@ async function getGroupReply(group, userText) {
     const members = getGroupChatMembers(group);
     if (!members.length) return { reply: '群里暂时没人接话。', incs: [] };
     if (!useAI || !apiConfig.key || !apiConfig.url || !apiConfig.model) {
-        return { reply: generateLocalGroupReply(group, userText), incs: [] };
+        const reply = generateLocalGroupReply(group, userText);
+        return { reply, incs: await getGroupReplyFavorIncs(group, userText, reply) };
     }
     showLoading(true);
     try {
@@ -1410,7 +1528,7 @@ async function getGroupReply(group, userText) {
         const noticePrompt = group.notice ? `\n【群公告】${group.notice}` : '';
         const systemMsg = {
             role: 'system',
-            content: `今天是${getCurrentDateInfo()}。你正在一个围场群聊里回复用户，群名：${group.name}。群成员：${memberSummary}。${noticePrompt}\n【群聊输出规则】\n- 默认输出 1 到 2 行，只有真的有必要时才到 3 行。\n- 如果用户明确点了名字，就优先让被点到的车手接话。\n- 如果没人被点名，就由最可能对这个话题有兴趣、和用户更熟、或者此刻最自然会插话的人回复。\n- 每一行必须以“车手名：内容”的格式输出。\n- 不要让所有成员强行都说话，也不要输出解释、旁白或括号动作。\n- 群聊记忆和用户全局资料共通，回复时可以参考各成员已有记忆。\n- ${mentionRule}\n${getUserProfilePriorityPrompt()}\n${personalitySummary}\n${getGroupChatSharedMemoryContext(group.memberIds)}`
+            content: `今天是${getCurrentDateInfo()}。你正在一个围场群聊里回复用户，群名：${group.name}。群成员：${memberSummary}。${noticePrompt}\n【群聊输出规则】\n- 默认输出 1 到 2 行，只有真的有必要时才到 3 行。\n- 如果用户明确点了名字，就优先让被点到的车手接话。\n- 如果没人被点名，就由最可能对这个话题有兴趣、和用户更熟、或者此刻最自然会插话的人回复。\n- 每一行必须以“车手名：内容”的格式输出。\n- 不要让所有成员强行都说话，也不要输出解释、旁白或括号动作。\n- 群聊记忆和用户全局资料共通，回复时可以参考各成员已有记忆。\n- ${mentionRule}\n${getUserProfilePriorityPrompt()}\n${personalitySummary}\n${getGroupChatSharedMemoryContext(group.memberIds, group.id)}`
         };
         const response = await fetch(`${apiConfig.url.replace(/\/$/, '')}/chat/completions`, {
             method: 'POST',
@@ -1424,10 +1542,11 @@ async function getGroupReply(group, userText) {
         const payload = await response.json();
         const content = sanitizeRoleOutput(payload?.choices?.[0]?.message?.content?.trim(), 'chat');
         if (!content) throw new Error('API 返回空内容');
-        return { reply: content, incs: [] };
+        return { reply: content, incs: await getGroupReplyFavorIncs(group, userText, content) };
     } catch (error) {
         handleApiError(error, '群聊回复');
-        return { reply: generateLocalGroupReply(group, userText), incs: [] };
+        const reply = generateLocalGroupReply(group, userText);
+        return { reply, incs: await getGroupReplyFavorIncs(group, userText, reply) };
     } finally {
         showLoading(false);
     }
@@ -1436,7 +1555,7 @@ async function getGroupReply(group, userText) {
 async function getDriverReplyWithFavor(driver, userMessage, options = {}) {
     const giftContext = options.giftContext || null;
     const historyOverride = Array.isArray(options.historyOverride) ? options.historyOverride : null;
-    const baseInc = giftContext ? 0 : localFavorJudgment(driver, userMessage);
+    const baseInc = giftContext ? 0 : await judgeFavorabilityWithAI(driver, userMessage);
     if (!useAI || !apiConfig.key || !apiConfig.url || !apiConfig.model) {
         return { reply: generateLocalReply(driver, userMessage, options), inc: baseInc };
     }
@@ -1445,7 +1564,7 @@ async function getDriverReplyWithFavor(driver, userMessage, options = {}) {
         const history = (historyOverride || (chatHistories[driver.id] || []).filter(msg => msg.role !== 'system')).slice(-8);
         const rankingInfo = window.formatRankingForChat ? window.formatRankingForChat(driver.id) : '';
         const raceContext = window.getCurrentRaceContext ? window.getCurrentRaceContext() : '';
-        const giftPrompt = giftContext ? `\n【礼物事件】\n- 用户刚刚送来的礼物：${giftContext.name}\n- 礼物描述：${giftContext.description}\n- 这份礼物是否正中你的偏好：${giftContext.matched ? '是' : '否'}\n- 如果正中偏好，请明显更开心、更主动、更有被懂到的感觉，但不要直接说“这就是我最爱的礼物”。\n- 如果没有正中偏好，请礼貌收下、语气自然，不要表现得扫兴，也不要直接说送错了。\n- 这是聊天小窗回复，只输出你对用户说的话。` : '';
+        const giftPrompt = giftContext ? `\n【礼物事件】\n- 用户刚刚送来的礼物：${giftContext.name}\n- 礼物描述：${giftContext.description}\n- 这份礼物和你偏好的匹配程度：${giftContext.preferenceLevel === 'favorite' || giftContext.matched ? '最爱级别' : (giftContext.preferenceLevel === 'liked' || giftContext.liked ? '普通喜欢' : '普通收下')}\n- 如果是最爱级别，请明显更开心、更主动、更有被懂到的感觉，但不要直接说“这就是我最爱的礼物”。\n- 如果只是普通喜欢，请自然表现出“这份礼物挺对胃口”的感觉，开心但不要夸张。\n- 如果只是普通收下，请礼貌收下、语气自然，不要表现得扫兴，也不要直接说送错了。\n- 这是聊天小窗回复，只输出你对用户说的话。` : '';
         const systemMsg = {
             role: 'system',
             content: `今天是${getCurrentDateInfo()}。${raceContext}\n你是 F1 车手 ${driver.name}（${driver.team}）。\n${getChatWritingGuide()}\n${getUserProfilePriorityPrompt()}\n【当前关系】${getFavorMood(favorability[driver.id] || 0)}\n【赛况参考】${rankingInfo}\n${buildDriverSharedMemoryContext(driver.id)}\n${window.getDriverPersonalityContext ? window.getDriverPersonalityContext(driver.id) : ''}${giftPrompt}`
@@ -1517,7 +1636,10 @@ async function sendMessageToGroup(group, userText, options = {}) {
         touchGroupChatActivity(group.id);
         saveChatHistories();
         renderChatMessages(group.id);
-        const { reply } = await getGroupReply(group, userText);
+        const { reply, incs } = await getGroupReply(group, userText);
+        incs.forEach(entry => {
+            if (entry?.driverId && entry.inc > 0) addFavorability(entry.driverId, entry.inc);
+        });
         chatHistories[group.id].push({
             role: 'assistant',
             content: reply,
@@ -1535,8 +1657,10 @@ async function sendMessageToGroup(group, userText, options = {}) {
     }
 }
 
-async function sendGiftToDriver(driver, giftItem, matched) {
+async function sendGiftToDriver(driver, giftItem, preferenceLevel = 'neutral') {
     if (!driver || !giftItem || messageInProgress) return false;
+    if (preferenceLevel === true) preferenceLevel = 'favorite';
+    if (preferenceLevel === false) preferenceLevel = 'neutral';
     const userText = `我送给你一份礼物：${giftItem.name}`;
     messageInProgress = true;
     try {
@@ -1548,10 +1672,13 @@ async function sendGiftToDriver(driver, giftItem, matched) {
             giftContext: {
                 name: giftItem.name,
                 description: giftItem.description,
-                matched
+                matched: preferenceLevel === 'favorite',
+                liked: preferenceLevel === 'liked',
+                preferenceLevel
             }
         });
-        if (matched) addFavorability(driver.id, 5);
+        if (preferenceLevel === 'favorite') addFavorability(driver.id, 5);
+        else if (preferenceLevel === 'liked') addFavorability(driver.id, 3);
         chatHistories[driver.id].push({ role: 'assistant', content: reply, timestamp: getCurrentTime(), dateKey: getLocalDateKey() });
         trimChatHistory(driver.id);
         saveChatHistories();

@@ -1,26 +1,26 @@
 ﻿const GIFT_BLUEPRINTS = {
-    nor: { name: '限量版电竞方向盘', subtitle: '直播间同款', icon: '🎮', price: 25, description: '磨砂碳纤外壳，按键手感轻快，像是刚从直播机位旁边拆下来。' },
-    pia: { name: '单品瑰夏手冲套组', subtitle: '工程师清醒包', icon: '☕', price: 25, description: '带滤杯、电子秤和参数卡，一看就是会认真研究萃取曲线的人会喜欢的东西。' },
-    lec: { name: '摩纳哥海盐钢琴雪球', subtitle: '海风纪念品', icon: '🎹', price: 25, description: '轻轻一晃会落下银白细雪，底座是低调的黑金配色，带一点旧港口的浪漫。' },
-    ham: { name: '高定植鞣皮手套', subtitle: '秀场后台款', icon: '🧤', price: 35, description: '剪裁利落，皮面柔软，包装盒里还塞了一张环保面料说明卡。' },
-    rus: { name: '私人酒庄醒酒器', subtitle: '晚餐桌主角', icon: '🍷', price: 35, description: '线条锋利得像风洞模型，摆在桌上就很像会被认真点评年份。' },
-    ant: { name: '冠军肉酱千层面', subtitle: '赛后补给', icon: '🍝', price: 20, description: '热气腾腾的一大份，芝士拉丝很夸张，年轻车手看一眼就会胃口大开。' },
-    ver: { name: '红牛饮料冰镇整箱', subtitle: '围场经典梗', icon: '🥤', price: 20, description: '整整一箱塞满碎冰和拉环罐，简单粗暴，像把赛道休息区直接搬了过来。' },
-    hadjar: { name: '巴黎深夜黑胶唱片', subtitle: '耳机音量拉满', icon: '🎧', price: 25, description: '封套是偏冷调的街头设计，拿在手里有点“别管了先放歌”的劲。' },
-    alo: { name: '环西骑行补给礼盒', subtitle: '老狐狸耐力包', icon: '🚴', price: 25, description: '里头有能量胶、骑行袜和一只复古水壶，实用得过分，也很阿隆索。' },
-    str: { name: '北境冰球纪念杆', subtitle: '休赛日藏品', icon: '🏒', price: 25, description: '银灰色杆身很冷，边角打磨得一丝不苟，看起来就不便宜。' },
+    nor: { name: '限量版电竞方向盘', subtitle: '直播间同款', icon: '🎮', price: 25, description: '磨砂碳纤外壳，按键手感轻快，像是刚从直播机位旁边拆下来。', likedBy: ['pia', 'ver', 'alb'] },
+    pia: { name: '单品瑰夏手冲套组', subtitle: '工程师清醒包', icon: '☕', price: 25, description: '带滤杯、电子秤和参数卡，一看就是会认真研究萃取曲线的人会喜欢的东西。', likedBy: ['rus', 'bea', 'lin'] },
+    lec: { name: '摩纳哥海盐钢琴雪球', subtitle: '海风纪念品', icon: '🎹', price: 25, description: '轻轻一晃会落下银白细雪，底座是低调的黑金配色，带一点旧港口的浪漫。', likedBy: ['gas', 'sai', 'ham'] },
+    ham: { name: '高定植鞣皮手套', subtitle: '秀场后台款', icon: '🧤', price: 35, description: '剪裁利落，皮面柔软，包装盒里还塞了一张环保面料说明卡。', likedBy: ['lec', 'rus', 'gas'] },
+    rus: { name: '定制冷杉调香水', subtitle: '收尾要干净', icon: '🧴', iconKey: 'spark', price: 35, description: '前调冷冽，中后段很克制，瓶身线条利落得像正装袖口和围场镜头一起出现时会用的那种东西。', likedBy: ['ham', 'lec', 'sai'] },
+    ant: { name: '冠军肉酱千层面', subtitle: '赛后补给', icon: '🍝', price: 20, description: '热气腾腾的一大份，芝士拉丝很夸张，年轻车手看一眼就会胃口大开。', likedBy: ['col', 'alb', 'bor'] },
+    ver: { name: '红牛饮料冰镇整箱', subtitle: '围场经典梗', icon: '🥤', price: 20, description: '整整一箱塞满碎冰和拉环罐，简单粗暴，像把赛道休息区直接搬了过来。', likedBy: ['nor', 'law', 'hadjar'] },
+    hadjar: { name: '巴黎深夜黑胶唱片', subtitle: '耳机音量拉满', icon: '🎧', price: 25, description: '封套是偏冷调的街头设计，拿在手里有点“别管了先放歌”的劲。', likedBy: ['gas', 'law', 'bea'] },
+    alo: { name: '环西骑行补给礼盒', subtitle: '老狐狸耐力包', icon: '🚴', price: 25, description: '里头有能量胶、骑行袜和一只复古水壶，实用得过分，也很阿隆索。', likedBy: ['oco', 'sai', 'hul'] },
+    str: { name: '北境冰球纪念杆', subtitle: '休赛日藏品', icon: '🏒', price: 25, description: '银灰色杆身很冷，边角打磨得一丝不苟，看起来就不便宜。', likedBy: ['rus', 'alb', 'law'] },
     alb: { name: '曼谷椰香冬阴功杯面', subtitle: '热气腾腾的一碗', icon: '🍜', price: 20, description: '打开就有酸辣香气，属于深夜吃一口会立刻心情变好的类型。' },
     sai: { name: '马德里王牌雪茄盒', subtitle: '慢慢开盒的那种', icon: '🎁', price: 35, description: '胡桃木盒盖压着烫金纹章，光是拿出来就很有场面。' },
     gas: { name: '午夜法语电影胶片灯', subtitle: '旧片场气氛组', icon: '🎬', price: 25, description: '灯罩里卷着一圈仿旧胶片，亮起来像巴黎老电影院的散场时刻。' },
-    col: { name: '博卡蓝黄烤肉围裙', subtitle: '阿根廷烧烤局', icon: '🔥', price: 20, description: '前面印着夸张口号，背带是球迷配色，像是下一秒就要开始烤肉和起哄。' },
-    oco: { name: '山路骑行风切外套', subtitle: '硬派训练装', icon: '🧥', price: 25, description: '版型紧实，反光条低调克制，一看就不是拿来摆拍的。' },
+    col: { name: '博卡蓝黄烤肉围裙', subtitle: '阿根廷烧烤局', icon: '🔥', price: 20, description: '前面印着夸张口号，背带是球迷配色，像是下一秒就要开始烤肉和起哄。', likedBy: ['ant', 'per', 'bor'] },
+    oco: { name: '山路骑行风切外套', subtitle: '硬派训练装', icon: '🧥', price: 25, description: '版型紧实，反光条低调克制，一看就不是拿来摆拍的。', likedBy: ['alo', 'gas', 'rus'] },
     bea: { name: '黑胶摇滚随身音箱', subtitle: '露营歌单专用', icon: '🔊', price: 25, description: '体积不大，音色却很厚，适合夜里把英摇放得刚刚好。' },
     hul: { name: '德式精酿小麦啤礼篮', subtitle: '终于能松口气', icon: '🍺', price: 20, description: '木提篮里塞着杯垫和开瓶器，带一点老派机械迷的讲究。' },
-    bor: { name: '海滩桑巴便携音箱', subtitle: '巴西太阳味', icon: '🌴', price: 20, description: '颜色明亮得像节庆海报，打开就自带一股周末聚会的热闹。' },
-    law: { name: '全黑队复古橄榄球', subtitle: '新西兰硬汉套装', icon: '🏉', price: 25, description: '皮纹扎实，黑银配色很干净，像随时可以抱着去草地上来一场。' },
+    bor: { name: '海滩桑巴便携音箱', subtitle: '巴西太阳味', icon: '🌴', price: 20, description: '颜色明亮得像节庆海报，打开就自带一股周末聚会的热闹。', likedBy: ['col', 'per', 'nor'] },
+    law: { name: '全黑队复古橄榄球', subtitle: '新西兰硬汉套装', icon: '🏉', price: 25, description: '皮纹扎实，黑银配色很干净，像随时可以抱着去草地上来一场。', likedBy: ['ver', 'hadjar', 'str'] },
     lin: { name: '瑞典机械键盘套件', subtitle: '程序员快乐板', icon: '⌨️', price: 25, description: '轴体、键帽和外壳都能自己搭，安静又利落，像极了技术宅的浪漫。' },
-    per: { name: '墨西哥辣酱玉米片塔', subtitle: '派对桌中央', icon: '🌮', price: 20, description: '一大盒热量炸弹，酱料香得离谱，适合热闹场面和朋友一起分。' },
-    bot: { name: '芬兰桑拿石香薰桶', subtitle: '慢慢升温', icon: '🪵', price: 20, description: '木桶里有桦木香和桑拿石，朴素得很北欧，也莫名有点松弛幽默。' }
+    per: { name: '墨西哥辣酱玉米片塔', subtitle: '派对桌中央', icon: '🌮', price: 20, description: '一大盒热量炸弹，酱料香得离谱，适合热闹场面和朋友一起分。', likedBy: ['col', 'bor', 'ant'] },
+    bot: { name: '芬兰桑拿石香薰桶', subtitle: '慢慢升温', icon: '🪵', price: 20, description: '木桶里有桦木香和桑拿石，朴素得很北欧，也莫名有点松弛幽默。', likedBy: ['hul', 'alb'] }
 };
 
 let paddockStoreFilter = 'all';
@@ -30,7 +30,7 @@ const GIFT_ICON_KEYS = {
     pia: 'coffee',
     lec: 'piano',
     ham: 'glove',
-    rus: 'wine',
+    rus: 'spark',
     ant: 'bowl',
     ver: 'can',
     hadjar: 'headphones',
@@ -102,8 +102,16 @@ function getDriverSignatureGift(driverId) {
         subtitle: gift.subtitle,
         iconKey: getGiftIconKey({ ...gift, driverId }),
         price: gift.price,
-        description: gift.description
+        description: gift.description,
+        likedBy: Array.isArray(gift.likedBy) ? gift.likedBy.slice() : []
     };
+}
+
+function getGiftPreferenceLevel(driverId, item) {
+    if (!driverId || !item) return 'neutral';
+    if (item.driverId === driverId) return 'favorite';
+    if ((item.likedBy || []).includes(driverId)) return 'liked';
+    return 'neutral';
 }
 
 function getPaddockStoreCatalog() {
@@ -149,7 +157,7 @@ function buyStoreGift(giftId) {
     showToast(`已购入 ${item.name}`, false);
 }
 
-function recordGiftHistory(driverId, item, matched) {
+function recordGiftHistory(driverId, item, preferenceLevel) {
     const driver = window.DRIVERS.find(entry => entry.id === driverId);
     giftHistory = [
         {
@@ -158,7 +166,9 @@ function recordGiftHistory(driverId, item, matched) {
             driverName: driver?.name || item.driverName,
             giftId: item.id,
             giftName: item.name,
-            matched,
+            matched: preferenceLevel === 'favorite',
+            liked: preferenceLevel === 'liked',
+            preferenceLevel,
             timestamp: new Date().toISOString()
         },
         ...giftHistory
@@ -177,13 +187,13 @@ async function giftStoreItemToDriver(giftId, driverId) {
     giftInventory[giftId] = getGiftInventoryCount(giftId) - 1;
     if (giftInventory[giftId] <= 0) delete giftInventory[giftId];
 
-    const matched = item.driverId === driverId;
-    recordGiftHistory(driverId, item, matched);
+    const preferenceLevel = getGiftPreferenceLevel(driverId, item);
+    recordGiftHistory(driverId, item, preferenceLevel);
     saveGiftStoreState();
     refreshGiftUi();
 
     if (typeof sendGiftToDriver === 'function') {
-        await sendGiftToDriver(driver, item, matched);
+        await sendGiftToDriver(driver, item, preferenceLevel);
     }
 
     if (typeof showDriverProfile === 'function') {
@@ -191,8 +201,10 @@ async function giftStoreItemToDriver(giftId, driverId) {
         if (profileModal?.style.display === 'flex') showDriverProfile(driverId);
     }
 
-    if (matched) {
+    if (preferenceLevel === 'favorite') {
         showToast(`${driver.name}收下礼物时明显更开心了，好感 +5`, false);
+    } else if (preferenceLevel === 'liked') {
+        showToast(`${driver.name}看起来挺喜欢这份礼物，好感 +3`, false);
     } else {
         showToast(`${driver.name}收下了 ${item.name}，反应还算自然`, false);
     }
@@ -274,7 +286,7 @@ function renderPaddockStore() {
                 <div class="paddock-store-copy">
                     <div class="paddock-store-eyebrow">Paddock Club Collection</div>
                     <h4 class="paddock-store-title">围场礼品柜</h4>
-                    <p class="paddock-store-desc">这里只摆礼物，不公布标准答案。每位车手都有自己真正会被打动的那一件，你得在聊天里慢慢摸出来。</p>
+                    <p class="paddock-store-desc">这里只摆礼物，不公布标准答案。每位车手都有最容易被打动的那一件，也有一些会自然喜欢的小东西，你得在聊天里慢慢摸出来。</p>
                 </div>
                 <div class="paddock-store-wallet">
                     <span class="paddock-store-wallet-label">当前围场币</span>
@@ -323,13 +335,16 @@ function renderPaddockStore() {
             </div>
             <div class="paddock-store-history">
                 <div class="paddock-store-history-title">最近送礼</div>
-                ${recentHistory.length ? recentHistory.map(entry => `
+                ${recentHistory.length ? recentHistory.map(entry => {
+                    const level = entry.preferenceLevel || (entry.matched ? 'favorite' : (entry.liked ? 'liked' : 'neutral'));
+                    return `
                     <div class="paddock-store-history-item">
                         <span>${escapeHtml(entry.driverName)}</span>
                         <span>${escapeHtml(entry.giftName)}</span>
-                        <strong class="${entry.matched ? 'is-match' : 'is-miss'}">${entry.matched ? '惊喜命中' : '普通收下'}</strong>
+                        <strong class="${level === 'favorite' ? 'is-match' : (level === 'liked' ? 'is-like' : 'is-miss')}">${level === 'favorite' ? '惊喜命中' : (level === 'liked' ? '挺喜欢' : '普通收下')}</strong>
                     </div>
-                `).join('') : '<div class="paddock-store-history-empty">还没有送礼记录，去聊天窗口试试第一份礼物吧。</div>'}
+                `;
+                }).join('') : '<div class="paddock-store-history-empty">还没有送礼记录，去聊天窗口试试第一份礼物吧。</div>'}
             </div>
         </section>
     `;
@@ -352,3 +367,4 @@ window.renderChatGiftPanel = renderChatGiftPanel;
 window.openChatGiftModal = openChatGiftModal;
 window.closeChatGiftModal = closeChatGiftModal;
 window.giftStoreItemToDriver = giftStoreItemToDriver;
+window.getGiftPreferenceLevel = getGiftPreferenceLevel;

@@ -234,6 +234,10 @@ function bindEvents() {
     document.getElementById('deleteGroupChatBtn')?.addEventListener('click', () => {
         if (typeof deleteGroupChat === 'function') deleteGroupChat();
     });
+    document.getElementById('openGroupDiaryShortcutBtn')?.addEventListener('click', () => {
+        const targetGroupId = currentChatDriver?.type === 'group' ? currentChatDriver.id : '';
+        if (targetGroupId && typeof openGroupDiaryModal === 'function') openGroupDiaryModal(targetGroupId);
+    });
     document.getElementById('groupChatNameInput')?.addEventListener('input', () => {
         if (typeof updateGroupChatModalState === 'function') updateGroupChatModalState();
     });
@@ -329,6 +333,7 @@ function init() {
     if (typeof loadGiftStoreState === 'function') loadGiftStoreState();
     loadDateMemories();
     loadDriverDiaries();
+    loadGroupDiaries();
     initFeedPosts();
     initRaceSessionData();
     raceSessionData = window.raceSessionData;

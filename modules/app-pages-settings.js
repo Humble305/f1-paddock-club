@@ -19,7 +19,7 @@ function renderCalendar() {
             <div class="calendar-event-note">${escapeHtml(weekendEvent.phase?.note || '')}</div>
         </div>
     ` : '';
-    container.innerHTML = `<div class="calendar-section"><div class="calendar-header"><div class="calendar-title">2026 F1 璧涘巻</div><button class="calendar-back-btn icon-text-btn" id="calendarBackBtn">${window.getUiIconMarkup ? window.getUiIconMarkup('chevronLeft', 'calendar-back-icon', '杩斿洖') : ''}<span>杩斿洖</span></button></div>${weekendCard}<ul class="calendar-list">${list}</ul></div>`;
+    container.innerHTML = `<div class="calendar-section"><div class="calendar-header"><div class="calendar-title">2026 F1 赛历</div><button class="calendar-back-btn icon-text-btn" id="calendarBackBtn">${window.getUiIconMarkup ? window.getUiIconMarkup('chevronLeft', 'calendar-back-icon', '返回') : ''}<span>返回</span></button></div>${weekendCard}<ul class="calendar-list">${list}</ul></div>`;
     document.getElementById('calendarBackBtn')?.addEventListener('click', () => switchTab('chat'));
 }
 
@@ -28,6 +28,7 @@ function exportGameData() {
         favorability,
         driverDateMemories,
         driverDiaries,
+        groupDiaries,
         pinnedDrivers,
         chatHistories,
         groupChats,
@@ -57,6 +58,7 @@ function applyLoadedData(saveData) {
     favorability = saveData.favorability || favorability;
     driverDateMemories = saveData.driverDateMemories || driverDateMemories;
     driverDiaries = saveData.driverDiaries || driverDiaries;
+    groupDiaries = saveData.groupDiaries || groupDiaries;
     pinnedDrivers = saveData.pinnedDrivers || pinnedDrivers;
     chatHistories = saveData.chatHistories || chatHistories;
     groupChats = saveData.groupChats || groupChats;
@@ -73,6 +75,7 @@ function applyLoadedData(saveData) {
     secureStorageSet('f1_favorability', favorability);
     secureStorageSet('f1_date_memories', driverDateMemories);
     secureStorageSet('f1_driver_diaries', driverDiaries);
+    secureStorageSet('f1_group_diaries', groupDiaries);
     secureStorageSet('f1_pinned_drivers', pinnedDrivers);
     secureStorageSet('f1_chat_histories', chatHistories);
     secureStorageSet('f1_group_chats', groupChats);
@@ -104,9 +107,9 @@ function importGameDataFromFile(file) {
     reader.onload = () => {
         try {
             applyLoadedData(importSecureSavePayload(reader.result));
-            showToast('瀛樻。瀵煎叆鎴愬姛', false);
+            showToast('存档导入成功', false);
         } catch (error) {
-            handleApiError(error, '瀛樻。瀵煎叆');
+            handleApiError(error, '存档导入');
         }
     };
     reader.readAsText(file);
@@ -133,21 +136,21 @@ function loadUserProfile() {
 
 function saveUserProfile() {
     userProfile = {
-        name: document.getElementById('profileName').value.trim() || '杞﹁糠',
+        name: document.getElementById('profileName').value.trim() || '车迷',
         gender: document.getElementById('profileGender').value,
         age: document.getElementById('profileAge').value.trim() || '?',
         height: document.getElementById('profileHeight').value.trim() || '?',
         weight: document.getElementById('profileWeight').value.trim() || '?',
-        nationality: document.getElementById('profileNationality').value.trim() || '鏈煡',
+        nationality: document.getElementById('profileNationality').value.trim() || '未知',
         roleType: document.getElementById('profileRoleSelect').value,
         customRole: document.getElementById('profileCustomRole').value.trim(),
-        personality: document.getElementById('profilePersonality').value.trim() || '鐑儏',
-        hobby: document.getElementById('profileHobby').value.trim() || '璧涜溅',
+        personality: document.getElementById('profilePersonality').value.trim() || '热情',
+        hobby: document.getElementById('profileHobby').value.trim() || '赛车',
         background: document.getElementById('profileBackground').value.trim()
     };
     secureStorageSet('f1_user_profile', userProfile);
     closeProfileModal();
-    showToast('璧勬枡鍗″凡鏇存柊', false);
+    showToast('资料卡已更新', false);
 }
 
 function toggleCustomRoleInput() {
@@ -165,7 +168,7 @@ function loadApiConfig() {
     setModelOptions(availableApiModels.length ? availableApiModels : [apiConfig.model || 'deepseek-chat'], apiConfig.model || 'deepseek-chat');
     updateCustomModelVisibility();
     useAI = Boolean(apiConfig.key && apiConfig.url && apiConfig.model);
-    setApiStatus(useAI ? '褰撳墠宸插惎鐢ㄧ湡瀹?API' : '褰撳墠浣跨敤妯℃嫙妯″紡', useAI ? 'success' : 'idle');
+    setApiStatus(useAI ? '当前已启用真实 API' : '当前使用模拟模式', useAI ? 'success' : 'idle');
 }
 
 function saveApiConfig() {
@@ -176,7 +179,7 @@ function saveApiConfig() {
     };
     secureStorageSet('f1_api_config', apiConfig);
     useAI = Boolean(apiConfig.key && apiConfig.url && apiConfig.model);
-    setApiStatus(useAI ? '宸蹭繚瀛樺苟鍚敤鐪熷疄 API' : '缂哄皯瀹屾暣閰嶇疆锛屼粛浣跨敤妯℃嫙妯″紡', useAI ? 'success' : 'warning');
+    setApiStatus(useAI ? '已保存并启用真实 API' : '缺少完整配置，仍使用模拟模式', useAI ? 'success' : 'warning');
     showToast('AI \u8bbe\u7f6e\u5df2\u4fdd\u5b58', false);
     closeModal();
 }
@@ -263,22 +266,22 @@ function showDriverProfile(driverId) {
             <div class="profile-license-main">
                 <div class="profile-card-avatar-row">
                     <button type="button" class="profile-card-avatar profile-card-avatar-button" id="driverProfileAvatarBtn" style="${avatarBg ? `background-image:${avatarBg};background-size:cover;` : `background-color:${teamColor};`}">${avatarBg ? '' : driver.avatarLetter}</button>
-                    <button type="button" class="profile-avatar-reset-btn" id="resetDriverAvatarBtn" title="鎭㈠鍒濆澶村儚" aria-label="鎭㈠鍒濆澶村儚"><span class="profile-avatar-reset-icon" aria-hidden="true"></span></button>
+                    <button type="button" class="profile-avatar-reset-btn" id="resetDriverAvatarBtn" title="恢复初始头像" aria-label="恢复初始头像"><span class="profile-avatar-reset-icon" aria-hidden="true"></span></button>
                 </div>
                 <div class="profile-license-identity">
                     <div class="profile-card-name">${safe(profile.fullName)}</div>
                     <div class="profile-card-team">${safe(profile.team)}</div>
                     <div class="profile-license-meta">
-                        <span class="profile-license-chip">杞︽墜璧勬枡鍗?/span>
-                        <span class="profile-license-chip profile-license-chip-accent">濂芥劅 ${favor}/100</span>
+                        <span class="profile-license-chip">车手资料页</span>
+                        <span class="profile-license-chip profile-license-chip-accent">好感 ${favor}/100</span>
                     </div>
-                    <div class="profile-favor-line">褰撳墠鍏崇郴锛?{safe(mood)}</div>
+                    <div class="profile-favor-line">当前关系：${safe(mood)}</div>
                 </div>
             </div>
             <div class="profile-avatar-hint">鐐瑰嚮澶村儚鍗冲彲鏇存崲</div>
         </div>
         <div class="profile-card-section profile-card-section-identity">
-            <div class="profile-card-section-title">鍩烘湰淇℃伅</div>
+            <div class="profile-card-section-title">基本信息</div>
             <div class="profile-card-info-row"><span>鍥界睄</span><strong>${safe(profile.nationality)}</strong></div>
             <div class="profile-card-info-row"><span>鍑虹敓鏃ユ湡</span><strong>${safe(profile.birthDate)}</strong></div>
             <div class="profile-card-info-row"><span>韬珮 / 浣撻噸</span><strong>${safe(profile.height)} / ${safe(profile.weight)}</strong></div>
@@ -286,9 +289,9 @@ function showDriverProfile(driverId) {
         </div>
         <div class="profile-card-section profile-card-section-stats">
             <div class="profile-card-section-title">鐢熸动鏁版嵁</div>
-            <div class="profile-card-info-row"><span>鍒嗙珯鍐犲啗</span><strong>${safe(profile.totalWins)}</strong></div>
-            <div class="profile-card-info-row"><span>鏉嗕綅</span><strong>${safe(profile.totalPoles)}</strong></div>
-            <div class="profile-card-info-row"><span>棰嗗鍙?/span><strong>${safe(profile.totalPodiums)}</strong></div>
+            <div class="profile-card-info-row"><span>分站冠军</span><strong>${safe(profile.totalWins)}</strong></div>
+            <div class="profile-card-info-row"><span>杆位</span><strong>${safe(profile.totalPoles)}</strong></div>
+            <div class="profile-card-info-row"><span>领奖台</span><strong>${safe(profile.totalPodiums)}</strong></div>
         </div>`;
     document.getElementById('driverProfileModal').style.display = 'flex';
     document.getElementById('driverProfileAvatarBtn')?.addEventListener('click', () => openAvatarUpload(driverId));
@@ -376,9 +379,10 @@ function getDriverProfileMilestones(driverId) {
         });
     }
     if (gifts[0]?.giftName) {
+        const giftLevel = gifts[0].preferenceLevel || (gifts[0].matched ? 'favorite' : (gifts[0].liked ? 'liked' : 'neutral'));
         milestones.push({
-            title: gifts[0].matched ? '最近那份礼物被认真记住了' : '最近收到过你的礼物',
-            body: `${driver?.name || '他'} 最近收下了 ${gifts[0].giftName}${gifts[0].matched ? '，而且反应明显更柔和。' : '。'}`
+            title: giftLevel === 'favorite' ? '最近那份礼物被认真记住了' : (giftLevel === 'liked' ? '最近那份礼物他确实挺喜欢' : '最近收到过你的礼物'),
+            body: `${driver?.name || '他'} 最近收下了 ${gifts[0].giftName}${giftLevel === 'favorite' ? '，而且反应明显更柔和。' : (giftLevel === 'liked' ? '，看得出来心情有被你哄好一点。' : '。')}`
         });
     }
     return milestones.slice(0, 4);
@@ -398,7 +402,8 @@ function getDriverStatusTags(driverId) {
     if (favor >= 75) tags.push('在你面前会明显放松');
     else if (favor >= 45) tags.push('已经记住你的节奏');
     else tags.push('还在慢慢熟悉你');
-    if (gifts[0]?.matched) tags.push('刚收过你认真挑的礼物');
+    if ((gifts[0]?.preferenceLevel || (gifts[0]?.matched ? 'favorite' : (gifts[0]?.liked ? 'liked' : 'neutral'))) === 'favorite') tags.push('刚收过你认真挑的礼物');
+    else if ((gifts[0]?.preferenceLevel || (gifts[0]?.matched ? 'favorite' : (gifts[0]?.liked ? 'liked' : 'neutral'))) === 'liked') tags.push('最近收过一份挺喜欢的礼物');
     else if (gifts[0]) tags.push('最近收过你的心意');
     if (dateMemory?.summary) tags.push('保留着和你的约会记忆');
     if (recentPosts.length) tags.push('最近公开发声比较频繁');
@@ -417,7 +422,8 @@ function buildDriverProfileViewModel(driverId) {
     const driverNumber = DRIVER_NUMBERS[driverId] || '--';
     const recentPosts = getDriverRecentFeedPosts(driverId, 5);
     const gifts = getDriverGiftHistory(driverId, 6);
-    const matchedGiftCount = gifts.filter(entry => entry.matched).length;
+    const matchedGiftCount = gifts.filter(entry => (entry.preferenceLevel || (entry.matched ? 'favorite' : (entry.liked ? 'liked' : 'neutral'))) === 'favorite').length;
+    const likedGiftCount = gifts.filter(entry => (entry.preferenceLevel || (entry.matched ? 'favorite' : (entry.liked ? 'liked' : 'neutral'))) === 'liked').length;
     const history = (chatHistories[driverId] || []).filter(msg => msg.role !== 'system');
     return {
         identity: {
@@ -438,7 +444,8 @@ function buildDriverProfileViewModel(driverId) {
         giftProfile: {
             entries: gifts,
             total: gifts.length,
-            matchedCount: matchedGiftCount
+            matchedCount: matchedGiftCount,
+            likedCount: likedGiftCount
         }
     };
 }
@@ -471,10 +478,10 @@ showDriverProfile = function showDriverProfileHomepage(driverId) {
         : `<div class="driver-home-empty">你们之间还没有太多被写进主页的故事，先多聊几句，或者找个合适的时机送一份礼物。</div>`;
     const giftMarkup = giftProfile.entries.length
         ? giftProfile.entries.slice(0, 4).map(entry => `
-            <article class="driver-home-gift-card${entry.matched ? ' is-match' : ''}">
+            <article class="driver-home-gift-card${(entry.preferenceLevel || (entry.matched ? 'favorite' : (entry.liked ? 'liked' : 'neutral'))) === 'favorite' ? ' is-match' : ((entry.preferenceLevel || (entry.matched ? 'favorite' : (entry.liked ? 'liked' : 'neutral'))) === 'liked' ? ' is-like' : '')}">
                 <div class="driver-home-gift-top">
                     <span class="driver-home-gift-name">${safe(entry.giftName)}</span>
-                    <span class="driver-home-gift-badge">${entry.matched ? '很对味' : '已收下'}</span>
+                    <span class="driver-home-gift-badge">${(entry.preferenceLevel || (entry.matched ? 'favorite' : (entry.liked ? 'liked' : 'neutral'))) === 'favorite' ? '很对味' : ((entry.preferenceLevel || (entry.matched ? 'favorite' : (entry.liked ? 'liked' : 'neutral'))) === 'liked' ? '挺喜欢' : '已收下')}</span>
                 </div>
                 <div class="driver-home-gift-meta">${safe(formatProfileTimeLabel(entry.timestamp))}</div>
             </article>
@@ -535,7 +542,7 @@ showDriverProfile = function showDriverProfileHomepage(driverId) {
             <div class="profile-card-section-title">收到的礼物</div>
             <div class="driver-home-gift-summary">
                 <span>累计收下 ${giftProfile.total} 份礼物</span>
-                <span>${giftProfile.matchedCount ? `${giftProfile.matchedCount} 次明显被送到心坎上` : '还没有特别命中的礼物记录'}</span>
+                <span>${giftProfile.matchedCount ? `${giftProfile.matchedCount} 次明显被送到心坎上` : (giftProfile.likedCount ? `${giftProfile.likedCount} 次送得挺合他心意` : '还没有特别命中的礼物记录')}</span>
             </div>
             <div class="driver-home-gift-list">${giftMarkup}</div>
         </section>`;
@@ -557,7 +564,7 @@ window.buildDriverProfileViewModel = buildDriverProfileViewModel;
 function showAnnouncements() {
     const content = (window.ANNOUNCEMENTS || []).map((item, index) => {
         const rawLines = String(item.content || '').split('\n').map(line => line.trim()).filter(Boolean);
-        const title = rawLines.shift() || '鐗堟湰鏇存柊';
+        const title = rawLines.shift() || '版本更新';
         const bullets = rawLines.map(line => line.replace(/^[鈥-]\s*/, '').trim()).filter(Boolean);
         return `
             <section class="announce-entry${index === 0 ? ' is-latest' : ''}">
@@ -593,8 +600,8 @@ renderCalendar = function renderCalendarOverride() {
         if (stateKey === 'current') {
             return {
                 kicker: 'LIVE PREVIEW',
-                title: `${race.gp} 姝ｅ湪杩涘叆鍥村満鐒︾偣`,
-                meta: `Round ${race.round} 路 ${race.location || '璧涢亾寰呭懡'}${sprintText}`,
+                title: `${race.gp} 正在进入围场焦点`,
+                meta: `Round ${race.round} · ${race.location || '赛道待命'}${sprintText}`,
                 note: '\u5f53\u524d\u8fd9\u4e00\u7ad9\u4f1a\u66f4\u7a81\u51fa\u8d5b\u9053\u72b6\u6001\u3001\u8f66\u961f\u8282\u594f\u548c\u56f4\u573a\u5b9e\u65f6\u6c14\u6c1b\u3002',
                 cardState: 'current'
             };
@@ -603,7 +610,7 @@ renderCalendar = function renderCalendarOverride() {
             return {
                 kicker: 'FINISHED ROUND',
                 title: `${race.gp} \u5df2\u5b8c\u8d5b`,
-                meta: `Round ${race.round} 路 ${race.location || '\u5df2\u5b8c\u8d5b'}${sprintText}`,
+                meta: `Round ${race.round} · ${race.location || '已完赛'}${sprintText}`,
                 note: '\u8fd9\u4e00\u7ad9\u5df2\u7ecf\u8dd1\u5b8c\uff0c\u663e\u793a\u4f1a\u66f4\u504f\u5411\u8d5b\u540e\u56de\u770b\u548c\u6536\u675f\u72b6\u6001\u3002',
                 cardState: 'completed'
             };
@@ -611,7 +618,7 @@ renderCalendar = function renderCalendarOverride() {
         return {
             kicker: 'NEXT TARGET',
             title: `${race.gp} \u5373\u5c06\u5230\u7ad9`,
-            meta: `Round ${race.round} 路 ${race.location || '\u5f85\u547d\u4e2d'}${sprintText}`,
+            meta: `Round ${race.round} · ${race.location || '待命中'}${sprintText}`,
             note: '\u8fd9\u4e00\u7ad9\u8fd8\u6ca1\u5f00\u59cb\uff0c\u6c14\u6c1b\u4f1a\u66f4\u50cf\u8f66\u5e93\u9884\u70ed\u548c\u51fa\u53d1\u524d\u7684\u84c4\u529b\u9636\u6bb5\u3002',
             cardState: 'upcoming'
         };
@@ -645,11 +652,11 @@ renderCalendar = function renderCalendarOverride() {
         <div class="calendar-event-card${weekendEvent.status === 'live' ? ' is-live' : ''}" id="calendarEventCard">
             <div class="calendar-event-kicker">${weekendEvent.status === 'live' ? 'RACE WEEK' : (weekendEvent.status === 'countdown' ? 'COUNTDOWN' : 'SEASON STATUS')}</div>
             <div class="calendar-event-title">${escapeHtml(window.getRaceWeekendHeadline ? window.getRaceWeekendHeadline(weekendEvent) : '\u5f53\u524d\u6bd4\u8d5b\u5468')}</div>
-            <div class="calendar-event-meta">Round ${escapeHtml(String(weekendEvent.race.round || ''))} 路 ${escapeHtml(weekendEvent.race.location || '')}${weekendEvent.race.sprint ? ' 路 Sprint' : ''}</div>
+            <div class="calendar-event-meta">Round ${escapeHtml(String(weekendEvent.race.round || ''))} · ${escapeHtml(weekendEvent.race.location || '')}${weekendEvent.race.sprint ? ' · Sprint' : ''}</div>
             <div class="calendar-event-note">${escapeHtml(weekendEvent.phase?.note || '')}</div>
         </div>
     ` : '';
-    container.innerHTML = `<div class="calendar-section"><div class="calendar-header"><div class="calendar-title">2026 F1 璧涘巻</div><button class="calendar-back-btn icon-text-btn" id="calendarBackBtn">${window.getUiIconMarkup ? window.getUiIconMarkup('chevronLeft', 'calendar-back-icon', '杩斿洖') : ''}<span>杩斿洖</span></button></div>${weekendCard}<ul class="calendar-list">${list}</ul></div>`;
+    container.innerHTML = `<div class="calendar-section"><div class="calendar-header"><div class="calendar-title">2026 F1 赛历</div><button class="calendar-back-btn icon-text-btn" id="calendarBackBtn">${window.getUiIconMarkup ? window.getUiIconMarkup('chevronLeft', 'calendar-back-icon', '返回') : ''}<span>返回</span></button></div>${weekendCard}<ul class="calendar-list">${list}</ul></div>`;
     document.getElementById('calendarBackBtn')?.addEventListener('click', () => switchTab('chat'));
     const eventCard = document.getElementById('calendarEventCard');
     const kickerEl = eventCard?.querySelector('.calendar-event-kicker');
