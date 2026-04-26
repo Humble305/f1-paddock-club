@@ -87,6 +87,10 @@ function openHistoryTodayPage() {
         .join('');
 }
 
+function closeMobileUtilityModal() {
+    document.getElementById('mobileUtilityModal')?.style.setProperty('display', 'none');
+}
+
 function clearCurrentDriverChatHistory() {
     if (!currentChatDriver) return;
     const confirmed = confirm(`确定要清空${currentChatDriver.type === 'group' ? '群聊' : `和 ${currentChatDriver.name}`}的聊天记录吗？`);
@@ -168,6 +172,15 @@ function bindEvents() {
         clearSidebarActive();
         openHistoryTodayPage();
     });
+    document.getElementById('mobileUtilityBtn')?.addEventListener('click', () => {
+        document.getElementById('mobileUtilityModal')?.style.setProperty('display', 'flex');
+    });
+    document.getElementById('closeMobileUtilityBtn')?.addEventListener('click', closeMobileUtilityModal);
+    document.querySelectorAll('[data-mobile-utility-target]').forEach(button => button.addEventListener('click', () => {
+        const targetId = button.dataset.mobileUtilityTarget;
+        closeMobileUtilityModal();
+        if (targetId) document.getElementById(targetId)?.click();
+    }));
     document.getElementById('historyBackBtn')?.addEventListener('click', () => switchTab('chat'));
     document.getElementById('fetchModelsBtn')?.addEventListener('click', fetchAvailableModels);
     document.getElementById('modelName')?.addEventListener('change', updateCustomModelVisibility);
