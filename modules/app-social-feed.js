@@ -989,25 +989,479 @@ window.closePostComposerModal = closePostComposerModal;
 window.submitPostComposer = submitPostComposer;
 window.updatePostComposerState = updatePostComposerState;
 
+const TEAM_PROFILE_DETAILS = {
+    mercedes: {
+        label: 'Mercedes-AMG',
+        founded: '1954 首秀 / 2010 厂队回归',
+        base: '布拉克利 / 布里克斯沃斯',
+        legacy: '银箭系谱',
+        signature: '工程精度、长线开发、节奏控制',
+        hero: '从经典银箭到混动时代统治，速度和秩序感一直是这支车队最鲜明的标签。',
+        note: '擅长把比赛拉回自己的节奏，风格冷静、干净、压迫感强。'
+    },
+    ferrari: {
+        label: 'Scuderia Ferrari',
+        founded: '1950 全勤至今',
+        base: '马拉内罗',
+        legacy: '跃马传统',
+        signature: '激情、压力、历史重量',
+        hero: 'F1 历史里最具象征性的名字之一，围场里几乎每一次红色出场都自带主角光环。',
+        note: '这支车队的速度感从来不只来自赛车，也来自它本身背着的传奇。'
+    },
+    mclaren: {
+        label: 'McLaren',
+        founded: '1966',
+        base: '沃金',
+        legacy: '橙色传承',
+        signature: '空气效率、轻快节奏、年轻锋芒',
+        hero: '从塞纳时代到新世代橙军，McLaren 总带着一种又锐又轻的上升气流。',
+        note: '视觉上最有冲刺感的一支车队之一，节奏利落，气质很像高速扫弯。'
+    },
+    red_bull: {
+        label: 'Oracle Red Bull Racing',
+        founded: '2005',
+        base: '米尔顿凯恩斯',
+        legacy: '能量派',
+        signature: '高下压力、侵略性、强攻窗口',
+        hero: '它更像一支永远在寻找极限边界的队伍，动作直接，风格从不保守。',
+        note: '每次状态起来，都会有很强的追击感和压迫感。'
+    },
+    williams: {
+        label: 'Williams Racing',
+        founded: '1977',
+        base: '格罗夫',
+        legacy: '英伦底蕴',
+        signature: '传统、韧性、直线气质',
+        hero: '老牌车队的轮廓感很重，哪怕经历起伏，身上还是有那种不肯退场的硬气。',
+        note: '更像一支把风洞、机械和历史都写进骨架里的队伍。'
+    },
+    aston_martin: {
+        label: 'Aston Martin Aramco',
+        founded: '2021 以 Aston Martin 名义回归',
+        base: '银石',
+        legacy: '英伦绿',
+        signature: '奢雅外观、雄心扩张、设施升级',
+        hero: '这支队伍的存在感很依赖氛围和野心，看起来总像在打造一个更庞大的长期工程。',
+        note: '它的速度感不是最锋利的那种，更像低沉、厚重、带仪式感的推进。'
+    },
+    alpine: {
+        label: 'Alpine',
+        founded: '2021 以 Alpine 名义参赛',
+        base: '恩斯通',
+        legacy: '法式厂队线',
+        signature: '轻盈、技术味、阶段性爆发',
+        hero: '蓝色外壳下是很典型的欧洲厂队工程感，安静时收着，跑起来会突然很锐。',
+        note: '它的魅力常常出现在细节点火的瞬间。'
+    },
+    haas: {
+        label: 'MoneyGram Haas F1 Team',
+        founded: '2016',
+        base: '卡纳波利斯 / 班伯里',
+        legacy: '美式独立队',
+        signature: '直接、务实、抓机会',
+        hero: '更像围场里的硬派生存者，不铺张，靠效率和判断把分数咬下来。',
+        note: '一旦周末走势对味，这种队伍会非常有“黑马冲线”的快感。'
+    },
+    racing_bulls: {
+        label: 'Racing Bulls',
+        founded: '2006 起步的法恩扎支线',
+        base: '法恩扎',
+        legacy: '青年梯队',
+        signature: '培养、试炼、轻量节奏',
+        hero: '这支车队的味道很特别，像围场里专门为新锐车手准备的高速成长赛道。',
+        note: '它不是最厚重的名字，但往往有最灵活、最轻快的转向感。'
+    },
+    audi: {
+        label: 'Audi F1 Team',
+        founded: '2026 新时代加入',
+        base: '欣维尔',
+        legacy: '德系新章',
+        signature: '品牌入局、体系重构、长期项目',
+        hero: '它代表的是一个全新周期的开端，整个项目本身就带着很强的未来感和秩序感。',
+        note: '现阶段更像正在建立速度语言的新工厂，气氛偏冷、偏精密。'
+    },
+    cadillac: {
+        label: 'Cadillac Formula 1 Team',
+        founded: '2026 新军',
+        base: '美国项目中枢',
+        legacy: '新势力入场',
+        signature: '美式体量、品牌声势、从零搭建',
+        hero: 'Cadillac 的魅力在于它像一台刚推上发车区的新机器，厚重、陌生、却很有存在感。',
+        note: '它的故事感更多来自“正在建立”，而不是已经完成。'
+    }
+};
+
+let activeStandingsTeamKey = 'mercedes';
+let activeStandingsDriverId = 'ant';
+
+const DRIVER_TEAM_KEY_BY_ID = {
+    nor: 'mclaren',
+    pia: 'mclaren',
+    lec: 'ferrari',
+    ham: 'ferrari',
+    rus: 'mercedes',
+    ant: 'mercedes',
+    ver: 'red_bull',
+    hadjar: 'red_bull',
+    alo: 'aston_martin',
+    str: 'aston_martin',
+    alb: 'williams',
+    sai: 'williams',
+    gas: 'alpine',
+    col: 'alpine',
+    oco: 'haas',
+    bea: 'haas',
+    hul: 'audi',
+    bor: 'audi',
+    law: 'racing_bulls',
+    lin: 'racing_bulls',
+    per: 'cadillac',
+    bot: 'cadillac'
+};
+
+function normalizeStandingsTeamKey(teamName = '') {
+    const text = String(teamName || '').toLowerCase();
+    if (text.includes('mercedes')) return 'mercedes';
+    if (text.includes('ferrari')) return 'ferrari';
+    if (text.includes('mclaren')) return 'mclaren';
+    if (text.includes('red bull')) return 'red_bull';
+    if (text.includes('williams')) return 'williams';
+    if (text.includes('aston martin')) return 'aston_martin';
+    if (text.includes('alpine')) return 'alpine';
+    if (text.includes('haas')) return 'haas';
+    if (text.includes('racing bulls')) return 'racing_bulls';
+    if (text.includes('audi')) return 'audi';
+    if (text.includes('cadillac')) return 'cadillac';
+    return text.replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'team';
+}
+
+function getStandingsTeamDisplayName(teamName = '') {
+    const match = String(teamName || '').match(/\(([^)]+)\)/);
+    return match?.[1] || String(teamName || '').trim();
+}
+
+function getReadableStandingsAccent(color = '#9aa5b5') {
+    const hex = String(color || '').replace('#', '');
+    if (hex.length !== 6) return color;
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+    const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+    if (luminance < 0.24) {
+        return '#d7dfed';
+    }
+    return color;
+}
+
+function resolveDriverTeamKey(driverId = '', teamName = '') {
+    return DRIVER_TEAM_KEY_BY_ID[driverId] || normalizeStandingsTeamKey(teamName);
+}
+
+function getStandingsTeamDrivers(teamKey) {
+    return (window.DRIVERS || [])
+        .filter(driver => resolveDriverTeamKey(driver.id, driver.team) === teamKey)
+        .map(driver => driver.name);
+}
+
+function buildStandingsTeamProfile(team, index) {
+    const teamKey = normalizeStandingsTeamKey(team?.name);
+    const details = TEAM_PROFILE_DETAILS[teamKey] || {
+        label: getStandingsTeamDisplayName(team?.name),
+        founded: '围场资料更新中',
+        base: 'Paddock Network',
+        legacy: '当前档案',
+        signature: '速度、节奏、开发',
+        hero: '这支车队正在用自己的方式往积分榜上推进，资料面板会继续补充更完整的历史线索。',
+        note: '当前可先从积分、颜色和车手阵容里读它的比赛气质。'
+    };
+    const drivers = getStandingsTeamDrivers(teamKey);
+    return {
+        key: teamKey,
+        color: team?.color || '#9aa5b5',
+        rank: index + 1,
+        points: Number(team?.points || 0),
+        displayName: getStandingsTeamDisplayName(team?.name),
+        fullName: getStandingsTeamDisplayName(team?.name) || details.label,
+        details,
+        drivers
+    };
+}
+
+function buildDriverLegacyStatus(profile) {
+    if (!profile) return '围场资料同步中';
+    const championships = Array.isArray(profile.championships) ? profile.championships.length : 0;
+    const wins = Number(profile.totalWins || 0);
+    const debutText = String(profile.f1Debut || '');
+    if (championships >= 4) return '王者序列';
+    if (championships >= 1) return '世界冠军';
+    if (wins >= 10) return '前列常客';
+    if (wins >= 1) return '分站冠军';
+    if (debutText.includes('2026')) return '2026 新秀';
+    if (debutText.includes('2025')) return '二年级窗口';
+    return '围场主力';
+}
+
+function buildDriverLegacyHero(driver, profile, standing, rank) {
+    const championships = Array.isArray(profile?.championships) ? profile.championships.length : 0;
+    const wins = Number(profile?.totalWins || 0);
+    const debutText = String(profile?.f1Debut || '');
+    if (championships >= 1) {
+        return `${driver.name} 现在以 ${standing.points} 分站在 2026 车手积分榜第 ${rank}，履历上已经背着 ${championships} 个世界冠军头衔，是这张榜单里最有历史重量的那批名字之一。`;
+    }
+    if (wins >= 5) {
+        return `${driver.name} 目前以 ${standing.points} 分排在第 ${rank}，他的生涯已经不只是在围场里站稳，而是有了足够多能够定义个人速度语言的胜利节点。`;
+    }
+    if (wins >= 1) {
+        return `${driver.name} 现在以 ${standing.points} 分位列第 ${rank}，已经完成过分站夺冠这道门槛，眼下更像是在把零散的高光慢慢压成更稳定的前排节奏。`;
+    }
+    if (debutText.includes('2026')) {
+        return `${driver.name} 作为 2026 赛季的新秀，目前已经拿到 ${standing.points} 分、排在第 ${rank}，这更像是他的第一份围场成绩单，信息量比数字本身还要大。`;
+    }
+    return `${driver.name} 目前以 ${standing.points} 分排在第 ${rank}，这份档案更像是在记录他如何把经验、速度和位置一点点推到更前面。`;
+}
+
+function buildDriverLegacyNote(driver, profile) {
+    const championships = Array.isArray(profile?.championships) ? profile.championships.length : 0;
+    const wins = Number(profile?.totalWins || 0);
+    if (championships >= 1) return '他的比赛气质更像高压下的稳定输出，真正的威胁往往来自那种不需要夸张动作的掌控力。';
+    if (wins >= 10) return '这种级别的车手通常不靠单次爆闪立住，而是靠很长时间里的速度密度。';
+    if (wins >= 1) return '已经赢过的人，围场看他的方式会完全不同，很多时候差的是把势头继续延长。';
+    return '现阶段更像是在把周末完整度一点点拼出来，资料卡里最值得看的就是他正在形成的比赛轮廓。';
+}
+
+function getDriverCareerHighlight(profile) {
+    if (Array.isArray(profile?.championships) && profile.championships.length) {
+        const latest = profile.championships[profile.championships.length - 1];
+        return `${latest.year} · ${latest.desc || '世界冠军'}`;
+    }
+    if (Array.isArray(profile?.wins) && profile.wins.length) {
+        const firstWin = profile.wins[0];
+        return `${firstWin.year} · ${firstWin.desc || firstWin.race || '分站冠军'}`;
+    }
+    return profile?.f1Debut || '生涯资料同步中';
+}
+
+function buildStandingsDriverProfile(standing, index) {
+    const driver = (window.DRIVERS || []).find(item => item.name === standing?.name) || null;
+    const profile = driver ? window.DRIVER_PROFILES?.[driver.id] : null;
+    const teamKey = resolveDriverTeamKey(driver?.id, standing?.team || driver?.team || '');
+    const teamProfile = TEAM_PROFILE_DETAILS[teamKey] || null;
+    return {
+        id: driver?.id || `driver-${index}`,
+        rank: index + 1,
+        points: Number(standing?.points || 0),
+        name: standing?.name || driver?.name || 'Driver',
+        teamDisplay: teamProfile?.label || getStandingsTeamDisplayName(standing?.team || driver?.team || ''),
+        accent: teamProfile?.color || null,
+        teamColor: teamProfile ? (window.teamStandings || []).find(item => normalizeStandingsTeamKey(item.name) === teamKey)?.color || '#9aa5b5' : '#9aa5b5',
+        profile,
+        driver,
+        status: buildDriverLegacyStatus(profile),
+        hero: buildDriverLegacyHero(driver || { name: standing?.name || '这位车手' }, profile, standing, index + 1),
+        note: buildDriverLegacyNote(driver || { name: standing?.name || '这位车手' }, profile),
+        highlight: getDriverCareerHighlight(profile)
+    };
+}
+
+function renderStandingsTeamPanel(profile) {
+    const safe = value => escapeHtml(String(value ?? ''));
+    return `
+        <div class="team-legacy-panel" style="--team-accent:${safe(profile.color)};">
+            <div class="team-legacy-speedline" aria-hidden="true"></div>
+            <div class="team-legacy-top">
+                <div>
+                    <div class="team-legacy-kicker">TEAM DOSSIER</div>
+                    <div class="team-legacy-name">${safe(profile.displayName)}</div>
+                    <div class="team-legacy-subtitle">${safe(profile.details.label)}</div>
+                </div>
+                <div class="team-legacy-rankbox">
+                    <span class="team-legacy-rank-label">P${profile.rank}</span>
+                    <span class="team-legacy-points">${profile.points} pts</span>
+                </div>
+            </div>
+            <div class="team-legacy-tags">
+                <span class="team-legacy-tag">${safe(profile.details.founded)}</span>
+                <span class="team-legacy-tag">${safe(profile.details.base)}</span>
+                <span class="team-legacy-tag team-legacy-tag-accent">${safe(profile.details.legacy)}</span>
+            </div>
+            <div class="team-legacy-copy">${safe(profile.details.hero)}</div>
+            <div class="team-legacy-grid">
+                <article class="team-legacy-card">
+                    <div class="team-legacy-card-label">速度语言</div>
+                    <div class="team-legacy-card-value">${safe(profile.details.signature)}</div>
+                </article>
+                <article class="team-legacy-card">
+                    <div class="team-legacy-card-label">当前双车阵容</div>
+                    <div class="team-legacy-card-value">${profile.drivers.length ? profile.drivers.map(name => safe(name)).join(' / ') : '资料同步中'}</div>
+                </article>
+            </div>
+            <div class="team-legacy-note">${safe(profile.details.note)}</div>
+        </div>
+    `;
+}
+
+function renderStandingsDriverPanel(profile) {
+    const safe = value => escapeHtml(String(value ?? ''));
+    const championships = Array.isArray(profile.profile?.championships) ? profile.profile.championships.length : 0;
+    const wins = Number(profile.profile?.totalWins || 0);
+    const poles = Number(profile.profile?.totalPoles || 0);
+    const podiums = Number(profile.profile?.totalPodiums || 0);
+    const age = profile.profile?.age ? `${profile.profile.age} 岁` : '围场资料同步中';
+    const debut = profile.profile?.f1Debut || '生涯起点同步中';
+    return `
+        <div class="driver-legacy-panel" style="--driver-accent:${safe(profile.teamColor)};">
+            <div class="driver-legacy-rail" aria-hidden="true"></div>
+            <div class="driver-legacy-top">
+                <div>
+                    <div class="driver-legacy-kicker">DRIVER DOSSIER</div>
+                    <div class="driver-legacy-name">${safe(profile.name)}</div>
+                    <div class="driver-legacy-subtitle">${safe(profile.teamDisplay)} · ${safe(profile.status)}</div>
+                </div>
+                <div class="driver-legacy-rankbox">
+                    <span class="driver-legacy-rank-label">P${profile.rank}</span>
+                    <span class="driver-legacy-points">${profile.points} pts</span>
+                </div>
+            </div>
+            <div class="driver-legacy-tags">
+                <span class="driver-legacy-tag">${safe(age)}</span>
+                <span class="driver-legacy-tag">${safe(debut)}</span>
+                <span class="driver-legacy-tag driver-legacy-tag-accent">${safe(profile.highlight)}</span>
+            </div>
+            <div class="driver-legacy-copy">${safe(profile.hero)}</div>
+            <div class="driver-legacy-grid">
+                <article class="driver-legacy-card">
+                    <div class="driver-legacy-card-label">生涯数据</div>
+                    <div class="driver-legacy-card-value">${championships} 冠 · ${wins} 胜 · ${poles} 杆位 · ${podiums} 次领奖台</div>
+                </article>
+                <article class="driver-legacy-card">
+                    <div class="driver-legacy-card-label">2026 当前定位</div>
+                    <div class="driver-legacy-card-value">积分榜第 ${profile.rank}，目前拿到 ${profile.points} 分，效力于 ${safe(profile.teamDisplay)}</div>
+                </article>
+            </div>
+            <div class="driver-legacy-note">${safe(profile.note)}</div>
+        </div>
+    `;
+}
+
 function renderStandings() {
     const container = document.getElementById('standingsContainer');
     if (!container) return;
+    const teamProfiles = (window.teamStandings || []).map((team, index) => buildStandingsTeamProfile(team, index));
+    if (!teamProfiles.length) {
+        container.innerHTML = '';
+        return;
+    }
+    if (!teamProfiles.some(profile => profile.key === activeStandingsTeamKey)) {
+        activeStandingsTeamKey = teamProfiles[0].key;
+    }
+    const activeProfile = teamProfiles.find(profile => profile.key === activeStandingsTeamKey) || teamProfiles[0];
+    const driverProfiles = (window.driverStandings || []).map((driverStanding, index) => buildStandingsDriverProfile(driverStanding, index));
+    if (!driverProfiles.some(profile => profile.id === activeStandingsDriverId)) {
+        activeStandingsDriverId = driverProfiles[0]?.id || '';
+    }
+    const activeDriverProfile = driverProfiles.find(profile => profile.id === activeStandingsDriverId) || driverProfiles[0];
     container.innerHTML = `
         <div class="standings-section">
             <div class="section-title">车队积分榜</div>
-            <table class="standings-table">
-                <thead><tr><th>Pos</th><th>车队</th><th>积分</th></tr></thead>
-                <tbody>${window.teamStandings.map((team, index) => `<tr><td class="pos">${index + 1}</td><td style="color:${team.color}">${team.name}</td><td class="points">${team.points}</td></tr>`).join('')}</tbody>
-            </table>
+            <div class="standings-team-shell">
+                <div class="standings-team-table-wrap">
+                    <table class="standings-table standings-team-table">
+                        <thead><tr><th>Pos</th><th>车队</th><th>积分</th></tr></thead>
+                        <tbody>${teamProfiles.map(profile => `
+                            <tr class="team-standing-row${profile.key === activeProfile.key ? ' is-active' : ''}" data-team-key="${profile.key}" tabindex="0" style="--team-accent:${profile.color};">
+                                <td class="pos">${profile.rank}</td>
+                                <td>
+                                    <div class="team-standing-namewrap">
+                                        <span class="team-standing-glowline" aria-hidden="true"></span>
+                                        <span class="team-standing-name" style="color:${getReadableStandingsAccent(profile.color)}">${escapeHtml(profile.displayName)}</span>
+                                        <span class="team-standing-hint">Hover / Tap</span>
+                                    </div>
+                                </td>
+                                <td class="points">${profile.points}</td>
+                            </tr>
+                        `).join('')}</tbody>
+                    </table>
+                </div>
+                <div class="standings-team-panel-wrap" id="standingsTeamPanelWrap">
+                    ${renderStandingsTeamPanel(activeProfile)}
+                </div>
+            </div>
         </div>
         <div class="standings-section">
             <div class="section-title">车手积分榜</div>
-            <table class="standings-table">
-                <thead><tr><th>Pos</th><th>车手</th><th>车队</th><th>积分</th></tr></thead>
-                <tbody>${window.driverStandings.map((driver, index) => `<tr><td class="pos">${index + 1}</td><td>${driver.name}</td><td style="font-size:0.7rem">${driver.team}</td><td class="points">${driver.points}</td></tr>`).join('')}</tbody>
-            </table>
+            <div class="standings-driver-shell">
+                <div class="standings-driver-table-wrap">
+                    <table class="standings-table standings-driver-table">
+                        <thead><tr><th>Pos</th><th>车手</th><th>车队</th><th>积分</th></tr></thead>
+                        <tbody>${driverProfiles.map(profile => `
+                            <tr class="driver-standing-row${profile.id === activeDriverProfile.id ? ' is-active' : ''}" data-driver-id="${profile.id}" tabindex="0" style="--driver-accent:${profile.teamColor};">
+                                <td class="pos">${profile.rank}</td>
+                                <td>
+                                    <div class="driver-standing-namewrap">
+                                        <span class="driver-standing-trace" aria-hidden="true"></span>
+                                        <span class="driver-standing-name">${escapeHtml(profile.name)}</span>
+                                    </div>
+                                </td>
+                                <td class="driver-standing-team">${escapeHtml(profile.teamDisplay)}</td>
+                                <td class="points">${profile.points}</td>
+                            </tr>
+                        `).join('')}</tbody>
+                    </table>
+                </div>
+                <div class="standings-driver-panel-wrap" id="standingsDriverPanelWrap">
+                    ${renderStandingsDriverPanel(activeDriverProfile)}
+                </div>
+            </div>
         </div>
     `;
+    const panelWrap = document.getElementById('standingsTeamPanelWrap');
+    const driverPanelWrap = document.getElementById('standingsDriverPanelWrap');
+    const activateTeamProfile = teamKey => {
+        const nextProfile = teamProfiles.find(profile => profile.key === teamKey);
+        if (!nextProfile || !panelWrap) return;
+        activeStandingsTeamKey = teamKey;
+        container.querySelectorAll('.team-standing-row').forEach(row => {
+            row.classList.toggle('is-active', row.dataset.teamKey === teamKey);
+        });
+        panelWrap.classList.remove('is-visible');
+        requestAnimationFrame(() => {
+            panelWrap.innerHTML = renderStandingsTeamPanel(nextProfile);
+            panelWrap.classList.add('is-visible');
+        });
+    };
+    container.querySelectorAll('.team-standing-row').forEach(row => {
+        const teamKey = row.dataset.teamKey || '';
+        row.addEventListener('mouseenter', () => {
+            if (window.matchMedia?.('(hover: hover)').matches) activateTeamProfile(teamKey);
+        });
+        row.addEventListener('focus', () => activateTeamProfile(teamKey));
+        row.addEventListener('click', () => activateTeamProfile(teamKey));
+    });
+    const activateDriverProfile = driverId => {
+        const nextProfile = driverProfiles.find(profile => profile.id === driverId);
+        if (!nextProfile || !driverPanelWrap) return;
+        activeStandingsDriverId = driverId;
+        container.querySelectorAll('.driver-standing-row').forEach(row => {
+            row.classList.toggle('is-active', row.dataset.driverId === driverId);
+        });
+        driverPanelWrap.classList.remove('is-visible');
+        requestAnimationFrame(() => {
+            driverPanelWrap.innerHTML = renderStandingsDriverPanel(nextProfile);
+            driverPanelWrap.classList.add('is-visible');
+        });
+    };
+    container.querySelectorAll('.driver-standing-row').forEach(row => {
+        const driverId = row.dataset.driverId || '';
+        row.addEventListener('mouseenter', () => {
+            if (window.matchMedia?.('(hover: hover)').matches) activateDriverProfile(driverId);
+        });
+        row.addEventListener('focus', () => activateDriverProfile(driverId));
+        row.addEventListener('click', () => activateDriverProfile(driverId));
+    });
+    requestAnimationFrame(() => {
+        panelWrap?.classList.add('is-visible');
+        driverPanelWrap?.classList.add('is-visible');
+    });
 }
 
 const MEDIA_NEWS_FEEDS = [
