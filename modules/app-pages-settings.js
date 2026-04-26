@@ -589,12 +589,222 @@ function getSeenAnnouncementVersion() { return localStorage.getItem('f1_seen_ann
 function saveAnnouncementVersion() { localStorage.setItem('f1_seen_announcement_version', getLatestAnnouncementVersion()); }
 function checkAndShowNewAnnouncements() { if (getLatestAnnouncementVersion() && getLatestAnnouncementVersion() !== getSeenAnnouncementVersion()) showAnnouncements(); }
 
+const CALENDAR_RACE_DETAILS = {
+    1: { circuit: 'Albert Park Circuit', lapLength: '5.278 km', laps: '58', distance: '306.124 km', firstHeld: '1996', signature: '街道感很强，但节奏并不碎。制动区、牵引和出弯稳定性一起决定周末上限。', sectorNote: 'T1-T3 的落位、后半段连续方向变化和墙边容错都很考验信心。', hero: '更适合敢在进弯时直接压住前轴、又能稳稳把车送出弯的人。', note: '围场气质偏赛季揭幕感，速度是新的，压力也是新的。' },
+    2: { circuit: 'Shanghai International Circuit', lapLength: '5.451 km', laps: '56', distance: '305.066 km', firstHeld: '2004', signature: '典型的前段缠斗加长直道终结者，轮胎管理和尾速会一直挂在工程师嘴边。', sectorNote: '超长 T1-T2 会把前胎温度、转向耐心和节奏感一起拽出来。', hero: '擅长一边护胎一边把刹车点越推越深的车手，在这里通常很有戏。', note: '如果是冲刺周末，信息密度会更高，车队节奏也会更紧。' },
+    3: { circuit: 'Suzuka Circuit', lapLength: '5.807 km', laps: '53', distance: '307.471 km', firstHeld: '1987', signature: '高速、老派、讲究连贯感，像一条会直接审判车手节奏纯度的赛道。', sectorNote: 'S 弯到 Degner 的连续节拍，决定你到底是在驾驶，还是在被赛道拽着走。', hero: '越是愿意信车头、敢把动作做小做干净的人，越容易在这里发光。', note: '这类赛道最容易把“车手状态”这四个字放大到人尽皆知。' },
+    4: { circuit: 'Bahrain International Circuit', lapLength: '5.412 km', laps: '57', distance: '308.238 km', firstHeld: '2004', signature: '重刹车、强牵引、后胎热衰减，整站像一场对出弯效率和轮胎管理的持续审问。', sectorNote: '低速出弯之后的长直道收益很直接，差一点就是整段都在亏。', hero: '会慢慢把轮胎状态攥在手里，再突然提速的人，在这里很危险。', note: '夜赛灯光和沙漠底色会让围场看起来格外冷静，也格外残酷。' },
+    5: { circuit: 'Jeddah Corniche Circuit', lapLength: '6.174 km', laps: '50', distance: '308.450 km', firstHeld: '2021', signature: '极快、极窄、极贴墙，节奏像在夜里掠过一整串发亮的刀锋。', sectorNote: '连续高速变向和盲角很多，方向盘每一点修正都会被放大。', hero: '那种天生敢贴墙、又能把车放得很准的车手，会让这一站看起来像另一项运动。', note: '在这里，信心几乎总会比设定表更先写在圈速里。' },
+    6: { circuit: 'Miami International Autodrome', lapLength: '5.412 km', laps: '57', distance: '308.326 km', firstHeld: '2022', signature: '慢弯抓地、长直道尾速和混合赛段节奏都要在线，外场热度也很高。', sectorNote: '中后段的低速拼接和长直道前的出弯质量，对整圈价值很大。', hero: '既能处理热衰减，又能在关键超车点果断下手的人，会很吃香。', note: '这站自带秀场感，但真正决定结果的还是那几段很务实的出弯。' },
+    7: { circuit: 'Autodromo Enzo e Dino Ferrari', lapLength: '4.909 km', laps: '63', distance: '309.049 km', firstHeld: '1980', signature: '路肩、起伏和老派节奏都很有存在感，赛车得顺着地形跑。', sectorNote: '中段连续变向和最后的收尾如果不够干净，整圈会显得很重。', hero: '懂得让车在路肩上“滑过去”而不是“跳过去”的人，更容易跑出优雅速度。', note: '这是一条很容易把机械感和胆量一起放大的经典老路。' },
+    8: { circuit: 'Circuit de Monaco', lapLength: '3.337 km', laps: '78', distance: '260.286 km', firstHeld: '1950', signature: '墙边、慢速、精度和神经，一切都被压到离失误只有几厘米的范围里。', sectorNote: '这里只要方向盘多给半度，或者刹车少给半寸，画面就会立刻改变。', hero: '真正能把街道赛开成绣花的人，在这站总会被看见。', note: '排位的重要性在这里几乎像规则本身一样真实。' },
+    9: { circuit: 'Circuit de Barcelona-Catalunya', lapLength: '4.657 km', laps: '66', distance: '307.236 km', firstHeld: '1991', signature: '高速长弯、空气动力学平衡和轮胎工作窗都藏不住，是很标准的综合体检。', sectorNote: '长弯里只要前轴信心稍微不够，后面一连串节拍都会跟着塌。', hero: '那种能把基础设定和驾驶节奏都做得特别“正”的车手，在这里通常很稳。', note: '很多车队都会把这里当成升级件和真实竞争力的照妖镜。' },
+    10: { circuit: 'Circuit Gilles Villeneuve', lapLength: '4.361 km', laps: '70', distance: '305.270 km', firstHeld: '1978', signature: '减速弯、牵引和攻路肩是主旋律，圈速听起来像不断地吸气再爆发。', sectorNote: '墙很多、缓冲少，最后那道出口永远在提醒人不要太贪。', hero: '敢在减速弯里直接把车立住、再把动力很早交出去的人，会很有存在感。', note: '这条赛道总有种“下一次进攻就会出事或出彩”的悬念感。' },
+    11: { circuit: 'Red Bull Ring', lapLength: '4.318 km', laps: '71', distance: '306.452 km', firstHeld: '1970', signature: '海拔、短圈、长直道和硬制动点让一切都很浓缩，失误也会被反复看到。', sectorNote: '前三个重刹车区和后段高速收尾，是这站节奏最鲜明的骨架。', hero: '能把圈速做得很利落、每个重刹点都不浪费的人，会把这里跑得很凶。', note: '短圈意味着排位和正赛里一点点差距都会被看得特别清楚。' },
+    12: { circuit: 'Silverstone Circuit', lapLength: '5.891 km', laps: '52', distance: '306.198 km', firstHeld: '1950', signature: '真正的高速信心赛道，空气动力学平台和驾驶胆量会一起被放大。', sectorNote: 'Maggotts-Becketts-Chapel 一段就是整条赛道的性格本体。', hero: '越是敢把转向做成一口气、敢高速信任赛车的人，越容易在这里飞起来。', note: '这里的快不是数字感的快，是人能直接看出来的那种快。' },
+    13: { circuit: 'Spa-Francorchamps', lapLength: '7.004 km', laps: '44', distance: '308.052 km', firstHeld: '1950', signature: '长、快、起伏巨大，而且天气经常自己写剧本，是典型的史诗赛道。', sectorNote: '从山脚一路拉上去的那段勇气测试，总能替一整圈定调。', hero: '擅长在不确定里继续压节奏的人，在这里通常会显得特别像赛车手。', note: '只要天气一动，这站的情绪和策略就会立刻全场改写。' },
+    14: { circuit: 'Hungaroring', lapLength: '4.381 km', laps: '70', distance: '306.630 km', firstHeld: '1986', signature: '连续中低速节拍很多，像在一条几乎没空喘气的技术带里反复拧圈速。', sectorNote: '流畅与否特别关键，动作一旦碎掉，时间会在每个小出口里慢慢流走。', hero: '擅长把赛车转得很圆、节奏很稳的人，会在这里非常舒服。', note: '超车难度通常会把排位和起步表现的重要性推得更高。' },
+    15: { circuit: 'Circuit Zandvoort', lapLength: '4.259 km', laps: '72', distance: '306.587 km', firstHeld: '1952', signature: '沙丘地形、倾角弯和很有过山车感的节拍，让这站看起来又紧又快。', sectorNote: '节奏变化很密，尤其需要赛车在载荷转移里保持听话。', hero: '敢在带倾角的高速段继续保持节奏、又不让车头乱掉的人，会很有统治力。', note: '视觉上很轻快，但其实对赛车平衡的要求一点都不轻松。' },
+    16: { circuit: 'Monza Circuit', lapLength: '5.793 km', laps: '53', distance: '306.720 km', firstHeld: '1950', signature: '低下压力、超长全油门和几次决定生死的制动，是速度信仰最直接的一站。', sectorNote: '如果你在第一套减速弯和最后两段出口处理不好，整圈都会显得不够锋利。', hero: '敢在直线末端把刹车点压到很晚、又能把车迅速扶正的人，在这里总很抢眼。', note: '这站的快非常纯粹，像把一切装饰都撕掉之后留下来的骨架。' },
+    17: { circuit: 'Baku City Circuit', lapLength: '6.003 km', laps: '51', distance: '306.049 km', firstHeld: '2016', signature: '最慢的城堡段和极长的主直道被硬拴在一起，赛道性格很分裂，也很好看。', sectorNote: '狭窄技术区容错极低，最后一路把车放上直线时又要求你特别干脆。', hero: '能在墙边低速段保持冷静，又愿意在直线尽头狠狠干进去的人，会有很强存在感。', note: '这站很擅长把稳态周末突然改写成戏剧周末。' },
+    18: { circuit: 'Marina Bay Street Circuit', lapLength: '4.940 km', laps: '62', distance: '306.143 km', firstHeld: '2008', signature: '夜赛、湿热、慢弯和长时间专注，像一场耐力和精度同时在线的城市战。', sectorNote: '长时间不断方向输入会把体能、散热和注意力一起拖出来。', hero: '越能在高压环境里把每个低速弯都处理得不急不躁的人，越容易后程发力。', note: '它的疲劳感是真实存在的，所以后半程经常比前半程更像较量。' },
+    19: { circuit: 'Circuit of the Americas', lapLength: '5.513 km', laps: '56', distance: '308.405 km', firstHeld: '2012', signature: '上坡进一号弯、仿经典赛道的节奏拼接、再加上长直道，是很完整的一条综合赛道。', sectorNote: '前段的连续高速变向和后段的强牵引区，对平衡设定要求都很明确。', hero: '能够快速切换节奏模式的车手，往往会在这里显得很全面。', note: '这条赛道很少给单一类型赛车留下太舒服的偷懒方式。' },
+    20: { circuit: 'Autodromo Hermanos Rodriguez', lapLength: '4.304 km', laps: '71', distance: '305.354 km', firstHeld: '1963', signature: '高海拔让空气和刹车都变得很特别，尾速、冷却和机械抓地都要重新平衡。', sectorNote: '最后进入球场段之前的整段布局，经常决定这圈看起来是不是够完整。', hero: '能在低空气密度条件下仍然把制动和牵引做得很利索的人，会占上风。', note: '高原会悄悄改写很多直觉，所以工程团队通常格外忙。' },
+    21: { circuit: 'Interlagos', lapLength: '4.309 km', laps: '71', distance: '305.879 km', firstHeld: '1973', signature: '短、起伏大、节奏浓，天气和轮胎都很容易把这站推向高波动。', sectorNote: '上上下下的地形会让赛车姿态一直在变化，动作太大就很难顺。', hero: '擅长在混乱感里继续把节奏收拢的人，在这里特别容易被喜欢。', note: '很多经典周末都证明了，这条赛道很懂得怎么制造结尾。' },
+    22: { circuit: 'Las Vegas Strip Circuit', lapLength: '6.201 km', laps: '50', distance: '309.958 km', firstHeld: '2023', signature: '低温夜赛、长直道、高速制动和城市灯墙一起出现，视觉和性能都很锋利。', sectorNote: '轮胎升温节奏和长直道后的刹车稳定性，是这里最现实的两道题。', hero: '能在抓地不完全稳定的时候继续把速度立住的人，会很有存在感。', note: '看起来很像秀场，但真正难的是把低温窗口和制动信心同时保住。' },
+    23: { circuit: 'Lusail International Circuit', lapLength: '5.419 km', laps: '57', distance: '308.611 km', firstHeld: '2021', signature: '中高速连续弯很多，对空气动力学平台和轮胎热状态都不算友好。', sectorNote: '如果赛车在长时间侧向载荷里不稳定，整圈会很难顺下来。', hero: '擅长在长持续弯里把车稳稳压住、又不把轮胎过度烧掉的人，会很强。', note: '夜赛会让画面很干净，但驾驶上的负担并不会因此减少。' },
+    24: { circuit: 'Yas Marina Circuit', lapLength: '5.281 km', laps: '58', distance: '306.183 km', firstHeld: '2009', signature: '长直道后的减速弯、低速技术区和夜场收官感，让这站很有“结尾气质”。', sectorNote: '后半段如果节奏断了，整圈就会从锋利变成拖沓。', hero: '越能在赛季尾声里保持出弯干净和心态稳定的人，越容易把这里收好。', note: '很多时候，这站跑的不只是圈速，也是一个赛季最后的情绪管理。' }
+};
+
+const CALENDAR_PANEL_ACCENTS = {
+    1: '86, 174, 255',
+    2: '255, 103, 77',
+    3: '241, 108, 82',
+    4: '255, 196, 106',
+    5: '86, 219, 255',
+    6: '81, 177, 255',
+    7: '112, 154, 255',
+    8: '215, 168, 108',
+    9: '116, 160, 255',
+    10: '228, 92, 92',
+    11: '255, 149, 72',
+    12: '92, 182, 255',
+    13: '77, 148, 255',
+    14: '243, 128, 96',
+    15: '231, 166, 92',
+    16: '255, 104, 69',
+    17: '92, 206, 255',
+    18: '85, 196, 169',
+    19: '255, 132, 86',
+    20: '125, 204, 255',
+    21: '255, 210, 100',
+    22: '255, 121, 74',
+    23: '96, 170, 255',
+    24: '92, 188, 255'
+};
+
+const CALENDAR_HISTORY_DRIVERS = {
+    1: { name: 'Michael Schumacher', tag: '墨尔本 4 胜纪录', note: 'Albert Park 时代胜场最多的车手，揭幕战气压和稳定性都很像他的节奏。' },
+    2: { name: 'Lewis Hamilton', tag: '上海 6 胜纪录', note: '长弯护胎和长直道终结能力，在这条赛道上被他长期做成了模板。' },
+    3: { name: 'Michael Schumacher', tag: '铃鹿 6 胜纪录', note: '高速连贯、节拍完整的赛道，正好适合那种能把整圈压成一口气的人。' },
+    4: { name: 'Lewis Hamilton', tag: 'Sakhir 5 胜纪录', note: '巴林这类讲究轮胎与出弯效率的夜赛，他长期都是最典型的参考答案。' },
+    5: { name: 'Max Verstappen', tag: '吉达领跑胜场', note: '在这条快而窄的街道夜赛里，他的贴墙信心和节奏推进感非常有代表性。' },
+    6: { name: 'Max Verstappen', tag: '迈阿密早期代表', note: '这条新世代分站的前几季里，他是最早把这里“跑成主场感”的人。' },
+    7: { name: 'Michael Schumacher', tag: 'Imola 7 胜纪录', note: 'Imola 的老派起伏和机械感，几乎天然会让人想起舒马赫时代的统治画面。' },
+    8: { name: 'Ayrton Senna', tag: '摩纳哥 6 胜纪录', note: '蒙特卡洛和塞纳几乎是绑定的：墙边精度、神经强度和排位魔法。' },
+    9: { name: 'Lewis Hamilton / Michael Schumacher', tag: '巴塞罗那并列 6 胜', note: '这条综合试车场一样的赛道，同时留下了两个时代的满分解法。' },
+    10: { name: 'Lewis Hamilton / Michael Schumacher', tag: '蒙特利尔并列 7 胜', note: '加拿大奖励那种能在减速弯和直线之间把风险算得很清的人。' },
+    11: { name: 'Max Verstappen', tag: 'Spielberg 5 胜纪录', note: '短圈、重刹、重复进攻窗口很多的地方，他的节奏压制感非常明显。' },
+    12: { name: 'Lewis Hamilton', tag: '银石 9 胜纪录', note: '这条高速信心赛道几乎已经被他写成了自己的主场传记。' },
+    13: { name: 'Michael Schumacher', tag: 'Spa 6 胜纪录', note: 'Spa 这种长、快、天气又难测的地方，最容易留下真正的赛道型车手。' },
+    14: { name: 'Lewis Hamilton', tag: 'Hungaroring 8 胜纪录', note: '在这条“没有太多喘息位”的技术赛道上，他把耐心和控制感拉到了极致。' },
+    15: { name: 'Jim Clark', tag: '赞德沃特 4 胜纪录', note: '老赞德沃特时代最有代表性的名字之一，节奏轻快又极具海岸速度感。' },
+    16: { name: 'Lewis Hamilton / Michael Schumacher', tag: 'Monza 并列 5 胜', note: '速度圣殿最终留下的是两位不同时代王者对直线末端制动的同样统治。' },
+    17: { name: 'Sergio Perez', tag: '巴库代表胜者', note: '巴库这种又窄又长的城市赛道，他那种在混乱里找窗口的能力特别显眼。' },
+    18: { name: 'Sebastian Vettel', tag: '新加坡 5 胜纪录', note: '夜赛、新加坡、维特尔，这三个关键词放在一起就自带整站的历史画面。' },
+    19: { name: 'Lewis Hamilton', tag: '奥斯汀 5 胜纪录', note: '这条现代综合赛道里，他很长时间都是最会切换节奏模式的那个人。' },
+    20: { name: 'Max Verstappen', tag: '墨西哥城 5 胜纪录', note: '高原低阻的窗口下，他把制动、尾速和位置感压得非常凶。' },
+    21: { name: 'Michael Schumacher', tag: 'Interlagos 4 胜纪录', note: '尽管这里总让人想到巴西英雄，但纪录层面仍是舒马赫留下的名字最醒目。' },
+    22: { name: 'Max Verstappen', tag: '拉斯维加斯早期纪录', note: '这条新夜赛城市赛道的最初篇章，首先被他用速度和控制感写了下来。' },
+    23: { name: 'Max Verstappen', tag: 'Lusail 领跑胜场', note: '高速长持续弯很多的卡塔尔夜赛，目前最鲜明的胜者印记还是他。' },
+    24: { name: 'Lewis Hamilton / Max Verstappen', tag: 'Yas Marina 并列 5 胜', note: '收官站的历史情绪很重，所以这里现在也留下了两位时代焦点的并列纪录。' }
+};
+
+let activeCalendarRound = null;
+
+function getCalendarRaceState(race, referenceDate = new Date()) {
+    const current = new Date(referenceDate);
+    current.setHours(0, 0, 0, 0);
+    const dateRange = window.parseRaceDateRange ? window.parseRaceDateRange(race?.date) : null;
+    const raceStart = dateRange?.start || null;
+    const raceEnd = dateRange?.end || null;
+    const isCurrent = Boolean(raceStart && raceEnd && current >= raceStart && current <= raceEnd);
+    const isCompleted = Boolean(raceEnd && current > raceEnd);
+    return isCurrent ? 'current' : (isCompleted ? 'completed' : 'upcoming');
+}
+
+function buildCalendarRaceProfile(race, stateKey) {
+    const details = CALENDAR_RACE_DETAILS[race?.round] || {};
+    const history = CALENDAR_HISTORY_DRIVERS[race?.round] || {};
+    const stateLabel = stateKey === 'current'
+        ? '进行中'
+        : (stateKey === 'completed' ? '已完赛' : '即将到站');
+    const stateKicker = stateKey === 'current'
+        ? 'TRACK LIVE DOSSIER'
+        : (stateKey === 'completed' ? 'POST-RACE DOSSIER' : 'CIRCUIT PRELOAD');
+    const stateNote = stateKey === 'current'
+        ? '这一站正处在真实比赛周节奏里，赛道特征会直接放大调校、轮胎和车手状态。'
+        : (stateKey === 'completed'
+            ? '这一站已经跑完，更适合当作赛后回看：看赛道脾气、看比赛窗口，也看谁最适合这里。'
+            : '这站还在发车线之前，赛道档案更像一份赛前工程简报，强调节奏、难点和比赛窗口。');
+    return {
+        round: race.round,
+        gp: race.gp,
+        date: race.date,
+        location: race.location || 'F1 World Championship',
+        sprint: Boolean(race.sprint),
+        stateKey,
+        stateLabel,
+        stateKicker,
+        accentRgb: CALENDAR_PANEL_ACCENTS[race.round] || 'var(--primary-color-rgb)',
+        circuit: details.circuit || 'Grand Prix Circuit',
+        lapLength: details.lapLength || 'Data pending',
+        laps: details.laps || '--',
+        distance: details.distance || '--',
+        firstHeld: details.firstHeld || '--',
+        signature: details.signature || '这条赛道的性格更适合在比赛周里亲自感受，重点通常落在节奏转换、抓地窗口和出弯质量上。',
+        sectorNote: details.sectorNote || '关键区段通常会把一台车的平衡、轮胎温度和车手信心一起暴露出来。',
+        hero: details.hero || '真正适合这里的人，往往能在看似普通的弯里提前把时间抠出来。',
+        note: details.note || stateNote,
+        historyDriver: history.name || 'Still Writing',
+        historyTag: history.tag || '历史名片待续',
+        historyNote: history.note || '这条赛道的故事还在继续，下一位把名字刻进去的人也许就在这个周末。',
+        stateNote
+    };
+}
+
+function renderCalendarDetailPanel(profile) {
+    const stateBadge = profile.stateKey === 'current'
+        ? '<span class="calendar-detail-status is-live">LIVE WINDOW</span>'
+        : (profile.stateKey === 'completed'
+            ? '<span class="calendar-detail-status is-completed">FINISHED FILE</span>'
+            : '<span class="calendar-detail-status is-upcoming">GRID PRELOAD</span>');
+    const sprintBadge = profile.sprint ? '<span class="calendar-detail-chip">Sprint Weekend</span>' : '';
+    return `
+        <section class="calendar-detail-panel is-${profile.stateKey}" data-calendar-panel-state="${profile.stateKey}" style="--calendar-panel-rgb:${profile.accentRgb};">
+            <span class="calendar-detail-speedline" aria-hidden="true"></span>
+            <span class="calendar-detail-sheen" aria-hidden="true"></span>
+            <div class="calendar-detail-top">
+                <div class="calendar-detail-copy">
+                    <div class="calendar-detail-kicker">${escapeHtml(profile.stateKicker)}</div>
+                    <h3 class="calendar-detail-title">${escapeHtml(profile.gp)}</h3>
+                    <div class="calendar-detail-subtitle">${escapeHtml(profile.circuit)}</div>
+                </div>
+                <div class="calendar-detail-badges">
+                    ${stateBadge}
+                    ${sprintBadge}
+                </div>
+            </div>
+            <div class="calendar-detail-meta">
+                <span>Round ${escapeHtml(String(profile.round))}</span>
+                <span>${escapeHtml(profile.date)}</span>
+                <span>${escapeHtml(profile.location)}</span>
+            </div>
+            <div class="calendar-detail-grid">
+                <article class="calendar-detail-stat">
+                    <span class="calendar-detail-label">单圈长度</span>
+                    <strong>${escapeHtml(profile.lapLength)}</strong>
+                </article>
+                <article class="calendar-detail-stat">
+                    <span class="calendar-detail-label">正赛圈数</span>
+                    <strong>${escapeHtml(profile.laps)}</strong>
+                </article>
+                <article class="calendar-detail-stat">
+                    <span class="calendar-detail-label">比赛距离</span>
+                    <strong>${escapeHtml(profile.distance)}</strong>
+                </article>
+                <article class="calendar-detail-stat">
+                    <span class="calendar-detail-label">首办年份</span>
+                    <strong>${escapeHtml(profile.firstHeld)}</strong>
+                </article>
+            </div>
+            <div class="calendar-detail-briefs">
+                <article class="calendar-detail-legend">
+                    <div class="calendar-detail-legend-head">
+                        <span class="calendar-detail-brief-label">历史名片</span>
+                        <span class="calendar-detail-legend-tag">${escapeHtml(profile.historyTag)}</span>
+                    </div>
+                    <div class="calendar-detail-legend-name">${escapeHtml(profile.historyDriver)}</div>
+                    <p>${escapeHtml(profile.historyNote)}</p>
+                </article>
+                <article class="calendar-detail-brief">
+                    <span class="calendar-detail-brief-label">赛道性格</span>
+                    <p>${escapeHtml(profile.signature)}</p>
+                </article>
+                <article class="calendar-detail-brief">
+                    <span class="calendar-detail-brief-label">关键区段</span>
+                    <p>${escapeHtml(profile.sectorNote)}</p>
+                </article>
+                <article class="calendar-detail-brief">
+                    <span class="calendar-detail-brief-label">更适合谁</span>
+                    <p>${escapeHtml(profile.hero)}</p>
+                </article>
+                <article class="calendar-detail-brief is-emphasis">
+                    <span class="calendar-detail-brief-label">周末气压</span>
+                    <p>${escapeHtml(profile.note)}</p>
+                </article>
+            </div>
+        </section>
+    `;
+}
+
 renderCalendar = function renderCalendarOverride() {
     const container = document.getElementById('calendarContainer');
     if (!container) return;
     const weekendEvent = window.getCurrentRaceWeekendEvent ? window.getCurrentRaceWeekendEvent() : null;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const calendarData = window.F1_CALENDAR || [];
     const buildCalendarRacePreview = (race, stateKey) => {
         const sprintText = race.sprint ? ' 路 Sprint Weekend' : '';
         if (stateKey === 'current') {
@@ -623,19 +833,28 @@ renderCalendar = function renderCalendarOverride() {
             cardState: 'upcoming'
         };
     };
-    const list = (window.F1_CALENDAR || []).map(race => {
-        const dateRange = window.parseRaceDateRange ? window.parseRaceDateRange(race.date) : null;
-        const raceStart = dateRange?.start || null;
-        const raceEnd = dateRange?.end || null;
-        const isCurrent = Boolean(raceStart && raceEnd && today >= raceStart && today <= raceEnd);
-        const isCompleted = Boolean(raceEnd && today > raceEnd);
-        const stateKey = isCurrent ? 'current' : (isCompleted ? 'completed' : 'upcoming');
+    const initialRace = calendarData.find(race => getCalendarRaceState(race, today) === 'current')
+        || calendarData.find(race => getCalendarRaceState(race, today) === 'upcoming')
+        || calendarData[calendarData.length - 1]
+        || null;
+    if (initialRace && !calendarData.some(race => race.round === activeCalendarRound)) {
+        activeCalendarRound = initialRace.round;
+    }
+    const selectedRace = calendarData.find(race => race.round === activeCalendarRound) || initialRace;
+    const selectedState = selectedRace ? getCalendarRaceState(selectedRace, today) : 'upcoming';
+    const selectedProfile = selectedRace ? buildCalendarRaceProfile(selectedRace, selectedState) : null;
+    const selectedPreview = selectedRace ? buildCalendarRacePreview(selectedRace, selectedState) : null;
+    const list = calendarData.map(race => {
+        const stateKey = getCalendarRaceState(race, today);
+        const isCurrent = stateKey === 'current';
+        const isCompleted = stateKey === 'completed';
         const stateClass = isCurrent ? ' is-current' : (isCompleted ? ' is-completed' : ' is-upcoming');
+        const selectedClass = race.round === activeCalendarRound ? ' is-selected' : '';
         const stateBadge = isCurrent
             ? '<span class="calendar-live-badge">LIVE</span>'
             : (isCompleted ? '<span class="calendar-state-pill">FINISHED</span>' : '<span class="calendar-state-pill is-upcoming">LOCKED IN</span>');
         return `
-        <li class="calendar-item${stateClass}" data-round="${race.round}" data-calendar-state="${stateKey}" tabindex="0">
+        <li class="calendar-item${stateClass}${selectedClass}" data-round="${race.round}" data-calendar-state="${stateKey}" tabindex="0">
             <span class="calendar-item-glow" aria-hidden="true"></span>
             <span class="calendar-item-stripe" aria-hidden="true"></span>
             <div class="calendar-item-main">
@@ -655,22 +874,46 @@ renderCalendar = function renderCalendarOverride() {
             <div class="calendar-event-meta">Round ${escapeHtml(String(weekendEvent.race.round || ''))} · ${escapeHtml(weekendEvent.race.location || '')}${weekendEvent.race.sprint ? ' · Sprint' : ''}</div>
             <div class="calendar-event-note">${escapeHtml(weekendEvent.phase?.note || '')}</div>
         </div>
-    ` : '';
-    container.innerHTML = `<div class="calendar-section"><div class="calendar-header"><div class="calendar-title">2026 F1 赛历</div><button class="calendar-back-btn icon-text-btn" id="calendarBackBtn">${window.getUiIconMarkup ? window.getUiIconMarkup('chevronLeft', 'calendar-back-icon', '返回') : ''}<span>返回</span></button></div>${weekendCard}<ul class="calendar-list">${list}</ul></div>`;
+    ` : (selectedPreview ? `
+        <div class="calendar-event-card${selectedState === 'current' ? ' is-live' : ''}" id="calendarEventCard">
+            <div class="calendar-event-kicker">${escapeHtml(selectedPreview.kicker)}</div>
+            <div class="calendar-event-title">${escapeHtml(selectedPreview.title)}</div>
+            <div class="calendar-event-meta">${escapeHtml(selectedPreview.meta)}</div>
+            <div class="calendar-event-note">${escapeHtml(selectedPreview.note)}</div>
+        </div>
+    ` : '');
+    container.innerHTML = `
+        <div class="calendar-section">
+            <div class="calendar-header">
+                <div class="calendar-title">2026 F1 赛历</div>
+                <button class="calendar-back-btn icon-text-btn" id="calendarBackBtn">${window.getUiIconMarkup ? window.getUiIconMarkup('chevronLeft', 'calendar-back-icon', '返回') : ''}<span>返回</span></button>
+            </div>
+            <div class="calendar-shell">
+                <div class="calendar-list-wrap">
+                    ${weekendCard}
+                    <ul class="calendar-list">${list}</ul>
+                </div>
+                <div class="calendar-detail-panel-wrap" id="calendarDetailPanelWrap">
+                    ${selectedProfile ? renderCalendarDetailPanel(selectedProfile) : ''}
+                </div>
+            </div>
+        </div>
+    `;
     document.getElementById('calendarBackBtn')?.addEventListener('click', () => switchTab('chat'));
     const eventCard = document.getElementById('calendarEventCard');
+    const detailPanelWrap = document.getElementById('calendarDetailPanelWrap');
     const kickerEl = eventCard?.querySelector('.calendar-event-kicker');
     const titleEl = eventCard?.querySelector('.calendar-event-title');
     const metaEl = eventCard?.querySelector('.calendar-event-meta');
     const noteEl = eventCard?.querySelector('.calendar-event-note');
-    if (!eventCard || !kickerEl || !titleEl || !metaEl || !noteEl) return;
-    const defaultSnapshot = {
+    let basePreview = eventCard && kickerEl && titleEl && metaEl && noteEl ? {
         kicker: kickerEl.textContent || '',
         title: titleEl.textContent || '',
         meta: metaEl.textContent || '',
         note: noteEl.textContent || ''
-    };
+    } : null;
     const applyPreview = (payload) => {
+        if (!eventCard || !kickerEl || !titleEl || !metaEl || !noteEl) return;
         kickerEl.textContent = payload.kicker;
         titleEl.textContent = payload.title;
         metaEl.textContent = payload.meta;
@@ -679,20 +922,58 @@ renderCalendar = function renderCalendarOverride() {
         eventCard.dataset.previewState = payload.cardState;
     };
     const resetPreview = () => {
-        kickerEl.textContent = defaultSnapshot.kicker;
-        titleEl.textContent = defaultSnapshot.title;
-        metaEl.textContent = defaultSnapshot.meta;
-        noteEl.textContent = defaultSnapshot.note;
+        if (!eventCard || !kickerEl || !titleEl || !metaEl || !noteEl || !basePreview) return;
+        kickerEl.textContent = basePreview.kicker;
+        titleEl.textContent = basePreview.title;
+        metaEl.textContent = basePreview.meta;
+        noteEl.textContent = basePreview.note;
         eventCard.classList.remove('is-hover-preview');
         delete eventCard.dataset.previewState;
     };
+    const setSelectedRound = (round) => {
+        activeCalendarRound = round;
+        Array.from(container.querySelectorAll('.calendar-item')).forEach((node) => {
+            node.classList.toggle('is-selected', Number(node.dataset.round) === round);
+        });
+    };
+    const updateDetailPanel = (profile) => {
+        if (!detailPanelWrap || !profile) return;
+        detailPanelWrap.innerHTML = renderCalendarDetailPanel(profile);
+        detailPanelWrap.classList.remove('is-panel-refresh');
+        window.requestAnimationFrame(() => detailPanelWrap.classList.add('is-panel-refresh'));
+    };
     Array.from(container.querySelectorAll('.calendar-item')).forEach((item, index) => {
-        const race = (window.F1_CALENDAR || [])[index];
+        const race = calendarData[index];
         if (!race) return;
-        const payload = buildCalendarRacePreview(race, item.dataset.calendarState || 'upcoming');
-        item.addEventListener('mouseenter', () => applyPreview(payload));
-        item.addEventListener('mouseleave', resetPreview);
-        item.addEventListener('focus', () => applyPreview(payload));
-        item.addEventListener('blur', resetPreview);
+        const stateKey = item.dataset.calendarState || 'upcoming';
+        const payload = buildCalendarRacePreview(race, stateKey);
+        const profile = buildCalendarRaceProfile(race, stateKey);
+        const activate = (persist = false) => {
+            if (persist) {
+                setSelectedRound(race.round);
+                basePreview = payload;
+            }
+            updateDetailPanel(profile);
+            applyPreview(payload);
+        };
+        item.addEventListener('mouseenter', () => activate(false));
+        item.addEventListener('mouseleave', () => {
+            const persistedRace = calendarData.find(entry => entry.round === activeCalendarRound);
+            const persistedState = persistedRace ? getCalendarRaceState(persistedRace, today) : null;
+            if (persistedRace && persistedState) {
+                updateDetailPanel(buildCalendarRaceProfile(persistedRace, persistedState));
+            }
+            resetPreview();
+        });
+        item.addEventListener('focus', () => activate(false));
+        item.addEventListener('blur', () => {
+            const persistedRace = calendarData.find(entry => entry.round === activeCalendarRound);
+            const persistedState = persistedRace ? getCalendarRaceState(persistedRace, today) : null;
+            if (persistedRace && persistedState) {
+                updateDetailPanel(buildCalendarRaceProfile(persistedRace, persistedState));
+            }
+            resetPreview();
+        });
+        item.addEventListener('click', () => activate(true));
     });
 };
