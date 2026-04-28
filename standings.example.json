@@ -1,0 +1,39 @@
+{
+  "teamStandings": [
+    { "name": "Mercedes", "points": 135, "color": "#00D2BE" },
+    { "name": "Ferrari", "points": 90, "color": "#DC0000" },
+    { "name": "McLaren", "points": 46, "color": "#FF8700" },
+    { "name": "Haas", "points": 18, "color": "#B6BABD" },
+    { "name": "Alpine", "points": 16, "color": "#2293D1" },
+    { "name": "Red Bull", "points": 16, "color": "#3671C6" },
+    { "name": "Racing Bulls", "points": 14, "color": "#2B6E9F" },
+    { "name": "Audi", "points": 2, "color": "#1A1C2B" },
+    { "name": "Williams", "points": 2, "color": "#005AFF" },
+    { "name": "Cadillac", "points": 0, "color": "#C1C6D1" },
+    { "name": "Aston Martin", "points": 0, "color": "#229971" }
+  ],
+  "driverStandings": [
+    { "name": "Kimi Antonelli", "team": "Mercedes", "points": 72 },
+    { "name": "George Russell", "team": "Mercedes", "points": 63 },
+    { "name": "Charles Leclerc", "team": "Ferrari", "points": 49 },
+    { "name": "Lewis Hamilton", "team": "Ferrari", "points": 41 },
+    { "name": "Lando Norris", "team": "McLaren", "points": 25 },
+    { "name": "Oscar Piastri", "team": "McLaren", "points": 21 },
+    { "name": "Oliver Bearman", "team": "Haas", "points": 17 },
+    { "name": "Pierre Gasly", "team": "Alpine", "points": 15 },
+    { "name": "Max Verstappen", "team": "Red Bull", "points": 12 },
+    { "name": "Liam Lawson", "team": "Racing Bulls", "points": 10 },
+    { "name": "Arvid Lindblad", "team": "Racing Bulls", "points": 4 },
+    { "name": "Isack Hadjar", "team": "Red Bull", "points": 4 },
+    { "name": "Gabriel Bortoleto", "team": "Audi", "points": 2 },
+    { "name": "Carlos Sainz", "team": "Williams", "points": 2 },
+    { "name": "Esteban Ocon", "team": "Haas", "points": 1 },
+    { "name": "Franco Colapinto", "team": "Alpine", "points": 1 },
+    { "name": "Nico Hulkenberg", "team": "Audi", "points": 0 },
+    { "name": "Alexander Albon", "team": "Williams", "points": 0 },
+    { "name": "Valtteri Bottas", "team": "Cadillac", "points": 0 },
+    { "name": "Sergio Perez", "team": "Cadillac", "points": 0 },
+    { "name": "Fernando Alonso", "team": "Aston Martin", "points": 0 },
+    { "name": "Lance Stroll", "team": "Aston Martin", "points": 0 }
+  ]
+}

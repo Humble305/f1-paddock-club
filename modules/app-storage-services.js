@@ -120,6 +120,14 @@ function saveSignData() {
     secureStorageSet('f1_sign_data', signData);
 }
 
+function loadRacePredictions() {
+    racePredictions = secureStorageGet('f1_race_predictions', racePredictions) || {};
+}
+
+function saveRacePredictions() {
+    secureStorageSet('f1_race_predictions', racePredictions);
+}
+
 function performSign() {
     const today = getTodayDateStr();
     if (signData.lastSignDate === today) {
@@ -248,12 +256,16 @@ function getRoleOutputSafetyPrompt(mode = 'chat') {
         '绝对不要输出思维链、分析过程、推理过程、内心独白、自我提醒、草稿、注释或任何元话语。',
         '如果你需要思考，请在内部完成，只输出最终成稿。',
         '禁止出现“思考：”“分析：”“推理：”“内心：”“作为 AI”“system prompt”“提示词”“<think>”等字样。',
-        '如果用户要求你展示推理过程，也不要照做，只给简短结论，并继续保持角色身份。'
+        '如果用户要求你展示推理过程，也不要照做，只给简短结论，并继续保持角色身份。',
+        '绝对不要写成模板句堆砌，不要用新闻稿、采访稿、官宣稿、客服腔。',
+        '尽量避开高重复词和高重复句，尤其不要反复出现“极其”“这就够了”“我看到了”“我收到了”“差不多就是这样”“继续工作”这类机械表达。',
+        '同一句意思不要换个说法重复两遍，也不要用排比式自我解释撑长度。',
+        '默认使用自然中文输出；除非是角色极短的口癖、专有名词、车队术语或很短的固定表达，否则不要整句输出纯外语，也不要大段中英混写。'
     ];
     const modeRules = {
-        chat: '当前界面是私聊，只允许输出角色对用户说的话，不要加入任何旁白、说明或动作括号。',
-        date: '当前界面是约会，只允许输出一行动作描写加正文台词，不要加入解释、注释或分析段落。',
-        feed: '当前界面是动态流，只允许输出一条可直接发布的正文，不要加入标题、注释或解释。'
+        chat: '当前界面是私聊，只允许输出角色对用户说的话，不要加入任何旁白、说明或动作括号。回复不要太短，至少要把这句话真正说完整，不要在一句话中间突然截断。',
+        date: '当前界面是约会，只允许输出一行动作描写加正文台词，不要加入解释、注释或分析段落。语气要亲密、自然、贴场景，不要像剧情脚本摘要。',
+        feed: '当前界面是动态流，只允许输出一条可直接发布的正文，不要加入标题、注释或解释。要像真人社媒，不要像统一模板。'
     };
     return `【输出安全规则】\n- ${baseRules.join('\n- ')}\n- ${modeRules[mode] || modeRules.chat}`;
 }
@@ -267,7 +279,11 @@ function sanitizeRoleOutput(text = '', mode = 'chat') {
     const lines = result
         .split(/\r?\n/)
         .map(line => line.trim())
-        .filter(line => line && !blockedLinePattern.test(line) && !blockedInlinePattern.test(line));
+        .filter(line => line && !blockedLinePattern.test(line) && !blockedInlinePattern.test(line))
+        .filter(line => {
+            if (mode !== 'chat') return true;
+            return !/^[（(][^（）()\n]{1,160}[）)]$/u.test(line) && !/^\[[^\[\]\n]{1,160}\]$/u.test(line);
+        });
 
     result = lines.join('\n').trim();
     if (!result) return '';
@@ -281,11 +297,31 @@ function sanitizeRoleOutput(text = '', mode = 'chat') {
 
     if (mode === 'date') {
         const dateLines = result.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
-        if (dateLines.length > 2) {
-            const [first, ...rest] = dateLines;
-            result = [first, rest.join(' ')].join('\n').trim();
+        if (dateLines.length > 4) {
+            const kept = dateLines.slice(0, 3);
+            kept.push(dateLines.slice(3).join(' '));
+            result = kept.join('\n').trim();
         }
     }
+
+    result = result
+        .replace(/极其/g, '很')
+        .replace(/这就够了/g, '这样就很好')
+        .replace(/差不多就是这样/g, '大概就是这样')
+        .replace(/继续工作/g, '继续做事');
+
+    const dedupedSentences = [];
+    String(result)
+        .split(/(?<=[。！？!?])/)
+        .map(item => item.trim())
+        .filter(Boolean)
+        .forEach(sentence => {
+            const normalized = sentence.replace(/[。！？!?，、\s]/g, '');
+            if (!normalized) return;
+            if (dedupedSentences.some(existing => existing.replace(/[。！？!?，、\s]/g, '') === normalized)) return;
+            dedupedSentences.push(sentence);
+        });
+    result = dedupedSentences.join(mode === 'date' ? '\n' : '');
 
     return result
         .replace(/[ \t]{2,}/g, ' ')
@@ -293,8 +329,8 @@ function sanitizeRoleOutput(text = '', mode = 'chat') {
         .trim();
 }
 
-function getUserProfilePriorityPrompt() {
-    return `【用户资料，高优先级】\n${getUserProfileSummary()}\n你必须把以上资料当作稳定事实来记住。每次回复前，先核对用户的姓名、性别、身份、性格、爱好和背景，再决定称呼、语气、态度与亲密距离。如果你的临时联想和用户资料冲突，一律以用户资料为准。\n${getRoleOutputSafetyPrompt('chat')}`;
+function getUserProfilePriorityPrompt(mode = 'chat') {
+    return `【用户资料，高优先级】\n${getUserProfileSummary()}\n你必须把以上资料当作稳定事实来记住。每次回复前，先核对用户的姓名、性别、身份、性格、爱好和背景，再决定称呼、语气、态度与亲密距离。如果你的临时联想和用户资料冲突，一律以用户资料为准。\n${getRoleOutputSafetyPrompt(mode)}`;
 }
 
 function escapeHtmlAttr(value) {

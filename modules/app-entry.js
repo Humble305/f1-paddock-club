@@ -185,6 +185,7 @@ function bindEvents() {
     document.getElementById('fetchModelsBtn')?.addEventListener('click', fetchAvailableModels);
     document.getElementById('modelName')?.addEventListener('change', updateCustomModelVisibility);
     document.getElementById('saveApiBtn')?.addEventListener('click', saveApiConfig);
+    document.getElementById('saveApiProfileBtn')?.addEventListener('click', saveCurrentApiProfile);
     document.getElementById('closeModalBtn')?.addEventListener('click', closeModal);
     document.getElementById('saveProfileBtn')?.addEventListener('click', saveUserProfile);
     document.getElementById('closeProfileBtn')?.addEventListener('click', closeProfileModal);
@@ -315,16 +316,7 @@ function bindEvents() {
 
 function initFeedPosts() {
     if (feedPosts.length) return;
-    feedPosts = window.DRIVERS.slice(0, 6).map((driver, index) => ({
-        id: Date.now() + index,
-        name: driver.name,
-        handle: driver.handle,
-        avatar: driver.avatarLetter,
-        content: typeof buildLocalFeedPost === 'function' ? buildLocalFeedPost(driver, index) : stripChatStageDirections(driver.initialMsg),
-        likes: typeof estimatePostLikes === 'function' ? estimatePostLikes(driver, index) : 80 + index * 17,
-        comments: [],
-        timeAgo: `${index + 1} 小时前`
-    }));
+    feedPosts = [];
 }
 
 function init() {
@@ -333,6 +325,7 @@ function init() {
     if (typeof loadMediaNewsStatus === 'function') loadMediaNewsStatus();
     if (typeof loadMediaNewsFilter === 'function') loadMediaNewsFilter();
     loadChatViewMode();
+    if (typeof loadStandingsData === 'function') loadStandingsData();
     loadFavorability();
     loadAvatars();
     loadChatHistories();
@@ -340,9 +333,11 @@ function init() {
     loadGroupChatUiState();
     loadTeamSectionUiState();
     loadUserProfile();
+    loadApiConfigProfiles();
     loadApiConfig();
     loadPinnedDrivers();
     loadSignData();
+    loadRacePredictions();
     if (typeof loadGiftStoreState === 'function') loadGiftStoreState();
     loadDateMemories();
     loadDriverDiaries();

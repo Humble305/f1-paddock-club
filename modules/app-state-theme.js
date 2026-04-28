@@ -43,6 +43,7 @@ let userCoins = 0;
 let signData = { lastSignDate: null, consecutiveDays: 0 };
 let giftInventory = {};
 let giftHistory = [];
+let racePredictions = {};
 let currentTheme = null;
 let chatViewMode = 'mobile';
 let groupChats = [];

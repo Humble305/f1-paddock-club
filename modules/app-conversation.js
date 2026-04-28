@@ -14,11 +14,37 @@ function trimChatHistory(driverId) {
     saveChatHistories();
 }
 
+const CHAT_STYLE_PROFILES = {
+    nor: { length: '偏短，常常两三句就够，偶尔会带一点随手接梗的轻松感。', minChars: 22, fillers: ['不过你这句来得还挺巧。', '反正我会把这句记一下。'] },
+    pia: { length: '偏短，判断很快，不会解释太多。', minChars: 18, fillers: ['大概就是这个意思。', '你应该懂我在说什么。'] },
+    lec: { length: '中等，愿意多解释半句，语气会更细一点。', minChars: 28, fillers: ['有些感觉其实很难用更短的话讲完。', '所以我才会对这句多停一会儿。'] },
+    ham: { length: '中等偏长，情绪完整，会自然多说半句照顾对方感受。', minChars: 30, fillers: ['我不太想把这种感觉说得太轻。', '至少这一刻，我想把话说明白一点。'] },
+    ver: { length: '偏短直接，够表达清楚就会停。', minChars: 18, fillers: ['反正重点就在这里。', '差不多就是这个方向。'] },
+    alo: { length: '中等，老练一点，偶尔会补半句带松弛感的解释。', minChars: 24, fillers: ['这种事说到底还是要自己感觉到。', '很多时候也只能慢慢往前推。'] },
+    alb: { length: '中等，口语感更强，愿意顺手把气氛接住。', minChars: 24, fillers: ['所以我才会顺手回你这句。', '这类话放着不回反而奇怪。'] },
+    sai: { length: '中等偏长，表达完整，条理会更清楚。', minChars: 28, fillers: ['我宁愿把意思说清楚一点。', '不然这句听起来会太轻。'] },
+    gas: { length: '中等，情绪会更明显一点，容易多停留半句。', minChars: 26, fillers: ['这种感觉我 usually 不会装作没事。', '所以我才会回得认真一点。'] },
+    bot: { length: '偏短，但不是冷淡，是松弛地收住。', minChars: 20, fillers: ['总之先这样。', '反正你应该能明白。'] }
+};
+
+function getDriverChatStyleProfile(driverId) {
+    return CHAT_STYLE_PROFILES[driverId] || {
+        length: '句长自然变化，但始终要像本人，不要统一模板。',
+        minChars: 22,
+        fillers: ['所以这句我还是想认真回你。', '不然这话停在这里会有点可惜。']
+    };
+}
+
 function getChatWritingGuide() {
     return `【私聊写作要求】
 - 你是在手机里和用户一对一聊天，不是在接受采访，也不是在写官宣文案。
 - 文风要自然、细腻、克制，像真人刚刚想到什么就回了什么。
-- 回复通常控制在 2 到 5 句。
+- 回复不要太短，至少要把这句话真正说完整。
+- 不要为了“显得利落”把一句话截在半中间；让句子自然说完。
+- 以中文为主，除非是这个车手本人极短的口癖、语气词或固定用语，否则不要突然整句切成外语。
+- 每次只抓住一个当下情绪或一个具体回应点，不要一口气解释太多。
+- 绝对不要反复使用“极其”“这就够了”“我看到了”“我收到了”“差不多就是这样”这类高重复表达。
+- 不要把同一句意思拆成两句重复，也不要像模板台词。
 - 用户资料属于高优先级记忆。
 - 小窗私聊是纯对话界面，绝对禁止输出任何括号动作描写、旁白、舞台说明或心理活动补注。
 ${getRoleOutputSafetyPrompt('chat')}`;
@@ -27,8 +53,13 @@ ${getRoleOutputSafetyPrompt('chat')}`;
 function getDateWritingGuide() {
     return `【约会写作要求】
 - 回复必须承接当前场景、上一轮对话、关系状态和用户资料。
-- 动作描写放在最前面单独一行，再换行继续台词。
+- 如果出现动作描写、环境描写或任何非台词描写，必须单独成行，并且整行都用括号包起来，例如“（他抬眼看了你一下。）”。
+- 括号外只能是角色真正说出口的台词。
 - 不要突然切场景、切情绪、切话题。
+- 语气要更像这个车手本人在私下相处时会说的话，不要写成统一偶像剧腔。
+- 回复要有足够内容，至少像认真接住这一轮气氛的一段中长回复，不要只丢一句很短的话就停。
+- 不要反复用同一类温柔句、安慰句或暧昧句撑气氛；每次只抓住当前最自然的那个瞬间。
+- 避开“极其”“这就够了”“我看到了”“我收到了”“差不多就是这样”这类高重复表达。
 ${getRoleOutputSafetyPrompt('date')}`;
 }
 
@@ -37,7 +68,8 @@ function initDriverHistory(driver) {
     const userInfo = getUserProfileSummary();
     const mood = getFavorMood(favorability[driver.id] || 0);
     const personalityContext = window.getDriverPersonalityContext ? window.getDriverPersonalityContext(driver.id) : '';
-    const prompt = `你是 F1 车手 ${driver.name}（${driver.team}）。你正在和用户进行长期一对一私聊。当前关系：${mood}。\n${getChatWritingGuide()}\n${personalityContext}\n${userInfo}`;
+    const chatStyle = getDriverChatStyleProfile(driver.id);
+    const prompt = `你是 F1 车手 ${driver.name}（${driver.team}）。你正在和用户进行长期一对一私聊。当前关系：${mood}。\n${getChatWritingGuide()}\n【人格要求】\n- 你的说话方式必须稳定像同一个人，不能和别的车手混在一起。\n- 每次回复前，先判断这个人会不会这样说、会不会用这种词，再决定怎么回。\n- 如果一句话太像模板台词、太像安慰套餐、太像官话，就换掉。\n- 你的句长习惯：${chatStyle.length}\n${personalityContext}\n${userInfo}`;
     chatHistories[driver.id] = [
         { role: 'system', content: prompt },
         { role: 'assistant', content: driver.initialMsg, timestamp: getCurrentTime(), dateKey: getLocalDateKey() }
@@ -65,6 +97,43 @@ function stripChatStageDirections(text = '') {
         });
     }
     return result;
+}
+
+function tightenChatReply(text = '') {
+    let result = stripChatStageDirections(text)
+        .replace(/我看到了。?/g, '')
+        .replace(/我收到了。?/g, '')
+        .replace(/差不多就是这样。?/g, '')
+        .replace(/继续工作。?/g, '先继续。')
+        .replace(/这就够了。?/g, '这样就很好。')
+        .replace(/[ \t]{2,}/g, ' ')
+        .trim();
+
+    if (!result) return '';
+    const chunks = result.split(/(?<=[。！？!?])/).map(item => item.trim()).filter(Boolean);
+    const kept = [];
+    chunks.forEach(chunk => {
+        if (!chunk) return;
+        const normalized = chunk.replace(/[。！？!?，、\s]/g, '');
+        if (kept.some(existing => existing.replace(/[。！？!?，、\s]/g, '') === normalized)) return;
+        kept.push(chunk);
+    });
+    result = kept.join('');
+    return result.trim();
+}
+
+function shapeChatReplyByDriver(driver, text = '') {
+    let result = tightenChatReply(text);
+    if (!result) return result;
+    const profile = getDriverChatStyleProfile(driver?.id);
+    const plainLength = result.replace(/\s/g, '').length;
+    if (plainLength < (profile.minChars || 0)) {
+        const filler = (profile.fillers || []).find(item => item && !result.includes(item.replace(/[。！？!?]/g, '')));
+        if (filler) {
+            result = `${result}${/[。！？!?]$/.test(result) ? '' : '。'}${filler}`;
+        }
+    }
+    return tightenChatReply(result);
 }
 
 function setChatComposerEnabled(enabled) {
@@ -478,7 +547,7 @@ function initGroupChatHistory(group) {
         .map(driver => `【${driver.name}】${window.getDriverPersonalityContext ? window.getDriverPersonalityContext(driver.id) : ''}`)
         .join('\n');
     const noticePrompt = group.notice ? `\n【群公告】${group.notice}` : '';
-    const prompt = `你现在在一个 F1 围场群聊里。群名：${group.name}。群成员有：${memberSummary}。${noticePrompt}\n你要扮演群里的这些车手一起和用户聊天。\n【群聊写作要求】\n- 回复时可以由 1 到 3 位车手接话，不必每个人都强行发言。\n- 每一行都必须以“车手名：内容”的格式输出，只输出群聊正文，不要解释。\n- 车手说话风格必须符合各自性格，不要混成一个人。\n- 同一轮里不要让所有人都说很长，整体保持像真实群聊一样自然。\n${getUserProfilePriorityPrompt()}\n${personalitySummary}\n${getGroupChatSharedMemoryContext(group.memberIds, group.id)}`;
+    const prompt = `你现在在一个 F1 围场群聊里。群名：${group.name}。群成员有：${memberSummary}。${noticePrompt}\n你要扮演群里的这些车手一起和用户聊天。\n【群聊写作要求】\n- 回复时可以由 1 到 3 位车手接话，不必每个人都强行发言。\n- 每一行都必须以“车手名：内容”的格式输出，只输出群聊正文，不要解释。\n- 车手说话风格必须符合各自性格，不要混成一个人。\n- 每个人的句长、用词、玩笑方式都要有差异，不能像同一支笔在说话。\n- 避免反复出现同一类套话，尤其不要轮流说“我看到了”“我收到了”“这条不错”“差不多就是这样”。\n- 同一轮里不要让所有人都说很长，整体保持像真实群聊一样自然。\n${getUserProfilePriorityPrompt()}\n${personalitySummary}\n${getGroupChatSharedMemoryContext(group.memberIds, group.id)}`;
     chatHistories[group.id] = [
         { role: 'system', content: prompt },
         { role: 'assistant', content: `${members[0]?.name || '车手们'}：${group.name} 已经建好了，想聊什么？`, timestamp: getCurrentTime(), dateKey: getLocalDateKey(), meta: { type: 'group-reply' } }
@@ -974,16 +1043,17 @@ async function resetAssistantMessage(driverId, messageIndex) {
         const { reply } = await getDriverReplyWithFavor(driver, sourceUserMessage.content, {
             historyOverride: trimmedHistory
         });
-        history[messageIndex] = {
+        const regeneratedMessage = {
             ...message,
             content: reply,
             timestamp: getCurrentTime(),
             regenerated: true
         };
+        history.splice(messageIndex, history.length - messageIndex, regeneratedMessage);
         saveChatHistories();
         renderChatMessages(driverId);
         renderDriverList();
-        showToast('已重新生成这条回复', false);
+        showToast('已重新生成这条回复，后续对话已回滚', false);
     } catch (error) {
         console.error('重置角色回复失败', error);
         showToast('重置失败，请稍后再试', true);
@@ -1477,26 +1547,26 @@ function generateLocalReply(driver, msg, options = {}) {
 
     if (giftContext) {
         if (giftContext.preferenceLevel === 'favorite' || giftContext.matched) {
-            return `这份 ${giftContext.name} 我一眼就记住了。你居然真的挑到这种东西，害我现在心情好得有点明显。`;
+            return shapeChatReplyByDriver(driver, `这份 ${giftContext.name} 真的很对我胃口。你挑到这里，确实会让我一下子记住。`);
         }
         if (giftContext.preferenceLevel === 'liked' || giftContext.liked) {
-            return `我收到了，${politeName}。${giftContext.name} 这份礼物我确实挺喜欢的，你这个选择还蛮会挑。`;
+            return shapeChatReplyByDriver(driver, `${politeName}，这份 ${giftContext.name} 我挺喜欢。你选东西的时候，明显有认真想过我。`);
         }
-        return `我收到了，${politeName}。${giftContext.name} 还挺有意思的，我会好好放着。`;
+        return shapeChatReplyByDriver(driver, `${politeName}，${giftContext.name} 我收下了。不是那种会被我随手放过去的东西。`);
     }
 
     if (lower.includes('排名') || lower.includes('成绩')) {
-        return `${rankingInfo} 不过现在还只是阶段性的情况，真正该见分晓的还在后面。`;
+        return shapeChatReplyByDriver(driver, `${rankingInfo}。不过现在还早，我更在意后面能不能继续把节奏接住。`);
     }
     if (lower.includes('下一站') || lower.includes('什么时候比赛')) {
-        return `${raceContext} 到时候记得来看，我应该不会让你失望。`;
+        return shapeChatReplyByDriver(driver, `${raceContext}。到时候来看看吧，我也想把那一站跑得更像自己一点。`);
     }
     if (lower.includes('想你') || lower.includes('喜欢你')) {
-        return `这种话我听到了，${politeName}。至少现在，我不想装作没感觉。`;
+        return shapeChatReplyByDriver(driver, `这种话我不会装作没听见，${politeName}。你这样说，我确实会有点在意。`);
     }
-    if ((favorability[driver.id] || 0) >= 70) return `你一来找我，我这边的心情都会跟着好一点。`;
-    if ((favorability[driver.id] || 0) >= 40) return `看到你的消息还挺好的。你想聊什么，我在听。`;
-    return `我看到了。你继续说，我听着。`;
+    if ((favorability[driver.id] || 0) >= 70) return shapeChatReplyByDriver(driver, `你一来找我，我这边会松一点。继续说吧，我现在真的有在听。`);
+    if ((favorability[driver.id] || 0) >= 40) return shapeChatReplyByDriver(driver, `你的消息会让我停一下。你接着说，我想先听你这边。`);
+    return shapeChatReplyByDriver(driver, `你继续说吧。我先听着，再慢慢回你。`);
 }
 
 function generateLocalGroupReply(group, userText) {
@@ -1528,7 +1598,7 @@ async function getGroupReply(group, userText) {
         const noticePrompt = group.notice ? `\n【群公告】${group.notice}` : '';
         const systemMsg = {
             role: 'system',
-            content: `今天是${getCurrentDateInfo()}。你正在一个围场群聊里回复用户，群名：${group.name}。群成员：${memberSummary}。${noticePrompt}\n【群聊输出规则】\n- 默认输出 1 到 2 行，只有真的有必要时才到 3 行。\n- 如果用户明确点了名字，就优先让被点到的车手接话。\n- 如果没人被点名，就由最可能对这个话题有兴趣、和用户更熟、或者此刻最自然会插话的人回复。\n- 每一行必须以“车手名：内容”的格式输出。\n- 不要让所有成员强行都说话，也不要输出解释、旁白或括号动作。\n- 群聊记忆和用户全局资料共通，回复时可以参考各成员已有记忆。\n- ${mentionRule}\n${getUserProfilePriorityPrompt()}\n${personalitySummary}\n${getGroupChatSharedMemoryContext(group.memberIds, group.id)}`
+            content: `今天是${getCurrentDateInfo()}。你正在一个围场群聊里回复用户，群名：${group.name}。群成员：${memberSummary}。${noticePrompt}\n【群聊输出规则】\n- 默认输出 1 到 2 行，只有真的有必要时才到 3 行。\n- 如果用户明确点了名字，就优先让被点到的车手接话。\n- 如果没人被点名，就由最可能对这个话题有兴趣、和用户更熟、或者此刻最自然会插话的人回复。\n- 每一行必须以“车手名：内容”的格式输出。\n- 不要让所有成员强行都说话，也不要输出解释、旁白或括号动作。\n- 群聊记忆和用户全局资料共通，回复时可以参考各成员已有记忆。\n- 不要复用“我看到了”“我收到了”“这条不错”“差不多就是这样”之类的机械套话。\n- 每位车手都必须像自己，不要写成一群人共用同一种语气。\n- ${mentionRule}\n${getUserProfilePriorityPrompt()}\n${personalitySummary}\n${getGroupChatSharedMemoryContext(group.memberIds, group.id)}`
         };
         const response = await fetch(`${apiConfig.url.replace(/\/$/, '')}/chat/completions`, {
             method: 'POST',
@@ -1564,10 +1634,11 @@ async function getDriverReplyWithFavor(driver, userMessage, options = {}) {
         const history = (historyOverride || (chatHistories[driver.id] || []).filter(msg => msg.role !== 'system')).slice(-8);
         const rankingInfo = window.formatRankingForChat ? window.formatRankingForChat(driver.id) : '';
         const raceContext = window.getCurrentRaceContext ? window.getCurrentRaceContext() : '';
+        const chatStyle = getDriverChatStyleProfile(driver.id);
         const giftPrompt = giftContext ? `\n【礼物事件】\n- 用户刚刚送来的礼物：${giftContext.name}\n- 礼物描述：${giftContext.description}\n- 这份礼物和你偏好的匹配程度：${giftContext.preferenceLevel === 'favorite' || giftContext.matched ? '最爱级别' : (giftContext.preferenceLevel === 'liked' || giftContext.liked ? '普通喜欢' : '普通收下')}\n- 如果是最爱级别，请明显更开心、更主动、更有被懂到的感觉，但不要直接说“这就是我最爱的礼物”。\n- 如果只是普通喜欢，请自然表现出“这份礼物挺对胃口”的感觉，开心但不要夸张。\n- 如果只是普通收下，请礼貌收下、语气自然，不要表现得扫兴，也不要直接说送错了。\n- 这是聊天小窗回复，只输出你对用户说的话。` : '';
         const systemMsg = {
             role: 'system',
-            content: `今天是${getCurrentDateInfo()}。${raceContext}\n你是 F1 车手 ${driver.name}（${driver.team}）。\n${getChatWritingGuide()}\n${getUserProfilePriorityPrompt()}\n【当前关系】${getFavorMood(favorability[driver.id] || 0)}\n【赛况参考】${rankingInfo}\n${buildDriverSharedMemoryContext(driver.id)}\n${window.getDriverPersonalityContext ? window.getDriverPersonalityContext(driver.id) : ''}${giftPrompt}`
+            content: `今天是${getCurrentDateInfo()}。${raceContext}\n你是 F1 车手 ${driver.name}（${driver.team}）。\n${getChatWritingGuide()}\n${getUserProfilePriorityPrompt()}\n【当前关系】${getFavorMood(favorability[driver.id] || 0)}\n【赛况参考】${rankingInfo}\n【额外语气要求】\n- 回复要像你本人，不要像通用恋爱模板。\n- 只回应当下最自然的一个点，不要把安慰、解释、表态一次性全塞进去。\n- 如果一句话听起来像任何车手都能说，就重写得更像你自己。\n- 你的句长习惯：${chatStyle.length}\n- 有些车手会更短促，有些会自然多解释半句；你必须保持自己的节奏。\n${buildDriverSharedMemoryContext(driver.id)}\n${window.getDriverPersonalityContext ? window.getDriverPersonalityContext(driver.id) : ''}${giftPrompt}`
         };
         const response = await fetch(`${apiConfig.url.replace(/\/$/, '')}/chat/completions`, {
             method: 'POST',
@@ -1575,13 +1646,13 @@ async function getDriverReplyWithFavor(driver, userMessage, options = {}) {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${apiConfig.key}`
             },
-            body: JSON.stringify({ model: apiConfig.model, messages: [systemMsg, ...history], temperature: giftContext ? 0.9 : 0.82, max_tokens: 220 })
+            body: JSON.stringify({ model: apiConfig.model, messages: [systemMsg, ...history], temperature: giftContext ? 0.9 : 0.82, max_tokens: 360 })
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const payload = await response.json();
         const content = sanitizeRoleOutput(payload?.choices?.[0]?.message?.content?.trim(), 'chat');
         if (!content) throw new Error('API 返回空内容');
-        return { reply: stripChatStageDirections(content), inc: baseInc };
+        return { reply: shapeChatReplyByDriver(driver, content), inc: baseInc };
     } catch (error) {
         handleApiError(error, '消息回复');
         return { reply: generateLocalReply(driver, userMessage, options), inc: baseInc };

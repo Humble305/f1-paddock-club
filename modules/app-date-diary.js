@@ -135,10 +135,78 @@ function fallbackDateReply(driver, scene, favor, normalHistory = [], dateHistory
     };
     const action = (actions[scene.id] || actions.beach)[Math.floor(Math.random() * 2)];
     const lastUser = [...dateHistory].reverse().find(item => item.role === 'user') || [...normalHistory].reverse().find(item => item.role === 'user');
-    const moodText = favor >= 70 ? '和你待在一起的时候，我会比平时放松。' : favor >= 40 ? '至少现在这一刻，我挺愿意继续把时间留给你。' : '我在认真听你说。';
+    const personality = window.DRIVER_PERSONALITIES?.[driver.id] || {};
+    const interestText = String(personality.interests || '').toLowerCase();
+    const moodText = favor >= 70
+        ? (interestText.includes('music') || interestText.includes('时尚') ? '跟你待在一起的时候，整个人会慢慢松下来。' : '和你待在一起的时候，我会比平时更放松一点。')
+        : favor >= 40
+            ? (interestText.includes('technical') || interestText.includes('数据') ? '至少现在这一刻，我还想继续听你把这件事说完。' : '至少现在这一刻，我挺愿意把时间继续留在这里。')
+            : '我在认真听你说。';
     const eventLead = options.eventContext ? `刚才那件“${options.eventContext.title}”，我其实也还在想着。` : '';
-    const continuity = lastUser ? `你刚才提到的“${String(lastUser.content).slice(0, 20)}”，我有在想。` : '继续说吧，我在听。';
-    return `${action}\n${moodText}${eventLead}${continuity}`;
+    const continuity = lastUser ? `你刚才提到的“${String(lastUser.content).slice(0, 20)}”，我还记着。` : '继续说吧，我在听。';
+    const followUp = favor >= 65
+        ? '这种时候我不会只想随便带过去，至少想把这一刻和你多留一会。'
+        : '所以你可以继续往下说，我不会急着把这段气氛收掉。';
+    return `${action}\n${moodText}${eventLead}${continuity}${followUp}`;
+}
+
+function getDateDialogueOnlyText(text = '') {
+    return String(text || '')
+        .replace(/[（(][^（）()\n]{1,200}[）)]/gu, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function isUsableDateReply(text = '') {
+    const source = String(text || '').trim();
+    if (!source) return false;
+    const dialogue = getDateDialogueOnlyText(source);
+    if (!dialogue) return false;
+    const compactLength = dialogue.replace(/\s/g, '').length;
+    return compactLength >= 18;
+}
+
+function ensureDateReplyText(text, driver, scene, favor, normalHistory = [], dateHistory = [], options = {}) {
+    const source = String(text || '').trim();
+    if (isUsableDateReply(source)) return source;
+    return fallbackDateReply(driver, scene, favor, normalHistory, dateHistory, options);
+}
+
+async function requestDateReplyText(systemPrompt) {
+    const attempts = [
+        {
+            systemPrompt,
+            userPrompt: '请直接输出这一轮约会回复。括号里写描写，括号外只写台词，不要解释规则，不要输出任何思考过程。',
+            temperature: 0.82,
+            maxTokens: 420
+        },
+        {
+            systemPrompt: `${systemPrompt}\n【补充修正】\n- 如果上一轮输出太空、格式跑偏，或者没有真正承接场景，这一轮就写一个最自然的动作括号行，再接两到三句完整台词。\n- 回复宁可更完整一点，也不要短得像随口敷衍。\n- 不要解释规则，不要自我说明，不要暴露任何思考过程。`,
+            userPrompt: '请重写这一轮约会回复，确保有自然的台词内容，不要只剩括号描写，也不要空回。',
+            temperature: 0.78,
+            maxTokens: 460
+        }
+    ];
+    for (const attempt of attempts) {
+        const response = await fetch(`${apiConfig.url.replace(/\/$/, '')}/chat/completions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiConfig.key}` },
+            body: JSON.stringify({
+                model: apiConfig.model,
+                messages: [
+                    { role: 'system', content: attempt.systemPrompt },
+                    { role: 'user', content: attempt.userPrompt }
+                ],
+                temperature: attempt.temperature,
+                max_tokens: attempt.maxTokens
+            })
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const payload = await response.json();
+        const content = sanitizeRoleOutput(payload?.choices?.[0]?.message?.content?.trim(), 'date');
+        if (isUsableDateReply(content)) return content;
+    }
+    return '';
 }
 
 async function generateDateReply(driver, scene, userAction, userMessage, round, dateHistory = [], normalHistory = [], options = {}) {
@@ -155,19 +223,13 @@ async function generateDateReply(driver, scene, userAction, userMessage, round, 
         const chatHistoryText = normalHistory.map(msg => `${msg.role === 'user' ? '用户' : driver.name}: ${msg.content}`).join('\n');
         const dateHistoryText = dateHistory.map(msg => `${msg.role === 'user' ? '用户' : driver.name}: ${msg.content}`).join('\n');
         const eventPrompt = eventContext ? `\n【刚刚发生的小插曲】${eventContext.title} - ${eventContext.desc}\n【用户刚刚的选择】${eventContext.choiceLabel}：${eventContext.actionText}` : '';
-        const systemPrompt = `今天是${getCurrentDateInfo()}。${window.getCurrentRaceContext ? window.getCurrentRaceContext() : ''}\n你是 F1 车手 ${driver.name}（${driver.team}），正在和用户进行一场真实、私密、连续的约会。\n【当前约会场景】${scene.name} - ${scene.desc}\n【当前关系】${mood}（好感度 ${favor}/100）\n${getDateWritingGuide()}\n${getUserProfilePriorityPrompt()}\n${getRoleOutputSafetyPrompt('date')}\n【共享记忆】${memoryContext}\n【本次约会里已经发生的小事】\n${getDateEventHistoryText()}\n【普通聊天记录】\n${chatHistoryText}\n【本次约会对话】\n${dateHistoryText}\n${personalityContext}${eventPrompt}\n【用户刚刚的动作或话语】${userAction}：${userMessage || '（无具体话语）'}\n请以 ${driver.name} 的身份回复。回复长度 100 到 220 字，动作描写必须放在开头单独一行，随后换行继续台词。`;
-        const response = await fetch(`${apiConfig.url.replace(/\/$/, '')}/chat/completions`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiConfig.key}` },
-            body: JSON.stringify({ model: apiConfig.model, messages: [{ role: 'system', content: systemPrompt }], temperature: 0.82, max_tokens: 320 })
-        });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const payload = await response.json();
-        const content = sanitizeRoleOutput(payload?.choices?.[0]?.message?.content?.trim(), 'date');
+        const systemPrompt = `今天是${getCurrentDateInfo()}。${window.getCurrentRaceContext ? window.getCurrentRaceContext() : ''}\n你是 F1 车手 ${driver.name}（${driver.team}），正在和用户进行一场真实、私密、连续的约会。\n【当前约会场景】${scene.name} - ${scene.desc}\n【当前关系】${mood}（好感度 ${favor}/100）\n${getDateWritingGuide()}\n${getUserProfilePriorityPrompt('date')}\n【共享记忆】${memoryContext}\n【本次约会里已经发生的小事】\n${getDateEventHistoryText()}\n【普通聊天记录】\n${chatHistoryText}\n【本次约会对话】\n${dateHistoryText}\n${personalityContext}${eventPrompt}\n【用户刚刚的动作或话语】${userAction}：${userMessage || '（无具体话语）'}\n【额外要求】\n- 绝对不要写成统一的暧昧模板，不要像偶像剧台词库。\n- 你必须先判断这位车手私下会怎么说，再开口；如果一句话像谁都能说，就重写。\n- 不要反复使用“我看到了”“我收到了”“这就够了”“极其”“差不多就是这样”这类高重复表达。\n- 场景、关系和刚刚那一句话必须真的影响你的语气。\n- 如果你要写动作、停顿、视线、环境、气氛，只能单独成行并放在括号里；不要把描写混进台词句子里。\n- 回复要偏中等到中长，至少让这一轮情绪和回应真正说开，但不要写成大段独白。\n- 让句子自然说完，不要突然截断，也不要为了格式把内容压得太空。\n- 绝对不要输出任何思考链、分析、推理、自我提醒、解释规则或类似“我会这样回复”的元话语。\n请以 ${driver.name} 的身份回复。长度大致控制在 100 到 180 字；括号里写描写，括号外只写台词。`;
+        const content = await requestDateReplyText(systemPrompt);
         if (!content) throw new Error('API 返回空内容');
         return content;
     } catch (error) {
-        handleApiError(error, '约会回复');
+        console.warn('约会回复生成失败，已回退本地回复。', error);
+        showToast('这条约会回复没拉到 API，已回退为本地兜底回复', true);
         return fallbackDateReply(driver, scene, favor, normalHistory, dateHistory, options);
     } finally {
         showLoading(false);
@@ -192,7 +254,8 @@ async function startDate(driverId, sceneId) {
     dateEventHistory = [];
     dateEventCooldown = 1;
     const opening = await generateDateReply(driver, scene, '开始约会', '', currentRound, [], getRecentChatHistory(driver.id, 8));
-    dateMessages.push({ role: 'bot', content: opening });
+    const safeOpening = ensureDateReplyText(opening, driver, scene, favor, getRecentChatHistory(driver.id, 8), [], {});
+    dateMessages.push({ role: 'bot', content: safeOpening });
     renderDatePage();
 }
 
@@ -213,6 +276,7 @@ async function submitDateAction(action, customText, options = {}) {
     dateMessages.push({ role: 'user', content: userMessage, meta: eventContext ? { type: 'date-event-choice', eventTitle: eventContext.title, eventChoiceLabel: eventContext.choiceLabel } : null });
     currentRound += 1;
     const reply = await generateDateReply(currentDateDriver, currentDateScene, action, userMessage, currentRound, dateMessages, getRecentChatHistory(currentDateDriver.id, 8), { eventContext });
+    const safeReply = ensureDateReplyText(reply, currentDateDriver, currentDateScene, favorability[currentDateDriver.id] || 0, getRecentChatHistory(currentDateDriver.id, 8), dateMessages, { eventContext });
     if (eventContext) {
         const latestEvent = [...dateEventHistory].reverse().find(item => item.id === currentDateEvent?.id && !item.resolved);
         if (latestEvent) {
@@ -224,7 +288,7 @@ async function submitDateAction(action, customText, options = {}) {
         currentDateEvent = null;
         dateEventCooldown = 2;
     }
-    dateMessages.push({ role: 'bot', content: reply });
+    dateMessages.push({ role: 'bot', content: safeReply });
     maybeTriggerDateEvent(currentDateDriver, currentDateScene);
     renderDatePage();
     if (currentRound >= maxRounds) endDate();
@@ -261,23 +325,22 @@ function endDate() {
 }
 
 function formatDateBubbleContent(text = '', role = 'bot') {
-    const safeText = String(text || '');
-    if (role !== 'bot') return escapeHtml(safeText);
-    const actionPattern = /([锛?][^锛堬級()\n]{1,120}[锛?])/gu;
-    const blocks = [];
-    let lastIndex = 0;
-    let match;
-    const pushDialogue = value => {
-        const cleaned = String(value || '').trim();
-        if (cleaned) blocks.push(`<div class="date-dialogue-line">${escapeHtml(cleaned)}</div>`);
-    };
-    while ((match = actionPattern.exec(safeText)) !== null) {
-        pushDialogue(safeText.slice(lastIndex, match.index));
-        blocks.push(`<div class="date-action-line">${escapeHtml(match[0])}</div>`);
-        lastIndex = match.index + match[0].length;
-    }
-    pushDialogue(safeText.slice(lastIndex));
-    return blocks.length ? blocks.join('') : escapeHtml(safeText);
+    const safeText = String(text || '').trim() || '（他看着你，像是在等你把话继续说下去。）\n我在听，你可以继续。';
+    const normalizedLines = safeText
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(Boolean)
+        .map(line => {
+            const normalizedLine = line.replace(/\(/g, '（').replace(/\)/g, '）');
+            const isWrappedAction = /^（[^（）\n]{1,160}）$/u.test(normalizedLine);
+            if (isWrappedAction) return `<div class="date-action-line">${escapeHtml(normalizedLine)}</div>`;
+            const parts = normalizedLine.split(/(（[^（）\n]{1,160}）)/u).filter(Boolean);
+            const html = parts.map(part => /^（[^（）\n]{1,160}）$/u.test(part)
+                ? `<span class="date-action-inline">${escapeHtml(part)}</span>`
+                : `<span class="date-dialogue-inline">${escapeHtml(part)}</span>`).join('');
+            return `<div class="date-dialogue-line">${html}</div>`;
+        });
+    return normalizedLines.length ? normalizedLines.join('') : `<div class="date-dialogue-line">${escapeHtml(safeText)}</div>`;
 }
 
 function renderDatePage() {
