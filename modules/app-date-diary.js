@@ -215,6 +215,7 @@ async function generateDateReply(driver, scene, userAction, userMessage, round, 
     const memoryContext = buildDriverSharedMemoryContext(driver.id);
     const personalityContext = window.getDriverPersonalityContext ? window.getDriverPersonalityContext(driver.id) : '';
     const eventContext = options.eventContext || null;
+    const raceMemoryContext = typeof getCurrentRaceMemoryContext === 'function' ? getCurrentRaceMemoryContext() : '';
     if (!useAI || !apiConfig.key || !apiConfig.url || !apiConfig.model) {
         return fallbackDateReply(driver, scene, favor, normalHistory, dateHistory, options);
     }
@@ -223,7 +224,7 @@ async function generateDateReply(driver, scene, userAction, userMessage, round, 
         const chatHistoryText = normalHistory.map(msg => `${msg.role === 'user' ? '用户' : driver.name}: ${msg.content}`).join('\n');
         const dateHistoryText = dateHistory.map(msg => `${msg.role === 'user' ? '用户' : driver.name}: ${msg.content}`).join('\n');
         const eventPrompt = eventContext ? `\n【刚刚发生的小插曲】${eventContext.title} - ${eventContext.desc}\n【用户刚刚的选择】${eventContext.choiceLabel}：${eventContext.actionText}` : '';
-        const systemPrompt = `今天是${getCurrentDateInfo()}。${window.getCurrentRaceContext ? window.getCurrentRaceContext() : ''}\n你是 F1 车手 ${driver.name}（${driver.team}），正在和用户进行一场真实、私密、连续的约会。\n【当前约会场景】${scene.name} - ${scene.desc}\n【当前关系】${mood}（好感度 ${favor}/100）\n${getDateWritingGuide()}\n${getUserProfilePriorityPrompt('date')}\n【共享记忆】${memoryContext}\n【本次约会里已经发生的小事】\n${getDateEventHistoryText()}\n【普通聊天记录】\n${chatHistoryText}\n【本次约会对话】\n${dateHistoryText}\n${personalityContext}${eventPrompt}\n【用户刚刚的动作或话语】${userAction}：${userMessage || '（无具体话语）'}\n【额外要求】\n- 绝对不要写成统一的暧昧模板，不要像偶像剧台词库。\n- 你必须先判断这位车手私下会怎么说，再开口；如果一句话像谁都能说，就重写。\n- 不要反复使用“我看到了”“我收到了”“这就够了”“极其”“差不多就是这样”这类高重复表达。\n- 场景、关系和刚刚那一句话必须真的影响你的语气。\n- 如果你要写动作、停顿、视线、环境、气氛，只能单独成行并放在括号里；不要把描写混进台词句子里。\n- 回复要偏中等到中长，至少让这一轮情绪和回应真正说开，但不要写成大段独白。\n- 让句子自然说完，不要突然截断，也不要为了格式把内容压得太空。\n- 绝对不要输出任何思考链、分析、推理、自我提醒、解释规则或类似“我会这样回复”的元话语。\n请以 ${driver.name} 的身份回复。长度大致控制在 100 到 180 字；括号里写描写，括号外只写台词。`;
+        const systemPrompt = `今天是${getCurrentDateInfo()}。${window.getCurrentRaceContext ? window.getCurrentRaceContext() : ''}\n你是 F1 车手 ${driver.name}（${driver.team}），正在和用户进行一场真实、私密、连续的约会。\n【当前约会场景】${scene.name} - ${scene.desc}\n【当前关系】${mood}（好感度 ${favor}/100）\n${getDateWritingGuide()}\n${getUserProfilePriorityPrompt('date')}\n${raceMemoryContext}\n【共享记忆】${memoryContext}\n【本次约会里已经发生的小事】\n${getDateEventHistoryText()}\n【普通聊天记录】\n${chatHistoryText}\n【本次约会对话】\n${dateHistoryText}\n${personalityContext}${eventPrompt}\n【用户刚刚的动作或话语】${userAction}：${userMessage || '（无具体话语）'}\n【额外要求】\n- 绝对不要写成统一的暧昧模板，不要像偶像剧台词库。\n- 你必须先判断这位车手私下会怎么说，再开口；如果一句话像谁都能说，就重写。\n- 不要反复使用“我看到了”“我收到了”“这就够了”“极其”“差不多就是这样”这类高重复表达。\n- 场景、关系和刚刚那一句话必须真的影响你的语气。\n- 当前这站的比赛周状态、本站成绩和你自己在本站的处境也属于稳定上下文；如果话题碰到这站，你不能像忘掉了一样。\n- 如果你要写动作、停顿、视线、环境、气氛，只能单独成行并放在括号里；不要把描写混进台词句子里。\n- 回复要偏中等到中长，至少让这一轮情绪和回应真正说开，但不要写成大段独白。\n- 让句子自然说完，不要突然截断，也不要为了格式把内容压得太空。\n- 绝对不要输出任何思考链、分析、推理、自我提醒、解释规则或类似“我会这样回复”的元话语。\n请以 ${driver.name} 的身份回复。长度大致控制在 100 到 180 字；括号里写描写，括号外只写台词。`;
         const content = await requestDateReplyText(systemPrompt);
         if (!content) throw new Error('API 返回空内容');
         return content;

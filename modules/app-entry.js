@@ -197,6 +197,14 @@ function bindEvents() {
         const file = event.target.files?.[0];
         if (file) importGameDataFromFile(file);
     });
+    document.getElementById('refreshStandingsBtn')?.addEventListener('click', refreshStandingsFromDefaultRemote);
+    document.getElementById('importStandingsBtn')?.addEventListener('click', () => document.getElementById('importStandingsInput')?.click());
+    document.getElementById('importStandingsInput')?.addEventListener('change', event => {
+        const file = event.target.files?.[0];
+        if (file) importStandingsJsonFromFile(file);
+        event.target.value = '';
+    });
+    document.getElementById('resetStandingsBtn')?.addEventListener('click', restoreBuiltinStandings);
     document.getElementById('chatAvatarClick')?.addEventListener('click', () => {
         if (!currentChatDriver) return;
         if (currentChatDriver.type === 'group') {
@@ -211,6 +219,9 @@ function bindEvents() {
     document.getElementById('closeAnnounceBtn')?.addEventListener('click', () => {
         closeAnnounceModal();
         saveAnnouncementVersion();
+    });
+    document.getElementById('closePredictionSettlementBtn')?.addEventListener('click', () => {
+        if (typeof acknowledgePredictionSettlementFeedback === 'function') acknowledgePredictionSettlementFeedback();
     });
     document.getElementById('doSignBtn')?.addEventListener('click', performSign);
     document.getElementById('closeThemeModalBtn')?.addEventListener('click', () => {
@@ -296,6 +307,10 @@ function bindEvents() {
             clearSidebarActive();
             return;
         }
+        if (target.id === 'predictionSettlementModal' && typeof acknowledgePredictionSettlementFeedback === 'function') {
+            acknowledgePredictionSettlementFeedback();
+            return;
+        }
         if (target.id === 'messageForwardModal' && typeof closeMessageForwardModal === 'function') {
             closeMessageForwardModal();
             return;
@@ -335,6 +350,10 @@ function init() {
     loadUserProfile();
     loadApiConfigProfiles();
     loadApiConfig();
+    if (typeof renderStandingsAdminPanel === 'function') renderStandingsAdminPanel();
+    window.addEventListener('standings:updated', () => {
+        if (typeof renderStandingsAdminPanel === 'function') renderStandingsAdminPanel();
+    });
     loadPinnedDrivers();
     loadSignData();
     loadRacePredictions();
@@ -345,6 +364,7 @@ function init() {
     initFeedPosts();
     initRaceSessionData();
     raceSessionData = window.raceSessionData;
+    if (typeof settleAllRacePredictions === 'function') settleAllRacePredictions();
     bindEvents();
     initThemeSelector();
     if (typeof renderPaddockStore === 'function') renderPaddockStore();
@@ -360,6 +380,7 @@ function init() {
     switchTab('chat');
     if (typeof window.renderChatWorkspaceState === 'function') window.renderChatWorkspaceState();
     checkAndShowNewAnnouncements();
+    if (typeof openPredictionSettlementModal === 'function') openPredictionSettlementModal();
 }
 
 document.addEventListener('DOMContentLoaded', init);

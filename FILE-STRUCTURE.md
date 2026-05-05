@@ -9,4 +9,4 @@
 [`modules`](/E:/个人文件/f1-paddock-club-main/modules)
 
 根目录下旧的 `app-*.js`、`main.js`、`app-main.js`、`main.refactored.js`
-现在都属于历史副本，不再由 [`index.html`](/E:/个人文件/f1-paddock-club-main/index.html) 加载。
+已经清理掉，当前只保留 [`modules`](/E:/个人文件/f1-paddock-club-main/modules) 这一套正式实现。

@@ -193,14 +193,27 @@ function stylizeFeedText(driver, text, mode = 'post', slotIndex = 0) {
     return sanitizeFeedPost(result);
 }
 
-async function requestFeedText(systemPrompt, { temperature = 0.92, maxTokens = 120 } = {}) {
+function hasFeedMetaLeak(text = '') {
+    const value = String(text || '').trim();
+    if (!value) return false;
+    return /(^|[。！？!?，,\s])(先想一下|先判断一下|先分析一下|换个角度看|从这个角度看|这里我会先|我先想想|让我先想|我会先判断|如果从这个角度看|如果换个角度看|作为\s*AI|system prompt|提示词|思考过程|推理过程|内心独白|只输出正文|直接输出正文|不加解释性内容|不要加解释|不要写解释|不要写标题)([。！？!?，,\s]|$)/i.test(value);
+}
+
+async function requestFeedText(promptInput, { temperature = 0.92, maxTokens = 120 } = {}) {
     if (!useAI || !apiConfig.key || !apiConfig.url || !apiConfig.model) return '';
+    const promptBundle = typeof promptInput === 'string'
+        ? { system: promptInput, user: '直接输出最终正文。' }
+        : {
+            system: String(promptInput?.system || '').trim(),
+            user: String(promptInput?.user || '').trim() || '直接输出最终正文。'
+        };
     const attempts = [
-        { temperature, maxTokens, prompt: systemPrompt },
+        { temperature, maxTokens, ...promptBundle },
         {
             temperature: Math.max(0.72, temperature - 0.12),
             maxTokens,
-            prompt: `${systemPrompt}\n补充要求：如果上一轮你的输出太空、太像模板、或没有真正落到原帖内容上，这次请只抓一个最具体的点，直接给出一句自然的正文。`
+            system: promptBundle.system,
+            user: `${promptBundle.user}\n如果上一轮太空、太像模板、或没有真正承接内容，这次只抓一个最具体的点，直接给出一句自然的正文。`
         }
     ];
     for (const attempt of attempts) {
@@ -212,15 +225,19 @@ async function requestFeedText(systemPrompt, { temperature = 0.92, maxTokens = 1
             },
             body: JSON.stringify({
                 model: apiConfig.model,
-                messages: [{ role: 'system', content: attempt.prompt }],
+                messages: [
+                    { role: 'system', content: attempt.system },
+                    { role: 'user', content: attempt.user }
+                ],
                 temperature: attempt.temperature,
                 max_tokens: attempt.maxTokens
             })
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const payload = await response.json();
-        const content = sanitizeFeedPost(payload?.choices?.[0]?.message?.content?.trim());
-        if (content) return content;
+        const rawContent = payload?.choices?.[0]?.message?.content?.trim();
+        const content = sanitizeFeedPost(rawContent);
+        if (content && !hasFeedMetaLeak(content)) return content;
     }
     return '';
 }
@@ -339,30 +356,19 @@ function buildDriverCommentOnUserPostPrompt(driver, post) {
     const weekendContext = window.getRaceWeekendPromptContext ? window.getRaceWeekendPromptContext() : '';
     const favor = favorability?.[driver.id] || 0;
     const styleProfile = getFeedStyleProfile(driver.id);
-    return `今天是${getCurrentDateInfo()}。
-你是 F1 车手 ${driver.name}（${driver.team}），现在要在一位用户发布的围场动态下公开留言。
-${getRoleOutputSafetyPrompt('feed')}
-${personalityContext}
-${weekendContext}
-【用户信息】
-- 用户名：${userProfile.name}
-- 你和用户当前好感度：${favor}/100
-【用户动态】
-- ${post?.content || '围场近况'}
-【留言要求】
-- 这是公开评论区留言，不是私聊。
-- 你必须先读懂用户发的内容，再决定怎么回，不能空泛敷衍。
-- 如果你和用户好感较高，要明显更愿意互动，但仍然保持公开社媒语气，不要写成暧昧私聊。
-- 语气要像真实车手会在评论区留的一句：短、自然、有人味，可以带一点熟悉感或玩笑感。
-- 以中文为主，除非是极短的口癖或专有名词，否则不要突然整句切成外语。
-- 轻松不等于阴阳怪气；除非原帖本身就是非常明显的熟人玩笑，否则不要写讽刺、挖苦、别扭的反话。
-- 不要出现“极其”“这就够了”“我看到了”“我收到了”“差不多就是这样”这类模板词。
-- 如果帖子提到比赛、围场、成绩、排位或正赛，只能站在当前现实信息内回复，不要编造结果、事故、转会、处罚或伤病。
-- 不要加括号动作，不要加引号，不要写解释。
-- 长度控制在 10 到 34 个汉字。
-【社媒微风格】
-- ${styleProfile.prompt}
-现在直接输出评论正文。`;
+    return {
+        system: `你是 F1 车手 ${driver.name}（${driver.team}）。
+你在公开评论区留一句话，不是私聊。
+只输出最终评论正文，不要解释，不要标题，不要括号动作，不要复述规则。`,
+        user: `今天是${getCurrentDateInfo()}。
+用户：${userProfile.name}
+你和用户当前好感度：${favor}/100
+用户动态：${post?.content || '围场近况'}
+微风格：${styleProfile.prompt}
+补充人设：${personalityContext || '保持这个车手自己的说话方式。'}
+比赛周上下文：${weekendContext || '无特别比赛周补充。'}
+写一句 10 到 34 个汉字的公开留言。先读懂这条动态，再自然回应；如果好感较高，可以更愿意互动，但仍然像公开评论区。`
+    };
 }
 
 async function generateDriverCommentOnUserPost(driver, post, slotIndex = 0) {
@@ -384,31 +390,20 @@ function buildDriverCircleCommentPrompt(commentDriver, postDriver, post) {
     const postFacts = summarizeFeedReality(postDriver);
     const weekendContext = window.getRaceWeekendPromptContext ? window.getRaceWeekendPromptContext() : '';
     const styleProfile = getFeedStyleProfile(commentDriver.id);
-    return `今天是${getCurrentDateInfo()}。
-你是 F1 车手 ${commentDriver.name}（${commentDriver.team}），现在正在另一位车手的公开动态下留言。
-${getRoleOutputSafetyPrompt('feed')}
-${personalityContext}
-${weekendContext}
-【发帖车手】
-- 车手：${postDriver.name}（${postDriver.team}）
-- 你和他的关系：${commentDriver.team === postDriver.team ? '同队，彼此更熟' : '围场熟人，会公开互动'}
-【原帖内容】
-- ${post?.content || '围场近况'}
-【留言要求】
-- 你必须先读懂原帖内容，再有针对性地留言，不能像机器人套模板。
-- 这是车手对车手的公开评论，不是采访，不是私聊。
-- 语气要像真实车手会在 X / IG 评论区顺手留的一句：短、自然、像本人。
-- 可以轻松一点、熟人一点，但不要阴阳怪气、不要带刺，也不要为了显得熟而故意怼人。
-- 不要出现“极其”“这就够了”“我看到了”“我收到了”“差不多就是这样”这类模板词。
-- 以中文为主，除非是极短的口癖、固定碎词或专有名词，否则不要整句写纯外语。
-- 如果帖子提到比赛、积分、车队工作或围场情况，必须以当前现实信息为边界，不要编造结果、事故、转会、处罚或伤病。
-- 不要复读原帖，不要写空泛鸡汤，不要带括号动作，不要加引号。
-- 长度控制在 10 到 32 个汉字，读起来像真实留言。
-【社媒微风格】
-- ${styleProfile.prompt}
-【现实参考】
-${postFacts.length ? postFacts.map(item => `- ${item}`).join('\n') : '- 暂无明确赛事新闻可引用，优先承接原帖内容本身。'}
-现在直接输出评论正文。`;
+    return {
+        system: `你是 F1 车手 ${commentDriver.name}（${commentDriver.team}）。
+你在另一位车手的公开动态下留言，不是采访，不是私聊。
+只输出最终评论正文，不要解释，不要标题，不要括号动作，不要复述规则。`,
+        user: `今天是${getCurrentDateInfo()}。
+发帖车手：${postDriver.name}（${postDriver.team}）
+关系：${commentDriver.team === postDriver.team ? '同队，彼此更熟' : '围场熟人，会公开互动'}
+原帖内容：${post?.content || '围场近况'}
+微风格：${styleProfile.prompt}
+补充人设：${personalityContext || '保持这个车手自己的说话方式。'}
+比赛周上下文：${weekendContext || '无特别比赛周补充。'}
+现实边界：${postFacts.length ? postFacts.join('；') : '没有明确赛事事实时，就优先承接原帖本身。'}
+写一句 10 到 32 个汉字的公开评论。先读懂原帖，再自然接一句；可以熟人一点，但不要阴阳怪气。`
+    };
 }
 
 async function generateDriverCircleComment(commentDriver, postDriver, post, slotIndex = 0) {
@@ -507,23 +502,57 @@ function summarizeFeedReality(driver) {
 function pickFeedTopic(driver) {
     const news = getFeedRelevantNews(driver);
     const personality = getFeedDriverPersonality(driver.id);
-    const preferred = [];
-    if (news.length) preferred.push('weekend', 'garage');
+    const weekendEvent = window.getCurrentRaceWeekendEvent ? window.getCurrentRaceWeekendEvent() : null;
+    const weightedPool = [];
+    const pushWeighted = (topicId, weight = 1) => {
+        for (let count = 0; count < weight; count += 1) weightedPool.push(topicId);
+    };
+    if (weekendEvent?.status === 'live') {
+        pushWeighted('weekend', news.length ? 4 : 3);
+        pushWeighted('garage', 3);
+        pushWeighted('training', 2);
+        pushWeighted('travel', 1);
+        pushWeighted('friends', 1);
+        pushWeighted('life', 1);
+        pushWeighted('sim', 1);
+        pushWeighted('fans', 1);
+    } else {
+        pushWeighted('life', 4);
+        pushWeighted('travel', 3);
+        pushWeighted('friends', 3);
+        pushWeighted('sim', 3);
+        pushWeighted('training', 2);
+        pushWeighted('fans', 2);
+        if (news.length) {
+            pushWeighted('weekend', 2);
+            pushWeighted('garage', 1);
+        }
+    }
     const interests = String(personality?.interests || '').toLowerCase();
-    if (/模拟器|游戏|电竞|编程/.test(interests)) preferred.push('sim');
-    if (/训练|骑行|恢复/.test(interests)) preferred.push('training');
-    if (/家庭|朋友|车迷/.test(interests)) preferred.push('friends', 'fans');
-    if (/音乐|美食|咖啡|宠物|时尚|旅行/.test(interests)) preferred.push('life', 'travel');
-    const pool = preferred.length
-        ? FEED_TOPIC_POOL.filter(topic => preferred.includes(topic.id)).concat(FEED_TOPIC_POOL)
-        : FEED_TOPIC_POOL;
-    return pool[Math.floor(Math.random() * pool.length)];
+    if (/模拟器|游戏|电竞|编程/.test(interests)) pushWeighted('sim', 3);
+    if (/训练|骑行|恢复/.test(interests)) pushWeighted('training', 2);
+    if (/家庭|朋友|车迷/.test(interests)) {
+        pushWeighted('friends', 2);
+        pushWeighted('fans', 1);
+    }
+    if (/音乐|美食|咖啡|宠物|时尚|旅行/.test(interests)) {
+        pushWeighted('life', 3);
+        pushWeighted('travel', 2);
+    }
+    const topicId = weightedPool.length
+        ? weightedPool[Math.floor(Math.random() * weightedPool.length)]
+        : FEED_TOPIC_POOL[Math.floor(Math.random() * FEED_TOPIC_POOL.length)]?.id;
+    return FEED_TOPIC_POOL.find(topic => topic.id === topicId) || FEED_TOPIC_POOL[0];
 }
 
 function sanitizeFeedPost(text = '') {
     let result = sanitizeRoleOutput(text, 'feed').replace(/\s+/g, ' ').trim();
     result = result.replace(/^["“”'']|["“”'']$/g, '').trim();
     result = result
+        .replace(/<\/?think>/gi, '')
+        .replace(/^(?:(?:(?:只|仅|请只|请仅)?输出(?:一条)?(?:可直接发布的)?(?:动态|评论)?(?:正文|内容)?|直接给出正文|不用解释|不要解释(?:性内容)?|不要(?:写)?标题|不用开头)(?:[，,、 ]*(?:不用解释|不要解释(?:性内容)?|不要(?:写)?标题|不用开头|只输出(?:一条)?|直接给出正文|正文即可|只要正文))*[。！？!?]\s*[-—–]*)+/gi, '')
+        .replace(/(^|[。！？!?，,\s])(先想一下|先判断一下|先分析一下|换个角度看|从这个角度看|这里我会先|我先想想|让我先想|我会先判断|如果从这个角度看|如果换个角度看)([。！？!?，,\s]|$)/gi, '$1')
+        .replace(/(^|[。！？!?，,\s])(只输出正文|直接输出正文|不加解释性内容|不要加解释|不要写解释|不要写标题)([。！？!?，,\s]|$)/gi, '$1')
         .replace(/极其/g, '很')
         .replace(/这就够了/g, '这样就很好')
         .replace(/我看到了。?/g, '')
@@ -532,6 +561,7 @@ function sanitizeFeedPost(text = '') {
         .replace(/继续工作。?/g, '继续做事。')
         .replace(/[ \t]{2,}/g, ' ')
         .trim();
+    if (hasFeedMetaLeak(result)) return '';
     if (result.length > 140) result = `${result.slice(0, 137).trim()}...`;
     return result;
 }
@@ -542,32 +572,19 @@ function buildFeedPrompt(driver, topic) {
     const styleProfile = getFeedStyleProfile(driver.id);
     const facts = summarizeFeedReality(driver);
     const weekendContext = window.getRaceWeekendPromptContext ? window.getRaceWeekendPromptContext() : '';
-    return `今天是${getCurrentDateInfo()}。
-你是 F1 车手 ${driver.name}（${driver.team}），现在要发一条更像 X / 围场社媒风格的短动态。
-${getRoleOutputSafetyPrompt('feed')}
-${personalityContext}
-${weekendContext}
-【动态场景】
-- 本条主题：${topic?.label || '围场近况'}
-- 你在公开社媒上发，不是在接受采访，也不是在私聊用户。
-- 语气要像本人平时会发的短 caption：简洁、自然、有人味，可以有一点轻松幽默，但不要硬写段子。
-- 比起“发表观点”，更像是在随手记录此刻状态、一个很具体的小瞬间、情绪碎片，或者围场里刚发生的小事。
-- 尽量避免空泛鸡汤、官话和模板式积极发言，读起来要像真的有人刚发出去。
-- 不要写“极其”“这就够了”“差不多就是这样”“继续工作”“我看到了”“我收到了”这类高重复模板词。
-- 同一个意思不要用两句换着说；不要为了像真人而硬塞口头禅。
-- 以中文为主，除非是很短的口癖、语气词、固定社媒碎词或专有名词，否则不要整句写成外语。
-- 可以聊比赛，也可以聊训练、旅途、恢复、朋友、模拟器、音乐、美食、车队日常、和车迷互动。
-- 如果聊比赛或围场新闻，必须以当前现实信息为边界，不要编造冠军、杆位、事故、转会、伤病、处罚或数据。
-- 如果当前没有足够现实依据，就写更生活化、更日常的内容，不要强行点评赛事。
-- 不要带括号动作，不要写标题，不要加解释。
-- 长度控制在 35 到 110 个汉字，读起来像真实车手刚刚发出去的一条动态。
-【当前可参考的现实信息】
-${facts.length ? facts.map(item => `- ${item}`).join('\n') : '- 暂无明确赛事新闻可引用，优先发生活化内容。'}
-【语气补充】
-- 这位车手的社媒感：${personality?.social || '自然、克制、像真人短动态'}
-- 这位车手的表达禁忌：${personality?.avoid || '不要写得像新闻稿'}
-- 社媒微风格：${styleProfile.prompt}
-现在直接输出动态正文。`;
+    return {
+        system: `你是 F1 车手 ${driver.name}（${driver.team}）。
+你在发一条公开社媒动态，不是采访，不是私聊。
+只输出最终正文，不要解释，不要标题，不要括号动作，不要复述规则。`,
+        user: `今天是${getCurrentDateInfo()}。
+主题：${topic?.label || '围场近况'}
+人物语气：${personality?.social || '自然、克制、像真人短动态'}
+微风格：${styleProfile.prompt}
+补充人设：${personalityContext || '保持这个车手自己的说话方式。'}
+比赛周上下文：${weekendContext || '无特别比赛周补充。'}
+现实边界：${facts.length ? facts.join('；') : '没有足够赛事事实时，就写更生活化、更日常的内容。'}
+写一条 35 到 110 个汉字的动态。只抓一个具体瞬间或状态，不要像总结。可以是咖啡、落地、耳机里在放什么、朋友一句话、模拟器、晚餐、天气、窗外、健身房、宠物、围场里一个怪瞬间。`
+    };
 }
 
 function buildLocalFeedReply(driver, post, userComment) {
@@ -593,33 +610,20 @@ function buildFeedReplyPrompt(driver, post, userComment) {
     const styleProfile = getFeedStyleProfile(driver.id);
     const facts = summarizeFeedReality(driver);
     const weekendContext = window.getRaceWeekendPromptContext ? window.getRaceWeekendPromptContext() : '';
-    return `今天是${getCurrentDateInfo()}。
-你是 F1 车手 ${driver.name}（${driver.team}），现在要在自己刚发的围场动态评论区，公开回复一位用户。
-${getRoleOutputSafetyPrompt('feed')}
-${personalityContext}
-${weekendContext}
-【当前动态】
-- 你刚发的内容：${post?.content || '围场近况'}
-【用户评论】
-- 用户名：${userProfile.name}
-- 评论内容：${userComment}
-【回复要求】
-- 这是公开评论区，不是私聊，不要写得像一对一聊天。
-- 语气要像真实车手在 X / IG 评论区顺手回一句：自然、短、有人味，可以轻微熟络，但不要冷冰冰，更不要阴阳怪气。
-- 必须像本人，会参考这位车手平时的语气和社媒风格。
-- 可以承接用户的话，也可以回应自己刚发的那条动态，但不要重复原帖。
-- 不要出现“极其”“这就够了”“我看到了”“我收到了”“差不多就是这样”这类模板词。
-- 以中文为主，除非是很短的口癖或固定用语，否则不要整句写纯外语。
-- 如果提到赛事、成绩、排位、积分或围场情况，必须以当前现实信息为边界，不要编造结果、事故、转会、处罚或伤病。
-- 不要写括号动作，不要写旁白，不要加引号，不要解释自己。
-- 长度控制在 12 到 45 个汉字，像评论区里真的会出现的一句回复。
-【现实参考】
-${facts.length ? facts.map(item => `- ${item}`).join('\n') : '- 暂无明确赛事新闻可引用，优先自然回复。'}
-【语气补充】
-- 这位车手的社媒感：${personality?.social || '自然、克制、像真人短动态'}
-- 这位车手的表达禁忌：${personality?.avoid || '不要写得像新闻稿'}
-- 社媒微风格：${styleProfile.prompt}
-现在直接输出评论回复正文。`;
+    return {
+        system: `你是 F1 车手 ${driver.name}（${driver.team}）。
+你在公开评论区回一句，不是私聊。
+只输出最终回复正文，不要解释，不要标题，不要括号动作，不要复述规则。`,
+        user: `今天是${getCurrentDateInfo()}。
+你刚发的动态：${post?.content || '围场近况'}
+用户 ${userProfile.name} 的评论：${userComment}
+人物语气：${personality?.social || '自然、克制、像真人短动态'}
+微风格：${styleProfile.prompt}
+补充人设：${personalityContext || '保持这个车手自己的说话方式。'}
+比赛周上下文：${weekendContext || '无特别比赛周补充。'}
+现实边界：${facts.length ? facts.join('；') : '没有明确赛事事实时，就自然回应评论本身。'}
+写一句 12 到 45 个汉字的公开回复。像评论区顺手回一句，不要重复原帖，不要阴阳怪气。`
+    };
 }
 
 async function generateFeedDriverReply(driver, post, userComment) {
@@ -659,24 +663,24 @@ function buildLocalFeedPost(driver, index = 0) {
             `恢复日也不算真正轻松，但这种节奏挺熟悉。`
         ],
         travel: [
-            `又在路上了，先靠咖啡把人拉回在线。`,
-            `时差从来不讲道理，只能自己慢慢找回来。`
+            `落地之后先把窗帘拉开看了一眼天，脑子才算真的跟上来。`,
+            `机场到酒店这段路永远最安静，适合把人慢慢调回比赛周。`
         ],
         friends: [
-            `今天车队里的气氛不错，这种时候很多事会顺很多。`,
-            `围场里总会有人把很长的一天变得没那么长。`
+            `今天路过车库的时候被人顺手接了个梗，整天都轻了一点。`,
+            `围场里总会有人把一段很长的工作日拽回到正常气氛。`
         ],
         fans: [
             `看见看台和留言了，谢谢。`,
             `一直有人在后面推着你往前，这种感觉很难忽视。`
         ],
         life: [
-            `有时候一顿像样的饭真的能把一天救回来。`,
-            `不聊圈速的时候，脑子反而会转得更顺一点。`
+            `今天最像奖励的部分，居然只是热咖啡还没凉掉。`,
+            `不聊圈速的时候，反而会注意到一些本来会直接略过去的小事。`
         ],
         sim: [
-            `今天不是在车里，就是在模拟器里。`,
-            `有些感觉先在屏幕里找到，接下来再把它带去赛道上。`
+            `今天半天都耗在模拟器里，出来之后手还像握着方向盘。`,
+            `有些东西先在屏幕里抓到轮廓，落到赛道上会轻松很多。`
         ]
     };
     const closerMap = {
@@ -693,24 +697,24 @@ function buildLocalFeedPost(driver, index = 0) {
             `明天大概会感谢今天没有偷懒。`
         ],
         travel: [
-            `先把自己调到在线模式。`,
-            `落地之后再看看这周会长成什么样。`
+            `先把时差和节奏捋顺，别的再往后排。`,
+            `这种城市 usually 要住进来半天之后才开始有感觉。`
         ],
         friends: [
-            `这种感觉其实挺重要。`,
-            `团队顺的时候，人也会更敢往前推。`
+            `这种轻松一下的瞬间，很多时候比想象里更顶用。`,
+            `有人能把气氛接住，整天都会顺不少。`
         ],
         fans: [
             `有人一直在场边，很多时候比数据更让人记得住。`,
             `有些支持不会很吵，但真的会留在心里。`
         ],
         life: [
-            `偶尔离赛道远一点，脑子反而更清楚。`,
-            `有些安静的时刻，本身就已经很好。`
+            `这种很小的正常感，有时候比什么都救人。`,
+            `离赛道远一点的时候，人反而会慢慢回到自己身上。`
         ],
         sim: [
-            `先在模拟器里把方向找对，也算往前。`,
-            `今天至少把感觉慢慢找回来了。`
+            `这种东西先在模拟器里想通，后面会省很多弯路。`,
+            `今天至少不是白转圈，几个点已经有点眉目了。`
         ]
     };
     const openings = openingMap[topic.id] || openingMap.life;
@@ -1050,6 +1054,9 @@ const TEAM_PROFILE_DETAILS = {
 
 let activeStandingsTeamKey = 'mercedes';
 let activeStandingsDriverId = 'ant';
+let activeStandingsView = 'season';
+let activeWeekendStandingsTeamKey = 'mercedes';
+let activeWeekendStandingsDriverId = 'ant';
 
 const DRIVER_TEAM_KEY_BY_ID = {
     nor: 'mclaren',
@@ -1300,24 +1307,101 @@ function renderStandingsDriverPanel(profile) {
     `;
 }
 
-function renderStandings() {
-    const container = document.getElementById('standingsContainer');
-    if (!container) return;
-    const teamProfiles = (window.teamStandings || []).map((team, index) => buildStandingsTeamProfile(team, index));
-    if (!teamProfiles.length) {
-        container.innerHTML = '';
-        return;
+function buildWeekendStandingsSnapshot() {
+    const databaseRaces = Array.isArray(window.f1RaceDatabase?.races) ? window.f1RaceDatabase.races : [];
+    const currentRound = Number(window.raceSessionData?.currentRound || 0);
+    const currentRace = databaseRaces.find(race => Number(race.round) === currentRound) || null;
+    const latestCompletedRace = [...databaseRaces]
+        .filter(race => race?.status === 'completed' && Array.isArray(race?.race) && race.race.length)
+        .sort((left, right) => Number(right.round || 0) - Number(left.round || 0))[0] || null;
+    const targetRace = currentRace && Array.isArray(currentRace.race) && currentRace.race.length
+        ? currentRace
+        : latestCompletedRace;
+    const round = Number(targetRace?.round || currentRound || 0);
+    const sprintRows = Array.isArray(targetRace?.sprint)
+        ? targetRace.sprint
+        : (Array.isArray(window.raceSessionData?.sprint?.top10) && targetRace && Number(targetRace.round) === currentRound ? window.raceSessionData.sprint.top10 : []);
+    const raceRows = Array.isArray(targetRace?.race)
+        ? targetRace.race
+        : (Array.isArray(window.raceSessionData?.race?.raceResult) && targetRace && Number(targetRace.round) === currentRound ? window.raceSessionData.race.raceResult : []);
+    if (!round || !raceRows.length || !targetRace) {
+        return {
+            round,
+            title: '本站结果尚未结算',
+            driverStandings: [],
+            teamStandings: []
+        };
     }
-    if (!teamProfiles.some(profile => profile.key === activeStandingsTeamKey)) {
-        activeStandingsTeamKey = teamProfiles[0].key;
+
+    const driverMap = new Map();
+    const addPoints = (name, team, points = 0) => {
+        const safeName = String(name || '').trim();
+        if (!safeName) return;
+        const safeTeam = String(team || '').trim();
+        const current = driverMap.get(safeName) || { name: safeName, team: safeTeam, points: 0 };
+        current.team = current.team || safeTeam;
+        current.points += Number(points || 0);
+        driverMap.set(safeName, current);
+    };
+
+    sprintRows.forEach(row => addPoints(row.driver, row.team, row.points));
+    raceRows.forEach(row => addPoints(row.driver, row.team, row.points));
+
+    const driverStandings = Array.from(driverMap.values())
+        .filter(item => item.points > 0)
+        .sort((left, right) => {
+            if (right.points !== left.points) return right.points - left.points;
+            return left.name.localeCompare(right.name, 'zh-CN');
+        });
+
+    const teamMap = new Map();
+    driverStandings.forEach(item => {
+        const teamName = item.team || 'Team';
+        const current = teamMap.get(teamName) || { name: teamName, color: '#9aa5b5', points: 0 };
+        current.points += Number(item.points || 0);
+        const matchedSeasonTeam = (window.teamStandings || []).find(team => getStandingsTeamDisplayName(team.name) === getStandingsTeamDisplayName(teamName) || team.name === teamName);
+        if (matchedSeasonTeam?.color) current.color = matchedSeasonTeam.color;
+        teamMap.set(teamName, current);
+    });
+
+    const teamStandings = Array.from(teamMap.values())
+        .sort((left, right) => {
+            if (right.points !== left.points) return right.points - left.points;
+            return left.name.localeCompare(right.name, 'zh-CN');
+        });
+
+    const currentWeekendRace = window.getCurrentRaceWeekendEvent ? window.getCurrentRaceWeekendEvent()?.race : null;
+    const calendarRace = (window.F1_CALENDAR || []).find(race => Number(race.round) === round);
+    const roundLabel = targetRace?.gp || targetRace?.name || calendarRace?.gp || currentWeekendRace?.gp || String(window.raceSessionData?.race?.round || window.raceSessionData?.qualifying?.round || '').split(' ')[0] || `第 ${round} 站`;
+    return {
+        round,
+        title: `${roundLabel} 周末积分`,
+        driverStandings,
+        teamStandings
+    };
+}
+
+function renderStandingsViewToggle() {
+    return `
+        <div class="standings-view-toggle" role="tablist" aria-label="积分视图切换">
+            <button type="button" class="standings-view-btn${activeStandingsView === 'season' ? ' is-active' : ''}" data-standings-view="season">总积分</button>
+            <button type="button" class="standings-view-btn${activeStandingsView === 'weekend' ? ' is-active' : ''}" data-standings-view="weekend">本站排名</button>
+        </div>
+    `;
+}
+
+function renderStandingsSection(teamProfiles, driverProfiles, activeTeamKey, activeDriverId, emptyTitle = '', emptyCopy = '') {
+    if (!teamProfiles.length || !driverProfiles.length) {
+        return `
+            <div class="standings-section">
+                <div class="section-title">${escapeHtml(emptyTitle || '暂无数据')}</div>
+                <div class="standings-empty-state">${escapeHtml(emptyCopy || '当前还没有可展示的积分数据。')}</div>
+            </div>
+        `;
     }
-    const activeProfile = teamProfiles.find(profile => profile.key === activeStandingsTeamKey) || teamProfiles[0];
-    const driverProfiles = (window.driverStandings || []).map((driverStanding, index) => buildStandingsDriverProfile(driverStanding, index));
-    if (!driverProfiles.some(profile => profile.id === activeStandingsDriverId)) {
-        activeStandingsDriverId = driverProfiles[0]?.id || '';
-    }
-    const activeDriverProfile = driverProfiles.find(profile => profile.id === activeStandingsDriverId) || driverProfiles[0];
-    container.innerHTML = `
+    const activeProfile = teamProfiles.find(profile => profile.key === activeTeamKey) || teamProfiles[0];
+    const activeDriverProfile = driverProfiles.find(profile => profile.id === activeDriverId) || driverProfiles[0];
+    return `
         <div class="standings-section">
             <div class="section-title">车队积分榜</div>
             <div class="standings-team-shell">
@@ -1371,12 +1455,69 @@ function renderStandings() {
             </div>
         </div>
     `;
-    const panelWrap = document.getElementById('standingsTeamPanelWrap');
-    const driverPanelWrap = document.getElementById('standingsDriverPanelWrap');
+}
+
+function renderStandings() {
+    const container = document.getElementById('standingsContainer');
+    if (!container) return;
+    const seasonTeamProfiles = (window.teamStandings || []).map((team, index) => buildStandingsTeamProfile(team, index));
+    const seasonDriverProfiles = (window.driverStandings || []).map((driverStanding, index) => buildStandingsDriverProfile(driverStanding, index));
+    const weekendSnapshot = buildWeekendStandingsSnapshot();
+    const weekendTeamProfiles = weekendSnapshot.teamStandings.map((team, index) => buildStandingsTeamProfile(team, index));
+    const weekendDriverProfiles = weekendSnapshot.driverStandings.map((driverStanding, index) => buildStandingsDriverProfile(driverStanding, index));
+    if (!seasonTeamProfiles.length) {
+        container.innerHTML = '';
+        return;
+    }
+    if (!seasonTeamProfiles.some(profile => profile.key === activeStandingsTeamKey)) {
+        activeStandingsTeamKey = seasonTeamProfiles[0].key;
+    }
+    if (!seasonDriverProfiles.some(profile => profile.id === activeStandingsDriverId)) {
+        activeStandingsDriverId = seasonDriverProfiles[0]?.id || '';
+    }
+    if (weekendTeamProfiles.length && !weekendTeamProfiles.some(profile => profile.key === activeWeekendStandingsTeamKey)) {
+        activeWeekendStandingsTeamKey = weekendTeamProfiles[0].key;
+    }
+    if (weekendDriverProfiles.length && !weekendDriverProfiles.some(profile => profile.id === activeWeekendStandingsDriverId)) {
+        activeWeekendStandingsDriverId = weekendDriverProfiles[0]?.id || '';
+    }
+    container.innerHTML = `
+        ${renderStandingsViewToggle()}
+        <div class="standings-view-panel${activeStandingsView === 'season' ? ' is-active' : ''}" data-standings-panel="season">
+            ${renderStandingsSection(seasonTeamProfiles, seasonDriverProfiles, activeStandingsTeamKey, activeStandingsDriverId)}
+        </div>
+        <div class="standings-view-panel${activeStandingsView === 'weekend' ? ' is-active' : ''}" data-standings-panel="weekend">
+            <div class="standings-section">
+                <div class="section-title">${escapeHtml(weekendSnapshot.title)}</div>
+                <div class="standings-subtitle">本站口径按周末总分计算，Sprint 与正赛积分会自动合并。</div>
+            </div>
+            ${renderStandingsSection(
+                weekendTeamProfiles,
+                weekendDriverProfiles,
+                activeWeekendStandingsTeamKey,
+                activeWeekendStandingsDriverId,
+                '本站结果尚未结算',
+                '这站还没有正式结果，本站积分榜会在成绩落定后自动生成。'
+            )}
+        </div>
+    `;
+    const activePanel = container.querySelector('.standings-view-panel.is-active');
+    const panelWrap = activePanel?.querySelector('#standingsTeamPanelWrap') || null;
+    const driverPanelWrap = activePanel?.querySelector('#standingsDriverPanelWrap') || null;
+    const currentTeamProfiles = activeStandingsView === 'season' ? seasonTeamProfiles : weekendTeamProfiles;
+    const currentDriverProfiles = activeStandingsView === 'season' ? seasonDriverProfiles : weekendDriverProfiles;
+    const setActiveTeamState = teamKey => {
+        if (activeStandingsView === 'season') activeStandingsTeamKey = teamKey;
+        else activeWeekendStandingsTeamKey = teamKey;
+    };
+    const setActiveDriverState = driverId => {
+        if (activeStandingsView === 'season') activeStandingsDriverId = driverId;
+        else activeWeekendStandingsDriverId = driverId;
+    };
     const activateTeamProfile = teamKey => {
-        const nextProfile = teamProfiles.find(profile => profile.key === teamKey);
+        const nextProfile = currentTeamProfiles.find(profile => profile.key === teamKey);
         if (!nextProfile || !panelWrap) return;
-        activeStandingsTeamKey = teamKey;
+        setActiveTeamState(teamKey);
         container.querySelectorAll('.team-standing-row').forEach(row => {
             row.classList.toggle('is-active', row.dataset.teamKey === teamKey);
         });
@@ -1395,9 +1536,9 @@ function renderStandings() {
         row.addEventListener('click', () => activateTeamProfile(teamKey));
     });
     const activateDriverProfile = driverId => {
-        const nextProfile = driverProfiles.find(profile => profile.id === driverId);
+        const nextProfile = currentDriverProfiles.find(profile => profile.id === driverId);
         if (!nextProfile || !driverPanelWrap) return;
-        activeStandingsDriverId = driverId;
+        setActiveDriverState(driverId);
         container.querySelectorAll('.driver-standing-row').forEach(row => {
             row.classList.toggle('is-active', row.dataset.driverId === driverId);
         });
@@ -1414,6 +1555,14 @@ function renderStandings() {
         });
         row.addEventListener('focus', () => activateDriverProfile(driverId));
         row.addEventListener('click', () => activateDriverProfile(driverId));
+    });
+    container.querySelectorAll('[data-standings-view]').forEach(button => {
+        button.addEventListener('click', () => {
+            const nextView = button.getAttribute('data-standings-view') || 'season';
+            if (nextView === activeStandingsView) return;
+            activeStandingsView = nextView;
+            renderStandings();
+        });
     });
     requestAnimationFrame(() => {
         panelWrap?.classList.add('is-visible');

@@ -80,7 +80,7 @@ function applyLoadedData(saveData) {
         applyStandingsPayload(saveData.standingsData, {
             persist: true,
             rerender: false,
-            source: saveData.standingsDataConfig?.source || 'local',
+            source: saveData.standingsDataConfig?.source || 'manual',
             remoteUrl: saveData.standingsDataConfig?.remoteUrl || '',
             lastUpdated: saveData.standingsDataConfig?.lastUpdated || new Date().toISOString()
         });
@@ -129,7 +129,97 @@ function importGameDataFromFile(file) {
     reader.readAsText(file);
 }
 
-function openSaveModal() { document.getElementById('saveModal').style.display = 'flex'; }
+function formatStandingsSourceLabel(source = '') {
+    const value = String(source || '').trim();
+    if (value === 'remote') return '远程官方源';
+    if (value === 'manual' || value === 'local') return '手动导入';
+    return '内置兜底';
+}
+
+function formatStandingsSourceBadge(source = '') {
+    const value = String(source || '').trim();
+    if (value === 'remote') return 'REMOTE';
+    if (value === 'manual' || value === 'local') return 'MANUAL';
+    return 'BUILTIN';
+}
+
+function formatStandingsUpdatedText(value = '') {
+    if (!value) return '待同步';
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return value;
+    return parsed.toLocaleString('zh-CN', {
+        hour12: false,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+function renderStandingsAdminPanel() {
+    const config = typeof window.getStandingsDataConfig === 'function' ? window.getStandingsDataConfig() : {};
+    const meta = typeof window.getCurrentStandingsMeta === 'function' ? window.getCurrentStandingsMeta() : {};
+    const source = config.source || meta.source || 'builtin';
+    const remoteUrl = config.remoteUrl || config.defaultRemoteUrl || (typeof window.getDefaultStandingsRemoteUrl === 'function' ? window.getDefaultStandingsRemoteUrl() : '');
+    const updatedAt = meta.updatedAt || config.lastUpdated || '';
+    const sourceBadge = document.getElementById('standingsSourceBadge');
+    const sourceText = document.getElementById('standingsSourceText');
+    const updatedText = document.getElementById('standingsUpdatedText');
+    const remoteUrlText = document.getElementById('standingsRemoteUrlText');
+    if (sourceBadge) {
+        sourceBadge.textContent = formatStandingsSourceBadge(source);
+        sourceBadge.dataset.source = source;
+    }
+    if (sourceText) sourceText.textContent = formatStandingsSourceLabel(source);
+    if (updatedText) updatedText.textContent = formatStandingsUpdatedText(updatedAt);
+    if (remoteUrlText) remoteUrlText.textContent = remoteUrl || '未配置远程地址';
+}
+
+async function refreshStandingsFromDefaultRemote() {
+    const refreshButton = document.getElementById('refreshStandingsBtn');
+    if (refreshButton) refreshButton.disabled = true;
+    try {
+        const defaultUrl = typeof window.getDefaultStandingsRemoteUrl === 'function' ? window.getDefaultStandingsRemoteUrl() : '';
+        await refreshStandingsFromUrl(defaultUrl);
+        renderStandingsAdminPanel();
+        showToast('积分数据已从远程源刷新', false);
+    } catch (error) {
+        handleApiError(error, '积分数据刷新');
+    } finally {
+        if (refreshButton) refreshButton.disabled = false;
+    }
+}
+
+function importStandingsJsonFromFile(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+        try {
+            const payload = JSON.parse(reader.result);
+            applyStandingsPayload(payload, {
+                source: 'manual',
+                remoteUrl: typeof window.getDefaultStandingsRemoteUrl === 'function' ? window.getDefaultStandingsRemoteUrl() : '',
+                lastUpdated: payload?.meta?.updatedAt || new Date().toISOString()
+            });
+            renderStandingsAdminPanel();
+            showToast('积分 JSON 已导入', false);
+        } catch (error) {
+            handleApiError(error, '积分 JSON 导入');
+        }
+    };
+    reader.readAsText(file);
+}
+
+function restoreBuiltinStandings() {
+    if (typeof resetStandingsData === 'function') resetStandingsData();
+    renderStandingsAdminPanel();
+    showToast('已切回内置积分兜底', false);
+}
+
+function openSaveModal() {
+    document.getElementById('saveModal').style.display = 'flex';
+    renderStandingsAdminPanel();
+}
 function closeSaveModal() { document.getElementById('saveModal').style.display = 'none'; clearSidebarActive(); }
 
 function loadUserProfile() {
@@ -809,24 +899,9 @@ const CALENDAR_HISTORY_DRIVERS = {
     24: { name: 'Lewis Hamilton / Max Verstappen', tag: 'Yas Marina 并列 5 胜', note: '收官站的历史情绪很重，所以这里现在也留下了两位时代焦点的并列纪录。' }
 };
 
-const CALENDAR_PREDICTION_DEADLINES = {
-    6: '2026-05-03T04:00:00+08:00'
-};
-
 const CALENDAR_UNHELD_RACE_NOTES = {
     4: '官方已确认 2026 年 4 月的巴林大奖赛不举行，因此这一站不会显示结果，也不会进入预测结算。',
     5: '官方已确认 2026 年 4 月的沙特大奖赛不举行，因此这一站不会显示结果，也不会进入预测结算。'
-};
-
-const CALENDAR_DISPLAY_DATE_OVERRIDES = {
-    6: '5月2-4日'
-};
-
-const CALENDAR_DATE_RANGE_OVERRIDES = {
-    6: {
-        start: '2026-05-02T00:00:00+08:00',
-        end: '2026-05-04T23:59:59+08:00'
-    }
 };
 
 let activeCalendarRound = null;
@@ -839,7 +914,7 @@ function clearCalendarPredictionCountdown() {
 }
 
 function getRacePredictionDeadline(race) {
-    const fixedDeadline = CALENDAR_PREDICTION_DEADLINES[race?.round];
+    const fixedDeadline = race?.predictionDeadline || race?.deadline || null;
     if (fixedDeadline) {
         const exact = new Date(fixedDeadline);
         if (!Number.isNaN(exact.getTime())) return exact;
@@ -852,7 +927,7 @@ function getRacePredictionDeadline(race) {
 }
 
 function getCalendarRaceDateRange(race) {
-    const override = CALENDAR_DATE_RANGE_OVERRIDES[race?.round];
+    const override = race?.dateRange || race?.range || null;
     if (override?.start && override?.end) {
         const start = new Date(override.start);
         const end = new Date(override.end);
@@ -913,6 +988,8 @@ function mountCalendarPredictionCountdown() {
 }
 
 function getCalendarRaceState(race, referenceDate = new Date()) {
+    if (race?.status === 'completed') return 'completed';
+    if (race?.status === 'cancelled') return 'upcoming';
     const current = new Date(referenceDate);
     current.setHours(0, 0, 0, 0);
     const dateRange = getCalendarRaceDateRange(race);
@@ -936,13 +1013,16 @@ function getRacePredictionEntry(round) {
 function calculateRacePredictionScore(prediction, result) {
     if (!prediction || !result) return { score: 0, reward: 0, breakdown: [] };
     let score = 0;
+    let hitCount = 0;
     const breakdown = [];
     if (prediction.pole === result.pole) {
         score += 12;
+        hitCount += 1;
         breakdown.push('杆位命中 +12');
     }
     if (prediction.winner === result.winner) {
         score += 18;
+        hitCount += 1;
         breakdown.push('冠军命中 +18');
     }
     (prediction.podium || []).forEach((name, index) => {
@@ -950,17 +1030,19 @@ function calculateRacePredictionScore(prediction, result) {
         const included = result.podium?.includes(name);
         if (exact) {
             score += 12;
+            hitCount += 1;
             breakdown.push(`P${index + 2} 精准命中 +12`);
         } else if (included) {
             score += 6;
+            hitCount += 1;
             breakdown.push(`领奖台成员命中 +6`);
         }
     });
-    return { score, reward: score > 0 ? 20 + score * 2 : 8, breakdown };
+    return { score, reward: score > 0 ? 20 + score * 2 : 8, breakdown, hitCount };
 }
 
 function settleRacePredictionIfNeeded(race) {
-    if (!race || getCalendarRaceState(race) !== 'completed') return;
+    if (!race) return;
     const key = String(race.round);
     const entry = getRacePredictionEntry(key);
     const result = window.CALENDAR_PREDICTION_RESULTS?.[race.round];
@@ -972,13 +1054,100 @@ function settleRacePredictionIfNeeded(race) {
         settledAt: new Date().toISOString(),
         score: outcome.score,
         reward: outcome.reward,
+        hitCount: outcome.hitCount,
         result,
-        breakdown: outcome.breakdown
+        breakdown: outcome.breakdown,
+        feedbackPending: true
     };
     userCoins += outcome.reward;
     saveRacePredictions();
     saveSignData();
-    showToast(`赛前预测已结算，围场币 +${outcome.reward}`, false);
+}
+
+function settleAllRacePredictions() {
+    (window.F1_CALENDAR || []).forEach(race => settleRacePredictionIfNeeded(race));
+}
+
+function getLatestPendingPredictionFeedback() {
+    const calendar = window.F1_CALENDAR || [];
+    const entries = Object.entries(racePredictions || {})
+        .map(([round, entry]) => ({ round: Number(round), entry }))
+        .sort((left, right) => {
+            const byRound = right.round - left.round;
+            if (byRound !== 0) return byRound;
+            return new Date(right.entry.settledAt || 0).getTime() - new Date(left.entry.settledAt || 0).getTime();
+        })
+        .map(item => ({
+            ...item,
+            race: calendar.find(race => race.round === item.round) || null
+        }));
+    return entries.find(item => item.entry?.settled && item.entry?.feedbackPending)
+        || entries.find(item => item.entry?.settled && !item.entry?.feedbackShownAt)
+        || null;
+}
+
+function openPredictionSettlementModal() {
+    const pending = getLatestPendingPredictionFeedback();
+    const modal = document.getElementById('predictionSettlementModal');
+    const content = document.getElementById('predictionSettlementContent');
+    if (!pending || !modal || !content) return;
+    const raceName = pending.race?.gp || `第 ${pending.round} 站`;
+    const hitCount = Number(pending.entry?.hitCount || 0);
+    const reward = Number(pending.entry?.reward || 0);
+    const score = Number(pending.entry?.score || 0);
+    const breakdown = Array.isArray(pending.entry?.breakdown) ? pending.entry.breakdown : [];
+    content.innerHTML = `
+        <div class="prediction-settlement-shell">
+            <div class="prediction-settlement-kicker">PREDICTION SETTLED</div>
+            <div class="prediction-settlement-race">${escapeHtml(raceName)}</div>
+            <div class="prediction-settlement-summary">
+                <div class="prediction-settlement-stat">
+                    <span>命中项</span>
+                    <strong>${hitCount}</strong>
+                </div>
+                <div class="prediction-settlement-stat">
+                    <span>本站得分</span>
+                    <strong>${score}</strong>
+                </div>
+                <div class="prediction-settlement-stat is-reward">
+                    <span>围场币</span>
+                    <strong>+${reward}</strong>
+                </div>
+            </div>
+            <div class="prediction-settlement-copy">这站预测已经自动结算，奖励已经发进你的围场币余额。</div>
+            <div class="prediction-settlement-breakdown">
+                ${breakdown.length ? breakdown.map(item => `<span>${escapeHtml(item)}</span>`).join('') : '<span>这次没有命中项，保底奖励已发放。</span>'}
+            </div>
+        </div>
+    `;
+    modal.dataset.predictionRound = String(pending.round);
+    modal.style.display = 'flex';
+}
+
+function acknowledgePredictionSettlementFeedback() {
+    const modal = document.getElementById('predictionSettlementModal');
+    const round = modal?.dataset.predictionRound || '';
+    const shownAt = new Date().toISOString();
+    if (racePredictions && typeof racePredictions === 'object') {
+        Object.keys(racePredictions).forEach(key => {
+            const entry = racePredictions[key];
+            if (!entry?.settled || !entry?.feedbackPending) return;
+            racePredictions[key] = {
+                ...entry,
+                feedbackPending: false,
+                feedbackShownAt: key === round ? shownAt : (entry.feedbackShownAt || shownAt)
+            };
+        });
+        saveRacePredictions();
+    }
+    closePredictionSettlementModal();
+}
+
+function closePredictionSettlementModal() {
+    const modal = document.getElementById('predictionSettlementModal');
+    if (!modal) return;
+    modal.style.display = 'none';
+    delete modal.dataset.predictionRound;
 }
 
 function buildRacePredictionPanel(profile) {
@@ -990,8 +1159,7 @@ function buildRacePredictionPanel(profile) {
     const isCancelled = Boolean(profile.isCancelled);
     const canPredict = profile.stateKey === 'upcoming' && !isSubmitted && !isCancelled;
     const resolvedDeadline = profile.predictionDeadline
-        || getRacePredictionDeadline({ round: profile.round, date: profile.date })
-        || (CALENDAR_PREDICTION_DEADLINES[profile.round] ? new Date(CALENDAR_PREDICTION_DEADLINES[profile.round]) : null);
+        || getRacePredictionDeadline({ round: profile.round, date: profile.date });
     const deadlineText = resolvedDeadline ? formatRacePredictionDeadline(resolvedDeadline) : '待补充';
     const countdownText = isCancelled
         ? '该站未举行，不开放预测'
@@ -1066,21 +1234,24 @@ function buildRacePredictionPanel(profile) {
 function buildCalendarRaceProfile(race, stateKey) {
     const details = CALENDAR_RACE_DETAILS[race?.round] || {};
     const history = CALENDAR_HISTORY_DRIVERS[race?.round] || {};
-    const stateLabel = stateKey === 'current'
-        ? '进行中'
-        : (stateKey === 'completed' ? '已完赛' : '即将到站');
-    const stateKicker = stateKey === 'current'
-        ? 'TRACK LIVE DOSSIER'
-        : (stateKey === 'completed' ? 'POST-RACE DOSSIER' : 'CIRCUIT PRELOAD');
-    const stateNote = stateKey === 'current'
-        ? '这一站正处在真实比赛周节奏里，赛道特征会直接放大调校、轮胎和车手状态。'
-        : (stateKey === 'completed'
-            ? '这一站已经跑完，更适合当作赛后回看：看赛道脾气、看比赛窗口，也看谁最适合这里。'
-            : '这站还在发车线之前，赛道档案更像一份赛前工程简报，强调节奏、难点和比赛窗口。');
+    const isCancelled = race?.status === 'cancelled' || Boolean(CALENDAR_UNHELD_RACE_NOTES[race.round]);
+    const stateLabel = isCancelled
+        ? '未举行'
+        : (stateKey === 'current' ? '进行中' : (stateKey === 'completed' ? '已完赛' : '即将到站'));
+    const stateKicker = isCancelled
+        ? 'ROUND UPDATE'
+        : (stateKey === 'current' ? 'TRACK LIVE DOSSIER' : (stateKey === 'completed' ? 'POST-RACE DOSSIER' : 'CIRCUIT PRELOAD'));
+    const stateNote = isCancelled
+        ? '这一站在 2026 赛季未举行，因此这里只保留赛道档案，不开放结果展示和预测结算。'
+        : (stateKey === 'current'
+            ? '这一站正处在真实比赛周节奏里，赛道特征会直接放大调校、轮胎和车手状态。'
+            : (stateKey === 'completed'
+                ? '这一站已经跑完，更适合当作赛后回看：看赛道脾气、看比赛窗口，也看谁最适合这里。'
+                : '这站还在发车线之前，赛道档案更像一份赛前工程简报，强调节奏、难点和比赛窗口。'));
     return {
         round: race.round,
         gp: race.gp,
-        date: CALENDAR_DISPLAY_DATE_OVERRIDES[race.round] || race.date,
+        date: race.displayDate || race.date,
         location: race.location || 'F1 World Championship',
         sprint: Boolean(race.sprint),
         stateKey,
@@ -1088,8 +1259,8 @@ function buildCalendarRaceProfile(race, stateKey) {
         stateKicker,
         accentRgb: CALENDAR_PANEL_ACCENTS[race.round] || 'var(--primary-color-rgb)',
         predictionDeadline: getRacePredictionDeadline(race),
-        isCancelled: Boolean(CALENDAR_UNHELD_RACE_NOTES[race.round]),
-        cancelledNote: CALENDAR_UNHELD_RACE_NOTES[race.round] || '',
+        isCancelled,
+        cancelledNote: race.note || CALENDAR_UNHELD_RACE_NOTES[race.round] || '',
         circuit: details.circuit || 'Grand Prix Circuit',
         lapLength: details.lapLength || 'Data pending',
         laps: details.laps || '--',
@@ -1103,16 +1274,18 @@ function buildCalendarRaceProfile(race, stateKey) {
         historyTag: history.tag || '历史名片待续',
         historyNote: history.note || '这条赛道的故事还在继续，下一位把名字刻进去的人也许就在这个周末。',
         stateNote,
-        predictionPanel: buildRacePredictionPanel({ round: race.round, stateKey })
+        predictionPanel: buildRacePredictionPanel({ round: race.round, stateKey, isCancelled })
     };
 }
 
 function renderCalendarDetailPanel(profile) {
-    const stateBadge = profile.stateKey === 'current'
-        ? '<span class="calendar-detail-status is-live">LIVE WINDOW</span>'
-        : (profile.stateKey === 'completed'
-            ? '<span class="calendar-detail-status is-completed">FINISHED FILE</span>'
-            : '<span class="calendar-detail-status is-upcoming">GRID PRELOAD</span>');
+    const stateBadge = profile.isCancelled
+        ? '<span class="calendar-detail-status is-upcoming">UNHELD FILE</span>'
+        : (profile.stateKey === 'current'
+            ? '<span class="calendar-detail-status is-live">LIVE WINDOW</span>'
+            : (profile.stateKey === 'completed'
+                ? '<span class="calendar-detail-status is-completed">FINISHED FILE</span>'
+                : '<span class="calendar-detail-status is-upcoming">GRID PRELOAD</span>'));
     const sprintBadge = profile.sprint ? '<span class="calendar-detail-chip">Sprint Weekend</span>' : '';
     return `
         <section class="calendar-detail-panel is-${profile.stateKey}" data-calendar-panel-state="${profile.stateKey}" style="--calendar-panel-rgb:${profile.accentRgb};">
@@ -1192,7 +1365,17 @@ renderCalendar = function renderCalendarOverride() {
     const calendarData = window.F1_CALENDAR || [];
     calendarData.forEach(race => settleRacePredictionIfNeeded(race));
     const buildCalendarRacePreview = (race, stateKey) => {
-        const sprintText = race.sprint ? ' 路 Sprint Weekend' : '';
+        const sprintText = race.sprint ? ' · Sprint Weekend' : '';
+        const isCancelled = race.status === 'cancelled' || Boolean(CALENDAR_UNHELD_RACE_NOTES[race.round]);
+        if (isCancelled) {
+            return {
+                kicker: 'ROUND CANCELLED',
+                title: `${race.gp} 本赛季未举行`,
+                meta: `Round ${race.round} · ${race.location || '赛程调整'}${sprintText}`,
+                note: race.note || '这一站不会进入结果展示，也不会开放预测。',
+                cardState: 'completed'
+            };
+        }
         if (stateKey === 'current') {
             return {
                 kicker: 'LIVE PREVIEW',
@@ -1219,8 +1402,8 @@ renderCalendar = function renderCalendarOverride() {
             cardState: 'upcoming'
         };
     };
-    const initialRace = calendarData.find(race => getCalendarRaceState(race, today) === 'current')
-        || calendarData.find(race => getCalendarRaceState(race, today) === 'upcoming')
+    const initialRace = calendarData.find(race => race.status !== 'cancelled' && getCalendarRaceState(race, today) === 'current')
+        || calendarData.find(race => race.status !== 'cancelled' && getCalendarRaceState(race, today) === 'upcoming')
         || calendarData[calendarData.length - 1]
         || null;
     if (initialRace && !calendarData.some(race => race.round === activeCalendarRound)) {
@@ -1232,14 +1415,17 @@ renderCalendar = function renderCalendarOverride() {
     const selectedPreview = selectedRace ? buildCalendarRacePreview(selectedRace, selectedState) : null;
     const list = calendarData.map(race => {
         const stateKey = getCalendarRaceState(race, today);
-        const displayDate = CALENDAR_DISPLAY_DATE_OVERRIDES[race.round] || race.date;
+        const displayDate = race.displayDate || race.date;
         const isCurrent = stateKey === 'current';
         const isCompleted = stateKey === 'completed';
+        const isCancelled = race.status === 'cancelled' || Boolean(CALENDAR_UNHELD_RACE_NOTES[race.round]);
         const stateClass = isCurrent ? ' is-current' : (isCompleted ? ' is-completed' : ' is-upcoming');
         const selectedClass = race.round === activeCalendarRound ? ' is-selected' : '';
-        const stateBadge = isCurrent
-            ? '<span class="calendar-live-badge">LIVE</span>'
-            : (isCompleted ? '<span class="calendar-state-pill">FINISHED</span>' : '<span class="calendar-state-pill is-upcoming">LOCKED IN</span>');
+        const stateBadge = isCancelled
+            ? '<span class="calendar-state-pill is-upcoming">UNHELD</span>'
+            : (isCurrent
+                ? '<span class="calendar-live-badge">LIVE</span>'
+                : (isCompleted ? '<span class="calendar-state-pill">FINISHED</span>' : '<span class="calendar-state-pill is-upcoming">LOCKED IN</span>'));
         return `
         <li class="calendar-item${stateClass}${selectedClass}" data-round="${race.round}" data-calendar-state="${stateKey}" tabindex="0">
             <span class="calendar-item-glow" aria-hidden="true"></span>

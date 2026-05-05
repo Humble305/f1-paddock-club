@@ -77,14 +77,14 @@
    - 在signPage中添加主题选择器
    - 更新签到卡片中的颜色引用为CSS变量
 
-3. **main.js**
+3. **modules/app-state-theme.js**
    - 添加F1_THEMES对象（10个车队配色）
    - 添加applyTheme、loadTheme、initThemeSelector函数
    - 修改init函数以初始化主题系统
 
 ## 扩展说明
 
-如需添加更多车队颜色，修改main.js中的F1_THEMES对象：
+如需添加更多车队颜色，修改 `modules/app-state-theme.js` 中的 `F1_THEMES` 对象：
 
 ```javascript
 const F1_THEMES = {
