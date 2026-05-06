@@ -1785,6 +1785,34 @@ body.mobile-chat-focus .messages-area{
 .calendar-predict-lock{padding:11px 12px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px dashed rgba(255,255,255,0.09);color:#b8c7d8;font-size:.75rem}
 .calendar-predict-hint{color:#91a3b8;font-size:.68rem;line-height:1.6}
 .prediction-settlement-modal-card{max-width:520px}
+.date-preparing-modal-card{
+    max-width:420px;
+    text-align:center;
+}
+.date-preparing-shell{
+    display:grid;
+    gap:12px;
+    padding:6px 4px;
+}
+.date-preparing-kicker{
+    font-size:.68rem;
+    font-weight:800;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:rgba(var(--primary-color-rgb),0.92);
+}
+.date-preparing-title{
+    font-family:var(--font-display);
+    font-size:1.5rem;
+    line-height:.92;
+    letter-spacing:.04em;
+    color:#fff;
+}
+.date-preparing-meta{
+    color:#aab6c7;
+    font-size:.82rem;
+    line-height:1.7;
+}
 .prediction-settlement-shell{display:grid;gap:14px}
 .prediction-settlement-kicker{font-size:.64rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-color)}
 .prediction-settlement-race{color:#fff;font-size:1.18rem;font-weight:900;line-height:1.2}
@@ -4530,8 +4558,8 @@ body.mobile-chat-focus .messages-area{
 
 .date-panel-header{
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    align-items: stretch;
+    justify-content: flex-start;
     gap: 12px;
     padding: 12px 14px;
     border-radius: 28px;
@@ -4542,11 +4570,76 @@ body.mobile-chat-focus .messages-area{
     box-shadow: 0 12px 28px rgba(0,0,0,0.18);
 }
 
+.date-panel-head-layout{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    width:100%;
+    min-width:0;
+    padding-right:64px;
+}
+
 .date-panel-main{
     display: flex;
     align-items: center;
     gap: 12px;
     min-width: 0;
+    flex:1 1 auto;
+}
+
+.date-panel-actions{
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    flex:0 0 auto;
+}
+
+.date-end-btn{
+    border:none;
+    border-radius:999px;
+    min-height:38px;
+    padding:0 14px;
+    background:linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+    border:1px solid rgba(255,255,255,0.08);
+    color:#f3f7ff;
+    font-size:.72rem;
+    font-weight:800;
+    letter-spacing:.08em;
+    cursor:pointer;
+    transition:transform .18s ease, border-color .18s ease, background .18s ease, opacity .18s ease;
+}
+
+.date-end-btn:hover{
+    transform:translateY(-1px);
+    border-color:rgba(var(--primary-color-rgb),0.22);
+    background:linear-gradient(180deg, rgba(var(--primary-color-rgb),0.18), rgba(255,255,255,0.04));
+}
+
+.date-end-btn:disabled{
+    opacity:.48;
+    cursor:default;
+    transform:none;
+}
+
+.date-end-btn-corner{
+    position:absolute;
+    top:12px;
+    right:12px;
+    z-index:2;
+    min-height:32px;
+    padding:0 11px;
+    font-size:.64rem;
+    letter-spacing:.1em;
+    border-radius:999px;
+    background:linear-gradient(180deg, rgba(8,12,18,0.72), rgba(8,12,18,0.48));
+    border:1px solid rgba(255,255,255,0.08);
+    color:#dbe6f3;
+    box-shadow:0 10px 20px rgba(0,0,0,0.18);
+}
+
+.date-end-btn-corner:hover{
+    background:linear-gradient(180deg, rgba(var(--primary-color-rgb),0.18), rgba(8,12,18,0.56));
 }
 
 .date-panel-avatar{
@@ -4751,6 +4844,70 @@ body.mobile-chat-focus .messages-area{
     background:rgba(var(--primary-color-rgb),0.18);
     border-color:rgba(var(--primary-color-rgb),0.24);
 }
+.date-mode-switch{
+    display:flex;
+    gap:10px;
+    margin:16px 0 18px;
+}
+.date-mode-tab{
+    flex:1;
+    min-height:44px;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,0.08);
+    background:rgba(255,255,255,0.04);
+    color:var(--phone-contrast);
+    font-weight:700;
+    letter-spacing:.04em;
+    cursor:pointer;
+    transition:transform .18s ease, border-color .18s ease, background .18s ease;
+}
+.date-mode-tab.active{
+    border-color:rgba(var(--primary-color-rgb),0.4);
+    background:linear-gradient(135deg, rgba(var(--primary-color-rgb),0.22), rgba(0,0,0,0.18));
+    transform:translateY(-1px);
+}
+.date-group-hint{
+    margin-bottom:12px;
+    color:var(--phone-muted);
+    font-size:.76rem;
+    line-height:1.55;
+}
+.date-driver-card.is-group-pick .date-card-select{
+    min-width:72px;
+}
+.date-start-btn:disabled{
+    opacity:.48;
+    cursor:not-allowed;
+    box-shadow:none;
+}
+.date-group-avatar-stack{
+    display:flex;
+    align-items:center;
+    gap:0;
+}
+.date-group-avatar{
+    width:48px;
+    height:48px;
+    border-radius:50%;
+    border:2px solid rgba(255,255,255,0.12);
+    background:linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    display:grid;
+    place-items:center;
+    font-size:.9rem;
+    font-weight:700;
+    color:#fff;
+    box-shadow:0 8px 18px rgba(0,0,0,0.22);
+}
+.date-group-avatar + .date-group-avatar{
+    margin-left:-10px;
+}
+.date-message-speaker{
+    margin-bottom:6px;
+    font-size:.66rem;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--accent-color);
+}
 .date-scene-card{
     position:relative;
     overflow:hidden;
@@ -4852,28 +5009,46 @@ body.mobile-chat-focus .messages-area{
     box-shadow:0 10px 18px rgba(0,0,0,0.24), 0 0 0 1px rgba(255,255,255,0.08);
 }
 .date-bubble{
+    max-width:92%;
+    line-height:1.72;
     box-shadow:0 12px 20px rgba(0,0,0,0.14);
 }
 .date-message.bot .date-bubble{
     background:linear-gradient(180deg, rgba(30,35,45,0.9), rgba(17,21,29,0.9));
 }
 .date-input-shell{
-    padding:14px 0 0;
-    background:linear-gradient(180deg, transparent, rgba(8,12,18,0.28) 20%, rgba(8,12,18,0.68));
+    padding:10px 0 0;
+    background:linear-gradient(180deg, transparent, rgba(8,12,18,0.14) 24%, rgba(8,12,18,0.42));
 }
 .date-input-area{
-    padding:6px;
-    border:1px solid rgba(255,255,255,0.06);
-    background:rgba(8,12,18,0.72);
-    box-shadow:0 16px 26px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.04);
+    align-items:center;
+    gap:10px;
+    padding:10px 12px;
+    border-top:1px solid rgba(255,255,255,0.05);
+    border-radius:24px;
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.12));
+    box-shadow:0 12px 24px rgba(0,0,0,0.16);
 }
 .date-input{
-    background:rgba(255,255,255,0.04);
+    min-height:48px;
+    border-radius:18px;
+    border:1px solid rgba(255,255,255,0.08);
+    background:rgba(255,255,255,0.045);
+    padding:0 16px;
     box-shadow:inset 0 1px 0 rgba(255,255,255,0.04);
 }
 .date-input-area .send-msg-btn{
-    min-width:88px;
-    box-shadow:0 10px 18px rgba(var(--primary-color-rgb),0.2);
+    min-width:92px;
+    min-height:48px;
+    padding:0 18px;
+    border-radius:18px;
+    border:1px solid rgba(255,113,97,0.42);
+    background:linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    box-shadow:0 14px 24px rgba(var(--primary-color-rgb),0.24);
+}
+.date-input-area .send-msg-btn:hover{
+    transform:translateY(-2px);
+    box-shadow:0 20px 32px rgba(var(--primary-color-rgb),0.3);
 }
 .date-panel-header{
     position:relative;
@@ -5109,12 +5284,25 @@ body.mobile-chat-focus .messages-area{
 .date-action-line{
     display:block;
     margin-bottom:10px;
-    color:rgba(235, 240, 248, 0.72);
+    color:rgba(235, 240, 248, 0.58);
     font-family:"Noto Serif SC","Source Han Serif SC","Songti SC","STSong","Georgia",serif;
-    font-size:0.82rem;
+    font-style:italic;
+    font-size:0.84rem;
     line-height:1.7;
     letter-spacing:0.03em;
     font-weight:500;
+}
+.date-dialogue-line{
+    margin-top:4px;
+}
+.date-dialogue-inline{
+    color:inherit;
+    font:inherit;
+}
+.date-action-inline{
+    color:rgba(235, 240, 248, 0.58);
+    font-family:"Noto Serif SC","Source Han Serif SC","Songti SC","STSong","Georgia",serif;
+    font-style:italic;
 }
 
 .date-dialogue-line{
@@ -7675,6 +7863,19 @@ body::before{
     .date-panel-header{
         flex-direction:column;
         align-items:flex-start;
+    }
+    .date-panel-head-layout{
+        width:100%;
+        padding-right:0;
+        flex-direction:column;
+        align-items:flex-start;
+    }
+    .date-end-btn-corner{
+        top:10px;
+        right:10px;
+        min-height:30px;
+        padding:0 10px;
+        font-size:.6rem;
     }
     .date-event-modal{
         padding:12px;

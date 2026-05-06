@@ -27,6 +27,8 @@ function exportGameData() {
     const payload = {
         favorability,
         driverDateMemories,
+        groupDateMemories,
+        groupDateSessions,
         driverDiaries,
         groupDiaries,
         pinnedDrivers,
@@ -60,6 +62,8 @@ function exportGameData() {
 function applyLoadedData(saveData) {
     favorability = saveData.favorability || favorability;
     driverDateMemories = saveData.driverDateMemories || driverDateMemories;
+    groupDateMemories = saveData.groupDateMemories || groupDateMemories;
+    groupDateSessions = saveData.groupDateSessions || groupDateSessions;
     driverDiaries = saveData.driverDiaries || driverDiaries;
     groupDiaries = saveData.groupDiaries || groupDiaries;
     pinnedDrivers = saveData.pinnedDrivers || pinnedDrivers;
@@ -87,6 +91,8 @@ function applyLoadedData(saveData) {
     }
     secureStorageSet('f1_favorability', favorability);
     secureStorageSet('f1_date_memories', driverDateMemories);
+    secureStorageSet('f1_group_date_memories', groupDateMemories);
+    secureStorageSet('f1_group_date_sessions', groupDateSessions);
     secureStorageSet('f1_driver_diaries', driverDiaries);
     secureStorageSet('f1_group_diaries', groupDiaries);
     secureStorageSet('f1_pinned_drivers', pinnedDrivers);
@@ -776,7 +782,7 @@ window.getDriverProfileMilestones = getDriverProfileMilestones;
 window.getDriverStatusTags = getDriverStatusTags;
 window.buildDriverProfileViewModel = buildDriverProfileViewModel;
 
-const ANNOUNCEMENT_DISPLAY_ORDER = ['v4.7.0', 'v4.6.0', 'v4.5.0'];
+const ANNOUNCEMENT_DISPLAY_ORDER = ['v4.8.0', 'v4.7.0', 'v4.6.0'];
 
 function getDisplayAnnouncements() {
     const announcementMap = new Map();

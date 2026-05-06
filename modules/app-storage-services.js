@@ -225,6 +225,22 @@ function loadGroupDiaries() {
     groupDiaries = secureStorageGet('f1_group_diaries', groupDiaries) || {};
 }
 
+function saveGroupDateMemories() {
+    secureStorageSet('f1_group_date_memories', groupDateMemories);
+}
+
+function loadGroupDateMemories() {
+    groupDateMemories = secureStorageGet('f1_group_date_memories', groupDateMemories) || {};
+}
+
+function saveGroupDateSessions() {
+    secureStorageSet('f1_group_date_sessions', groupDateSessions);
+}
+
+function loadGroupDateSessions() {
+    groupDateSessions = secureStorageGet('f1_group_date_sessions', groupDateSessions) || {};
+}
+
 function getDriverDiaryEntry(driverId, dateKey) {
     return driverDiaries[driverId]?.[dateKey] || null;
 }
@@ -245,6 +261,41 @@ function getGroupDiaryTimeline(groupId, limit = 3) {
 
 function loadDateMemories() {
     driverDateMemories = secureStorageGet('f1_date_memories', driverDateMemories) || {};
+}
+
+function getGroupDateMemoryContext(groupKey) {
+    const memory = groupDateMemories[groupKey];
+    if (!memory?.summary) return '';
+    return `【群约会记忆】\n${memory.summary}`;
+}
+
+function getRecentGroupDateSessionContext(groupKey, limit = 1) {
+    const sessionStore = groupDateSessions?.[groupKey];
+    if (!sessionStore || typeof sessionStore !== 'object') return '';
+    const sessions = Object.entries(sessionStore)
+        .sort((left, right) => {
+            const rightTime = new Date(right[1]?.updatedAt || right[1]?.date || 0).getTime();
+            const leftTime = new Date(left[1]?.updatedAt || left[1]?.date || 0).getTime();
+            return rightTime - leftTime;
+        })
+        .slice(0, Math.max(1, limit))
+        .map(([, session]) => session)
+        .filter(Boolean);
+    if (!sessions.length) return '';
+    const blocks = sessions.map(session => {
+        const scene = session.scene || '某个场景';
+        const lines = (session.messages || [])
+            .slice(-8)
+            .map(message => {
+                if (message.role === 'user') return `${userProfile.name}: ${message.content}`;
+                const driver = window.DRIVERS.find(item => item.id === message.speakerId);
+                return `${driver?.name || '车手'}: ${message.content}`;
+            })
+            .filter(Boolean)
+            .join('\n');
+        return lines ? `场景：${scene}\n${lines}` : '';
+    }).filter(Boolean);
+    return blocks.length ? `【群约会原始片段】\n${blocks.join('\n\n')}` : '';
 }
 
 function getMessagesForDate(driverId, dateKey) {
@@ -269,8 +320,18 @@ function getDateMemoryContext(driverId) {
     return `【约会记忆】\n${memory.summary}`;
 }
 
+function getLinkedGroupDateSessionMemoryContext(driverId) {
+    const memory = driverDateMemories?.[driverId];
+    if (!memory || memory.type !== 'group-date' || !memory.groupDateKey) return '';
+    return getRecentGroupDateSessionContext(memory.groupDateKey, 1);
+}
+
 function buildDriverSharedMemoryContext(driverId) {
-    return [getDateMemoryContext(driverId), getDiaryMemoryContext(driverId)].filter(Boolean).join('\n');
+    return [
+        getDateMemoryContext(driverId),
+        getLinkedGroupDateSessionMemoryContext(driverId),
+        getDiaryMemoryContext(driverId)
+    ].filter(Boolean).join('\n');
 }
 
 function getCurrentRaceMemoryContext() {
@@ -304,6 +365,24 @@ function getRoleOutputSafetyPrompt(mode = 'chat') {
     return `【输出安全规则】\n- ${baseRules.join('\n- ')}\n- ${modeRules[mode] || modeRules.chat}`;
 }
 
+function getHumanizedRoleBehaviorPrompt(mode = 'chat') {
+    const sharedRules = [
+        '你的目标是像一个真实的人，而不是像一个会把每句话都打磨得过于完整的写作系统。',
+        '语言可以自然一点、灵活一点，不要总是逻辑过满、表态过满、情绪过满。',
+        '允许出现很轻的停顿、迟疑、转折、自我修正，例如“……”“不是，我的意思是”“算了，也不是那个意思”，但不要滥用。',
+        '可以偶尔词不达意、口是心非、情绪有惯性，不要把每句话都写得像最优解。',
+        '不要使用服务型、讨好型、全盘顺着用户的语气；角色是有主见、有疲惫感、有性格盲区的活人。',
+        '彻底避开书面语念稿、演讲稿、客服话术、完美总结腔和过度修饰的辞藻。',
+        '不要为了显得细腻而写得像诗歌朗诵，像人说话一样自然呼吸。'
+    ];
+    const modeRules = {
+        chat: '私聊里更像真实对话，不要把每句都写成完整论述；保留角色自己的别扭、停顿和主见。',
+        date: '约会里更像人在场时慢慢说出来的话，允许情绪收着、绕一下、嘴硬一下，但仍要沉浸在场景里。',
+        feed: '动态和评论区要像真人随手发出来的内容，不要像提前打好草稿的营业文案。'
+    };
+    return `【活人说话方式】\n- ${sharedRules.join('\n- ')}\n- ${modeRules[mode] || modeRules.chat}`;
+}
+
 function sanitizeRoleOutput(text = '', mode = 'chat') {
     let result = String(text || '')
         .replace(/<think>[\s\S]*?<\/think>/gi, '')
@@ -335,9 +414,9 @@ function sanitizeRoleOutput(text = '', mode = 'chat') {
 
     if (mode === 'date') {
         const dateLines = result.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
-        if (dateLines.length > 4) {
-            const kept = dateLines.slice(0, 3);
-            kept.push(dateLines.slice(3).join(' '));
+        if (dateLines.length > 8) {
+            const kept = dateLines.slice(0, 7);
+            kept.push(dateLines.slice(7).join(' '));
             result = kept.join('\n').trim();
         }
     }
@@ -368,7 +447,7 @@ function sanitizeRoleOutput(text = '', mode = 'chat') {
 }
 
 function getUserProfilePriorityPrompt(mode = 'chat') {
-    return `【用户资料，高优先级】\n${getUserProfileSummary()}\n你必须把以上资料当作稳定事实来记住。每次回复前，先核对用户的姓名、性别、身份、性格、爱好和背景，再决定称呼、语气、态度与亲密距离。如果你的临时联想和用户资料冲突，一律以用户资料为准。\n${getRoleOutputSafetyPrompt(mode)}`;
+    return `【用户资料，高优先级】\n${getUserProfileSummary()}\n你必须把以上资料当作稳定事实来记住。每次回复前，先核对用户的姓名、性别、身份、性格、爱好和背景，再决定称呼、语气、态度与亲密距离。如果你的临时联想和用户资料冲突，一律以用户资料为准。\n${getHumanizedRoleBehaviorPrompt(mode)}\n${getRoleOutputSafetyPrompt(mode)}`;
 }
 
 window.getCurrentRaceMemoryContext = getCurrentRaceMemoryContext;
@@ -649,7 +728,7 @@ function resetDriverAvatar(driverId) {
     delete driverAvatars[driverId];
     secureStorageSet('f1_driver_avatars', driverAvatars);
     refreshDriverAvatarViews(driverId);
-    if (typeof renderDatePage === 'function' && currentDateDriver?.id === driverId) renderDatePage();
+    if (typeof renderDatePage === 'function' && (currentDateDriver?.id === driverId || (Array.isArray(currentGroupDateDrivers) && currentGroupDateDrivers.some(driver => driver?.id === driverId)))) renderDatePage();
     showToast('已恢复初始头像', false);
 }
 

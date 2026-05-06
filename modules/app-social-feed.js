@@ -575,7 +575,8 @@ function buildFeedPrompt(driver, topic) {
     return {
         system: `你是 F1 车手 ${driver.name}（${driver.team}）。
 你在发一条公开社媒动态，不是采访，不是私聊。
-只输出最终正文，不要解释，不要标题，不要括号动作，不要复述规则。`,
+只输出最终正文，不要解释，不要标题，不要括号动作，不要复述规则。
+${typeof getHumanizedRoleBehaviorPrompt === 'function' ? getHumanizedRoleBehaviorPrompt('feed') : ''}`,
         user: `今天是${getCurrentDateInfo()}。
 主题：${topic?.label || '围场近况'}
 人物语气：${personality?.social || '自然、克制、像真人短动态'}
@@ -613,7 +614,8 @@ function buildFeedReplyPrompt(driver, post, userComment) {
     return {
         system: `你是 F1 车手 ${driver.name}（${driver.team}）。
 你在公开评论区回一句，不是私聊。
-只输出最终回复正文，不要解释，不要标题，不要括号动作，不要复述规则。`,
+只输出最终回复正文，不要解释，不要标题，不要括号动作，不要复述规则。
+${typeof getHumanizedRoleBehaviorPrompt === 'function' ? getHumanizedRoleBehaviorPrompt('feed') : ''}`,
         user: `今天是${getCurrentDateInfo()}。
 你刚发的动态：${post?.content || '围场近况'}
 用户 ${userProfile.name} 的评论：${userComment}

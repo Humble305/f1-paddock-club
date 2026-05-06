@@ -359,6 +359,8 @@ function init() {
     loadRacePredictions();
     if (typeof loadGiftStoreState === 'function') loadGiftStoreState();
     loadDateMemories();
+    if (typeof loadGroupDateMemories === 'function') loadGroupDateMemories();
+    if (typeof loadGroupDateSessions === 'function') loadGroupDateSessions();
     loadDriverDiaries();
     loadGroupDiaries();
     initFeedPosts();
