@@ -116,7 +116,18 @@ const F1_CALENDAR = [
     { round: 4, date: "4月10-12日", gp: "巴林大奖赛", location: "萨基尔赛道", sprint: false },
     { round: 5, date: "4月17-19日", gp: "沙特阿拉伯大奖赛", location: "吉达街道赛道", sprint: false },
     { round: 6, date: "5月1-3日", gp: "迈阿密大奖赛", location: "迈阿密国际赛车场", sprint: true },
-    { round: 7, date: "5月22-24日", gp: "加拿大大奖赛", location: "蒙特利尔", sprint: true },
+    {
+        round: 7,
+        date: "5月22-24日",
+        gp: "加拿大大奖赛",
+        location: "蒙特利尔",
+        sprint: true,
+        dateRange: {
+            start: "2026-05-22T00:00:00+08:00",
+            end: "2026-05-24T23:59:59+08:00"
+        },
+        predictionDeadline: "2026-05-24T04:00:00+08:00"
+    },
     { round: 8, date: "6月5-7日", gp: "摩纳哥大奖赛", location: "摩纳哥赛道", sprint: false },
     { round: 9, date: "6月12-14日", gp: "西班牙大奖赛", location: "巴塞罗那-加泰罗尼亚赛道", sprint: false },
     { round: 10, date: "6月26-28日", gp: "奥地利大奖赛", location: "红牛环赛道", sprint: false },

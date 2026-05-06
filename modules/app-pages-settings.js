@@ -831,7 +831,7 @@ const CALENDAR_RACE_DETAILS = {
     4: { circuit: 'Bahrain International Circuit', lapLength: '5.412 km', laps: '57', distance: '308.238 km', firstHeld: '2004', signature: '重刹车、强牵引、后胎热衰减，整站像一场对出弯效率和轮胎管理的持续审问。', sectorNote: '低速出弯之后的长直道收益很直接，差一点就是整段都在亏。', hero: '会慢慢把轮胎状态攥在手里，再突然提速的人，在这里很危险。', note: '夜赛灯光和沙漠底色会让围场看起来格外冷静，也格外残酷。' },
     5: { circuit: 'Jeddah Corniche Circuit', lapLength: '6.174 km', laps: '50', distance: '308.450 km', firstHeld: '2021', signature: '极快、极窄、极贴墙，节奏像在夜里掠过一整串发亮的刀锋。', sectorNote: '连续高速变向和盲角很多，方向盘每一点修正都会被放大。', hero: '那种天生敢贴墙、又能把车放得很准的车手，会让这一站看起来像另一项运动。', note: '在这里，信心几乎总会比设定表更先写在圈速里。' },
     6: { circuit: 'Miami International Autodrome', lapLength: '5.412 km', laps: '57', distance: '308.326 km', firstHeld: '2022', signature: '慢弯抓地、长直道尾速和混合赛段节奏都要在线，外场热度也很高。', sectorNote: '中后段的低速拼接和长直道前的出弯质量，对整圈价值很大。', hero: '既能处理热衰减，又能在关键超车点果断下手的人，会很吃香。', note: '这站自带秀场感，但真正决定结果的还是那几段很务实的出弯。' },
-    7: { circuit: 'Autodromo Enzo e Dino Ferrari', lapLength: '4.909 km', laps: '63', distance: '309.049 km', firstHeld: '1980', signature: '路肩、起伏和老派节奏都很有存在感，赛车得顺着地形跑。', sectorNote: '中段连续变向和最后的收尾如果不够干净，整圈会显得很重。', hero: '懂得让车在路肩上“滑过去”而不是“跳过去”的人，更容易跑出优雅速度。', note: '这是一条很容易把机械感和胆量一起放大的经典老路。' },
+    7: { circuit: 'Circuit Gilles Villeneuve', lapLength: '4.361 km', laps: '70', distance: '305.270 km', firstHeld: '1978', signature: '减速弯、牵引和攻路肩是主旋律，圈速听起来像不断地吸气再爆发。', sectorNote: '墙很多、缓冲少，最后那道出口永远在提醒人不要太贪。', hero: '敢在减速弯里直接把车立住、再把动力很早交出去的人，会很有存在感。', note: '这条赛道总有种“下一次进攻就会出事或出彩”的悬念感。' },
     8: { circuit: 'Circuit de Monaco', lapLength: '3.337 km', laps: '78', distance: '260.286 km', firstHeld: '1950', signature: '墙边、慢速、精度和神经，一切都被压到离失误只有几厘米的范围里。', sectorNote: '这里只要方向盘多给半度，或者刹车少给半寸，画面就会立刻改变。', hero: '真正能把街道赛开成绣花的人，在这站总会被看见。', note: '排位的重要性在这里几乎像规则本身一样真实。' },
     9: { circuit: 'Circuit de Barcelona-Catalunya', lapLength: '4.657 km', laps: '66', distance: '307.236 km', firstHeld: '1991', signature: '高速长弯、空气动力学平衡和轮胎工作窗都藏不住，是很标准的综合体检。', sectorNote: '长弯里只要前轴信心稍微不够，后面一连串节拍都会跟着塌。', hero: '那种能把基础设定和驾驶节奏都做得特别“正”的车手，在这里通常很稳。', note: '很多车队都会把这里当成升级件和真实竞争力的照妖镜。' },
     10: { circuit: 'Circuit Gilles Villeneuve', lapLength: '4.361 km', laps: '70', distance: '305.270 km', firstHeld: '1978', signature: '减速弯、牵引和攻路肩是主旋律，圈速听起来像不断地吸气再爆发。', sectorNote: '墙很多、缓冲少，最后那道出口永远在提醒人不要太贪。', hero: '敢在减速弯里直接把车立住、再把动力很早交出去的人，会很有存在感。', note: '这条赛道总有种“下一次进攻就会出事或出彩”的悬念感。' },
@@ -885,7 +885,7 @@ const CALENDAR_HISTORY_DRIVERS = {
     4: { name: 'Lewis Hamilton', tag: 'Sakhir 5 胜纪录', note: '巴林这类讲究轮胎与出弯效率的夜赛，他长期都是最典型的参考答案。' },
     5: { name: 'Max Verstappen', tag: '吉达领跑胜场', note: '在这条快而窄的街道夜赛里，他的贴墙信心和节奏推进感非常有代表性。' },
     6: { name: 'Max Verstappen', tag: '迈阿密早期代表', note: '这条新世代分站的前几季里，他是最早把这里“跑成主场感”的人。' },
-    7: { name: 'Michael Schumacher', tag: 'Imola 7 胜纪录', note: 'Imola 的老派起伏和机械感，几乎天然会让人想起舒马赫时代的统治画面。' },
+    7: { name: 'Lewis Hamilton / Michael Schumacher', tag: '蒙特利尔并列 7 胜', note: '加拿大奖励那种能在减速弯和直线之间把风险算得很清的人。' },
     8: { name: 'Ayrton Senna', tag: '摩纳哥 6 胜纪录', note: '蒙特卡洛和塞纳几乎是绑定的：墙边精度、神经强度和排位魔法。' },
     9: { name: 'Lewis Hamilton / Michael Schumacher', tag: '巴塞罗那并列 6 胜', note: '这条综合试车场一样的赛道，同时留下了两个时代的满分解法。' },
     10: { name: 'Lewis Hamilton / Michael Schumacher', tag: '蒙特利尔并列 7 胜', note: '加拿大奖励那种能在减速弯和直线之间把风险算得很清的人。' },
@@ -1164,13 +1164,22 @@ function buildRacePredictionPanel(profile) {
     const isSubmitted = Boolean(entry && !entry.settled);
     const isCancelled = Boolean(profile.isCancelled);
     const canPredict = profile.stateKey === 'upcoming' && !isSubmitted && !isCancelled;
-    const resolvedDeadline = profile.predictionDeadline
-        || getRacePredictionDeadline({ round: profile.round, date: profile.date });
-    const deadlineText = resolvedDeadline ? formatRacePredictionDeadline(resolvedDeadline) : '待补充';
+    const resolvedDeadlineSource = profile.predictionDeadline
+        || getRacePredictionDeadline({
+            round: profile.round,
+            date: profile.date,
+            dateRange: profile.dateRange,
+            deadline: profile.deadline
+        });
+    const resolvedDeadline = resolvedDeadlineSource instanceof Date
+        ? resolvedDeadlineSource
+        : (resolvedDeadlineSource ? new Date(resolvedDeadlineSource) : null);
+    const safeDeadline = resolvedDeadline instanceof Date && !Number.isNaN(resolvedDeadline.getTime()) ? resolvedDeadline : null;
+    const deadlineText = safeDeadline ? formatRacePredictionDeadline(safeDeadline) : '待补充';
     const countdownText = isCancelled
         ? '该站未举行，不开放预测'
         : profile.stateKey === 'upcoming'
-        ? formatRacePredictionCountdown(resolvedDeadline, new Date())
+        ? formatRacePredictionCountdown(safeDeadline, new Date())
         : (profile.stateKey === 'current' ? '比赛周已开始，预测入口已关闭' : '本场比赛已结束，预测已封盘');
     const optionMarkup = (selected = '') => options.map(name => `<option value="${escapeHtml(name)}"${name === selected ? ' selected' : ''}>${escapeHtml(name)}</option>`).join('');
     const settledMeta = entry?.settled ? `
@@ -1207,7 +1216,7 @@ function buildRacePredictionPanel(profile) {
             </div>
             <div class="calendar-predict-timing">
                 <div class="calendar-predict-timing-line"><span>封盘时间</span><strong>${escapeHtml(deadlineText)}</strong></div>
-                <div class="calendar-predict-timing-line is-countdown"><span>当前倒计时</span><strong class="calendar-predict-countdown" data-deadline="${resolvedDeadline ? escapeHtml(resolvedDeadline.toISOString()) : ''}" data-countdown-state="${profile.stateKey === 'upcoming' ? 'running' : 'closed'}">${escapeHtml(countdownText)}</strong></div>
+                <div class="calendar-predict-timing-line is-countdown"><span>当前倒计时</span><strong class="calendar-predict-countdown" data-deadline="${safeDeadline ? escapeHtml(safeDeadline.toISOString()) : ''}" data-countdown-state="${profile.stateKey === 'upcoming' ? 'running' : 'closed'}">${escapeHtml(countdownText)}</strong></div>
             </div>
             <div class="calendar-predict-copy">${isCancelled
                 ? profile.cancelledNote
@@ -1280,7 +1289,15 @@ function buildCalendarRaceProfile(race, stateKey) {
         historyTag: history.tag || '历史名片待续',
         historyNote: history.note || '这条赛道的故事还在继续，下一位把名字刻进去的人也许就在这个周末。',
         stateNote,
-        predictionPanel: buildRacePredictionPanel({ round: race.round, stateKey, isCancelled })
+        predictionPanel: buildRacePredictionPanel({
+            round: race.round,
+            stateKey,
+            isCancelled,
+            date: race.date,
+            dateRange: race.dateRange,
+            predictionDeadline: getRacePredictionDeadline(race),
+            deadline: race.deadline
+        })
     };
 }
 
