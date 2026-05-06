@@ -11,7 +11,30 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<div class="phone">
+<div id="launchScreen" class="launch-screen" aria-hidden="true">
+    <div class="launch-screen-grid"></div>
+    <div class="launch-screen-noise"></div>
+    <div class="launch-screen-inner">
+        <div class="launch-kicker">Race Weekend System Boot</div>
+        <h1 class="launch-title">
+            <span class="launch-title-main">Paddock</span>
+            <span class="launch-title-sub">Club</span>
+        </h1>
+        <p class="launch-subtitle">F1 围场访问协议正在联通，发车灯序列即将完成。</p>
+        <div class="launch-lights" id="launchLights" aria-label="发车灯倒计时">
+            <span class="launch-light"></span>
+            <span class="launch-light"></span>
+            <span class="launch-light"></span>
+            <span class="launch-light"></span>
+            <span class="launch-light"></span>
+        </div>
+        <div class="launch-status-panel">
+            <div class="launch-status-label">Live Status</div>
+            <div class="launch-status-text" id="launchStatusText">正在接通围场链路...</div>
+        </div>
+    </div>
+</div>
+<div class="phone app-shell-hidden" id="appShell">
     <div class="status-bar">
         <span id="systemStatusTime">9:41</span>
         <div class="status-bar-meta">
@@ -139,6 +162,7 @@
 <div id="announceModal" class="modal"><div class="announce-modal-card"><div class="announce-header"><div class="modal-title-row"><span class="modal-title-icon" data-ui-icon="megaphone" data-icon-label="更新公告"></span><div><h3>更新公告</h3><div class="announce-title">PADDOCK CLUB 维修日志</div></div></div></div><div id="announceContent" class="announce-content"></div><div class="modal-buttons"><button id="closeAnnounceBtn" class="modal-btn">关闭</button></div></div></div>
 <div id="predictionSettlementModal" class="modal"><div class="modal-card prediction-settlement-modal-card"><div class="modal-title-row"><span class="modal-title-icon" data-ui-icon="trophy" data-icon-label="预测结算"></span><h3>赛前预测已结算</h3></div><div id="predictionSettlementContent"></div><div class="modal-buttons"><button id="closePredictionSettlementBtn" class="modal-btn modal-btn-primary">收下奖励</button></div></div></div>
 <div id="datePreparingModal" class="modal"><div class="modal-card date-preparing-modal-card"><div class="date-preparing-shell"><div class="date-preparing-kicker" id="datePreparingKicker">DATE PREPARING</div><div class="date-preparing-title" id="datePreparingTitle">约会正在准备中</div><div class="date-preparing-meta" id="datePreparingMeta">正在接通今晚的场景与成员...</div></div></div></div>
+<div id="dateLimitModal" class="modal"><div class="modal-card date-limit-modal-card"><div class="date-limit-kicker">DATE LIMIT</div><div class="modal-title-row"><span class="modal-title-icon" data-ui-icon="calendar" data-icon-label="约会次数限制"></span><h3 id="dateLimitTitle">今天暂时约不到了</h3></div><p id="dateLimitReason" class="date-limit-copy">今天大家都被别的安排占住了。</p><div id="dateLimitStatus" class="date-limit-status">今日次数已用完 · 每天凌晨刷新</div><div class="date-limit-wallet">当前围场币：<strong id="dateLimitCoins">0</strong></div><div class="modal-buttons"><button id="confirmDateLimitPurchaseBtn" class="modal-btn modal-btn-primary">支付 50 围场币，再约一次</button><button id="closeDateLimitModalBtn" class="modal-btn">今天先算了</button></div></div></div>
 <div id="mobileUtilityModal" class="modal"><div class="modal-card mobile-utility-modal-card"><div class="modal-title-row"><span class="modal-title-icon" data-ui-icon="grid" data-icon-label="更多功能"></span><div><h3>更多功能</h3><div class="announce-title">PADDOCK CONTROL</div></div></div><div class="mobile-utility-grid"><button class="mobile-utility-item" data-mobile-utility-target="sidebarProfileBtn"><span class="mobile-utility-item-icon" data-ui-icon="user" data-icon-label="资料"></span><span>资料</span></button><button class="mobile-utility-item" data-mobile-utility-target="sidebarSaveBtn"><span class="mobile-utility-item-icon" data-ui-icon="archive" data-icon-label="存档"></span><span>存档</span></button><button class="mobile-utility-item" data-mobile-utility-target="sidebarApiBtn"><span class="mobile-utility-item-icon" data-ui-icon="sliders" data-icon-label="API"></span><span>API</span></button><button class="mobile-utility-item" data-mobile-utility-target="sidebarCalendarBtn"><span class="mobile-utility-item-icon" data-ui-icon="calendar" data-icon-label="赛历"></span><span>赛历</span></button><button class="mobile-utility-item" data-mobile-utility-target="sidebarMediaBtn"><span class="mobile-utility-item-icon" data-ui-icon="newspaper" data-icon-label="媒体"></span><span>媒体</span></button><button class="mobile-utility-item" data-mobile-utility-target="sidebarSignBtn"><span class="mobile-utility-item-icon" data-ui-icon="flag" data-icon-label="签到"></span><span>签到</span></button><button class="mobile-utility-item" data-mobile-utility-target="sidebarThemeBtn"><span class="mobile-utility-item-icon" data-ui-icon="palette" data-icon-label="配色"></span><span>配色</span></button><button class="mobile-utility-item" data-mobile-utility-target="sidebarStoreBtn"><span class="mobile-utility-item-icon" data-ui-icon="gift" data-icon-label="商店"></span><span>商店</span></button></div><div class="modal-buttons"><button id="closeMobileUtilityBtn" class="modal-btn">关闭</button></div></div></div>
 <div id="driverProfileModal" class="profile-card-modal"><div class="profile-card-content driver-profile-card-content"><div id="driverProfileContent"></div><div class="driver-profile-actions"><button class="modal-btn modal-btn-danger" id="clearChatHistoryBtn"><span class="btn-leading-icon" data-ui-icon="trash" data-icon-label="清除聊天记录"></span><span>清除聊天记录</span></button><button class="modal-btn" id="closeDriverProfileBtn">关闭</button></div></div></div>
 <div id="diaryModal" class="modal"><div class="modal-card diary-modal-card"><div class="diary-modal-header"><div><div class="modal-title-row"><span class="modal-title-icon" data-ui-icon="journal" data-icon-label="关系日记"></span><h3 id="diaryDriverName">关系日记</h3></div><div class="diary-status-text" id="diaryStatusText">这一天还没有日记</div></div><button id="closeDiaryModalBtn" class="modal-btn">关闭</button></div><div class="diary-date-nav"><button id="diaryPrevBtn" class="calendar-back-btn icon-text-btn"><span class="btn-leading-icon" data-ui-icon="chevronLeft" data-icon-label="前一天"></span><span>前一天</span></button><div class="diary-date-pill" id="diaryDateLabel">今天</div><button id="diaryNextBtn" class="calendar-back-btn icon-text-btn"><span>后一天</span><span class="btn-leading-icon" data-ui-icon="chevronRight" data-icon-label="后一天"></span></button></div><div class="diary-meta-card"><div class="diary-meta-line" id="diarySourceMeta">今日聊天记录 0 条</div><div class="diary-memory-hint" id="diaryMemoryHint">这一天没有同步到约会记忆摘要。</div></div><textarea id="diaryEditor" rows="10" placeholder="这里会显示 AI 根据当日聊天生成的关系日记，你也可以手动补写或修改。"></textarea><div class="modal-buttons"><button id="generateDiaryBtn" class="modal-btn modal-btn-primary"><span class="btn-leading-icon" data-ui-icon="spark" data-icon-label="生成今日日记"></span><span>生成今日日记</span></button><button id="saveDiaryBtn" class="modal-btn">保存修改</button></div></div></div>
@@ -168,8 +192,12 @@
 <script src="modules/app-conversation.js"></script>
 <script src="modules/app-social-feed.js"></script>
 <script src="modules/app-date-diary.js"></script>
+<script src="modules/date/single-date-runtime.js"></script>
+<script src="modules/date/date-memory.js"></script>
 <script src="modules/app-group-date-runtime.js"></script>
 <script src="modules/app-pages-settings.js"></script>
+<script src="modules/settings/announcements.js"></script>
+<script src="modules/settings/driver-profile.js"></script>
 <script src="modules/app-store.js"></script>
 <script src="modules/app-entry.js"></script>
 <script>window.injectUiIcons?.();</script>

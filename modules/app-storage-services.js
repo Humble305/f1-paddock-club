@@ -120,6 +120,80 @@ function saveSignData() {
     secureStorageSet('f1_sign_data', signData);
 }
 
+function createEmptyDateLimitState(dateKey = getLocalDateKey()) {
+    return {
+        dateKey,
+        single: { used: 0, paidExtra: 0 },
+        group: { used: 0, paidExtra: 0 }
+    };
+}
+
+function normalizeDateLimitModeState(rawMode) {
+    return {
+        used: Math.max(0, Number(rawMode?.used) || 0),
+        paidExtra: Math.max(0, Number(rawMode?.paidExtra) || 0)
+    };
+}
+
+function normalizeDateLimitState(rawState, dateKey = getLocalDateKey()) {
+    const base = createEmptyDateLimitState(dateKey);
+    if (!rawState || typeof rawState !== 'object') return base;
+    if (rawState.dateKey !== dateKey) return base;
+    return {
+        dateKey,
+        single: normalizeDateLimitModeState(rawState.single),
+        group: normalizeDateLimitModeState(rawState.group)
+    };
+}
+
+function ensureDateLimitState(dateKey = getLocalDateKey()) {
+    dateLimitState = normalizeDateLimitState(dateLimitState, dateKey);
+    return dateLimitState;
+}
+
+function loadDateLimitState() {
+    dateLimitState = normalizeDateLimitState(secureStorageGet('f1_date_limit_state', null), getLocalDateKey());
+    secureStorageSet('f1_date_limit_state', dateLimitState);
+}
+
+function saveDateLimitState() {
+    ensureDateLimitState();
+    secureStorageSet('f1_date_limit_state', dateLimitState);
+}
+
+function getAvailableDateSlots(mode) {
+    const safeMode = mode === 'group' ? 'group' : 'single';
+    const state = ensureDateLimitState();
+    const available = 1 + state[safeMode].paidExtra - state[safeMode].used;
+    return Math.max(0, available);
+}
+
+function canStartDateSession(mode) {
+    const safeMode = mode === 'group' ? 'group' : 'single';
+    const available = getAvailableDateSlots(safeMode);
+    return {
+        mode: safeMode,
+        available,
+        allowed: available > 0
+    };
+}
+
+function consumeDateSession(mode) {
+    const safeMode = mode === 'group' ? 'group' : 'single';
+    const state = ensureDateLimitState();
+    state[safeMode].used += 1;
+    saveDateLimitState();
+    return getAvailableDateSlots(safeMode);
+}
+
+function grantPaidDateSlot(mode) {
+    const safeMode = mode === 'group' ? 'group' : 'single';
+    const state = ensureDateLimitState();
+    state[safeMode].paidExtra += 1;
+    saveDateLimitState();
+    return getAvailableDateSlots(safeMode);
+}
+
 function loadRacePredictions() {
     racePredictions = secureStorageGet('f1_race_predictions', racePredictions) || {};
     if (!racePredictions || typeof racePredictions !== 'object') {

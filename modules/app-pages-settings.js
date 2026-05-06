@@ -1,28 +1,5 @@
 ﻿// 椤甸潰娓叉煋銆佹ā鎬佹銆佽祫鏂欍€丄PI銆佸瓨妗ｄ笌鍏憡
 
-function renderCalendar() {
-    const container = document.getElementById('calendarContainer');
-    if (!container) return;
-    const weekendEvent = window.getCurrentRaceWeekendEvent ? window.getCurrentRaceWeekendEvent() : null;
-    const list = (window.F1_CALENDAR || []).map(race => `
-        <li class="calendar-item${weekendEvent?.race?.round === race.round && weekendEvent?.status !== 'season_complete' ? ' is-current' : ''}">
-            <span class="calendar-round">${race.round}</span>
-            <span class="calendar-date">${race.date}</span>
-            <span class="calendar-name">${race.gp}${race.sprint ? '<span class="calendar-sprint"> (Sprint)</span>' : ''}${weekendEvent?.race?.round === race.round && weekendEvent?.status !== 'season_complete' ? '<span class="calendar-live-badge">LIVE</span>' : ''}</span>
-        </li>
-    `).join('');
-    const weekendCard = weekendEvent ? `
-        <div class="calendar-event-card${weekendEvent.status === 'live' ? ' is-live' : ''}" id="calendarEventCard">
-            <div class="calendar-event-kicker" id="calendarEventKicker">${weekendEvent.status === 'live' ? 'RACE WEEK' : (weekendEvent.status === 'countdown' ? 'COUNTDOWN' : 'SEASON STATUS')}</div>
-            <div class="calendar-event-title">${escapeHtml(window.getRaceWeekendHeadline ? window.getRaceWeekendHeadline(weekendEvent) : '\u5f53\u524d\u6bd4\u8d5b\u5468')}</div>
-            <div class="calendar-event-meta">Round ${escapeHtml(String(weekendEvent.race.round || ''))} 路 ${escapeHtml(weekendEvent.race.location || '')}${weekendEvent.race.sprint ? ' 路 Sprint' : ''}</div>
-            <div class="calendar-event-note">${escapeHtml(weekendEvent.phase?.note || '')}</div>
-        </div>
-    ` : '';
-    container.innerHTML = `<div class="calendar-section"><div class="calendar-header"><div class="calendar-title">2026 F1 赛历</div><button class="calendar-back-btn icon-text-btn" id="calendarBackBtn">${window.getUiIconMarkup ? window.getUiIconMarkup('chevronLeft', 'calendar-back-icon', '返回') : ''}<span>返回</span></button></div>${weekendCard}<ul class="calendar-list">${list}</ul></div>`;
-    document.getElementById('calendarBackBtn')?.addEventListener('click', () => switchTab('chat'));
-}
-
 function exportGameData() {
     const payload = {
         favorability,
@@ -43,6 +20,7 @@ function exportGameData() {
         apiConfigProfiles,
         userCoins,
         signData,
+        dateLimitState: typeof ensureDateLimitState === 'function' ? ensureDateLimitState() : dateLimitState,
         giftInventory,
         giftHistory,
         standingsData: typeof getCurrentStandingsPayload === 'function' ? getCurrentStandingsPayload() : null,
@@ -78,6 +56,7 @@ function applyLoadedData(saveData) {
     apiConfigProfiles = saveData.apiConfigProfiles || apiConfigProfiles;
     userCoins = saveData.userCoins ?? userCoins;
     signData = saveData.signData || signData;
+    dateLimitState = saveData.dateLimitState || dateLimitState;
     giftInventory = saveData.giftInventory || giftInventory;
     giftHistory = saveData.giftHistory || giftHistory;
     if (saveData.standingsData && typeof applyStandingsPayload === 'function') {
@@ -106,6 +85,9 @@ function applyLoadedData(saveData) {
     secureStorageSet('f1_api_config_profiles', apiConfigProfiles);
     secureStorageSet('f1_user_coins', userCoins);
     secureStorageSet('f1_sign_data', signData);
+    if (typeof ensureDateLimitState === 'function') ensureDateLimitState();
+    if (typeof saveDateLimitState === 'function') saveDateLimitState();
+    else secureStorageSet('f1_date_limit_state', dateLimitState);
     secureStorageSet('f1_gift_inventory', giftInventory);
     secureStorageSet('f1_gift_history', giftHistory);
     if (saveData.currentTheme) applyTheme(saveData.currentTheme);
@@ -412,18 +394,6 @@ function openApiModal() {
 
 function closeModal() { document.getElementById('apiModal').style.display = 'none'; clearSidebarActive(); }
 
-function deprecatedShowDriverProfileLegacyA(driverId) {
-    const profile = window.DRIVER_PROFILES[driverId];
-    const driver = window.DRIVERS.find(item => item.id === driverId);
-    if (!profile || !driver) return;
-    const avatarBg = getDriverAvatarStyle(driverId);
-    const favor = favorability[driverId] || 0;
-    const mood = getFavorMood(favor);
-    document.getElementById('driverProfileContent').innerHTML = `<div class="profile-card-header"><div class="profile-card-avatar" style="${avatarBg ? `background-image:${avatarBg};background-size:cover;` : `background-color:${window.TEAM_COLORS[driver.team] || '#2a2f3a'};`}">${avatarBg ? '' : driver.avatarLetter}</div><div class="profile-card-title-row"><div class="profile-card-name">${profile.fullName}</div><button class="profile-diary-btn" id="openDiaryBtn">\u65e5\u8bb0</button></div><div class="profile-card-team">${profile.team}</div><div style="margin-top:8px; color:#ffb347; font-size:0.8rem;">\u597d\u611f\u5ea6\uff1a${favor}/100\uff08${mood}\uff09</div></div><div class="profile-card-section"><div class="profile-card-section-title">\u57fa\u672c\u4fe1\u606f</div><div class="profile-card-info-row"><span>\u56fd\u7c4d</span><span>${profile.nationality}</span></div><div class="profile-card-info-row"><span>\u51fa\u751f\u65e5\u671f</span><span>${profile.birthDate}</span></div><div class="profile-card-info-row"><span>\u8eab\u9ad8/\u4f53\u91cd</span><span>${profile.height} / ${profile.weight}</span></div><div class="profile-card-info-row"><span>F1 \u9996\u79c0</span><span>${profile.f1Debut}</span></div></div><div class="profile-card-section"><div class="profile-card-section-title">\u751f\u6daf\u6570\u636e</div><div class="profile-card-info-row"><span>\u5206\u7ad9\u51a0\u519b</span><span>${profile.totalWins}</span></div><div class="profile-card-info-row"><span>\u6746\u4f4d</span><span>${profile.totalPoles}</span></div><div class="profile-card-info-row"><span>\u9886\u5956\u53f0</span><span>${profile.totalPodiums}</span></div></div>`;
-    document.getElementById('driverProfileModal').style.display = 'flex';
-    document.getElementById('openDiaryBtn')?.addEventListener('click', () => openDiaryModal(driverId));
-}
-
 function closeDriverProfile() { document.getElementById('driverProfileModal').style.display = 'none'; }
 
 const DRIVER_NUMBERS = {
@@ -450,23 +420,6 @@ const DRIVER_NUMBERS = {
     per: '11',
     bot: '77'
 };
-
-function deprecatedShowDriverProfileLegacyB(driverId) {
-    const profile = window.DRIVER_PROFILES[driverId];
-    const driver = window.DRIVERS.find(item => item.id === driverId);
-    if (!profile || !driver) return;
-    const avatarBg = getDriverAvatarStyle(driverId);
-    const favor = favorability[driverId] || 0;
-    const mood = getFavorMood(favor);
-    document.getElementById('driverProfileContent').innerHTML = `<div class="profile-card-header"><div class="profile-card-avatar-row"><button type="button" class="profile-card-avatar profile-card-avatar-button" id="driverProfileAvatarBtn" style="${avatarBg ? `background-image:${avatarBg};background-size:cover;` : `background-color:${window.TEAM_COLORS[driver.team] || '#2a2f3a'};`}">${avatarBg ? '' : driver.avatarLetter}</button><button type="button" class="profile-avatar-reset-btn" id="resetDriverAvatarBtn" title="\u6062\u590d\u521d\u59cb\u5934\u50cf" aria-label="\u6062\u590d\u521d\u59cb\u5934\u50cf"><span class="profile-avatar-reset-icon" aria-hidden="true"></span></button></div><div class="profile-avatar-hint">\u70b9\u51fb\u5934\u50cf\u5373\u53ef\u66f4\u6362</div><div class="profile-card-title-row"><div class="profile-card-name">${profile.fullName}</div><button class="profile-diary-btn" id="openDiaryBtn">\u65e5\u8bb0</button></div><div class="profile-card-team">${profile.team}</div><div style="margin-top:8px; color:#ffb347; font-size:0.8rem;">\u597d\u611f\u5ea6\uff1a${favor}/100\uff08${mood}\uff09</div></div><div class="profile-card-section"><div class="profile-card-section-title">\u57fa\u672c\u4fe1\u606f</div><div class="profile-card-info-row"><span>\u56fd\u7c4d</span><span>${profile.nationality}</span></div><div class="profile-card-info-row"><span>\u51fa\u751f\u65e5\u671f</span><span>${profile.birthDate}</span></div><div class="profile-card-info-row"><span>\u8eab\u9ad8/\u4f53\u91cd</span><span>${profile.height} / ${profile.weight}</span></div><div class="profile-card-info-row"><span>F1 \u9996\u79c0</span><span>${profile.f1Debut}</span></div></div><div class="profile-card-section"><div class="profile-card-section-title">\u751f\u6daf\u6570\u636e</div><div class="profile-card-info-row"><span>\u5206\u7ad9\u51a0\u519b</span><span>${profile.totalWins}</span></div><div class="profile-card-info-row"><span>\u6746\u4f4d</span><span>${profile.totalPoles}</span></div><div class="profile-card-info-row"><span>\u9886\u5956\u53f0</span><span>${profile.totalPodiums}</span></div></div>`;
-    document.getElementById('driverProfileModal').style.display = 'flex';
-    document.getElementById('openDiaryBtn')?.addEventListener('click', () => openDiaryModal(driverId));
-    document.getElementById('driverProfileAvatarBtn')?.addEventListener('click', () => openAvatarUpload(driverId));
-    document.getElementById('resetDriverAvatarBtn')?.addEventListener('click', () => {
-        resetDriverAvatar(driverId);
-        showDriverProfile(driverId);
-    });
-}
 
 function showDriverProfile(driverId) {
     const profile = window.DRIVER_PROFILES[driverId];
@@ -782,47 +735,7 @@ window.getDriverProfileMilestones = getDriverProfileMilestones;
 window.getDriverStatusTags = getDriverStatusTags;
 window.buildDriverProfileViewModel = buildDriverProfileViewModel;
 
-const ANNOUNCEMENT_DISPLAY_ORDER = ['v4.8.0', 'v4.7.0', 'v4.6.0'];
-
-function getDisplayAnnouncements() {
-    const announcementMap = new Map();
-    (window.ANNOUNCEMENTS || []).forEach((item) => {
-        if (!item?.version || announcementMap.has(item.version)) return;
-        announcementMap.set(item.version, item);
-    });
-
-    return ANNOUNCEMENT_DISPLAY_ORDER
-        .map((version) => announcementMap.get(version))
-        .filter(Boolean);
-}
-
-function showAnnouncements() {
-    const content = getDisplayAnnouncements().map((item, index) => {
-        const rawLines = String(item.content || '').split('\n').map(line => line.trim()).filter(Boolean);
-        const title = rawLines.shift() || '版本更新';
-        const bullets = rawLines.map(line => line.replace(/^[鈥-]\s*/, '').trim()).filter(Boolean);
-        return `
-            <section class="announce-entry${index === 0 ? ' is-latest' : ''}">
-                <div class="announce-entry-top">
-                    <div>
-                        <div class="announce-entry-version">${escapeHtml(item.version || '')}</div>
-                        <h4 class="announce-entry-title">${escapeHtml(title)}</h4>
-                    </div>
-                    ${index === 0 ? '<span class="announce-entry-badge">LATEST</span>' : ''}
-                </div>
-                ${bullets.length ? `<div class="announce-entry-list">${bullets.map(text => `<div class="announce-entry-item"><span class="announce-entry-dot"></span><span>${escapeHtml(text)}</span></div>`).join('')}</div>` : `<div class="announce-entry-body">${escapeHtml(String(item.content || ''))}</div>`}
-            </section>
-        `;
-    }).join('');
-    document.getElementById('announceContent').innerHTML = content;
-    document.getElementById('announceModal').style.display = 'flex';
-}
-
-function closeAnnounceModal() { document.getElementById('announceModal').style.display = 'none'; }
-function getLatestAnnouncementVersion() { return getDisplayAnnouncements()?.[0]?.version || ''; }
-function getSeenAnnouncementVersion() { return localStorage.getItem('f1_seen_announcement_version') || ''; }
-function saveAnnouncementVersion() { localStorage.setItem('f1_seen_announcement_version', getLatestAnnouncementVersion()); }
-function checkAndShowNewAnnouncements() { if (getLatestAnnouncementVersion() && getLatestAnnouncementVersion() !== getSeenAnnouncementVersion()) showAnnouncements(); }
+// 公告逻辑已拆分到 modules/settings/announcements.js。
 
 const CALENDAR_RACE_DETAILS = {
     1: { circuit: 'Albert Park Circuit', lapLength: '5.278 km', laps: '58', distance: '306.124 km', firstHeld: '1996', signature: '街道感很强，但节奏并不碎。制动区、牵引和出弯稳定性一起决定周末上限。', sectorNote: 'T1-T3 的落位、后半段连续方向变化和墙边容错都很考验信心。', hero: '更适合敢在进弯时直接压住前轴、又能稳稳把车送出弯的人。', note: '围场气质偏赛季揭幕感，速度是新的，压力也是新的。' },

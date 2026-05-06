@@ -11,6 +11,112 @@ const PAGE_IDS = {
     sign: 'signPage'
 };
 
+const LAUNCH_STATUS_STEPS = [
+    '正在接通围场控制链路...',
+    '正在同步比赛周遥测...',
+    '正在校准发车灯序列...',
+    '红灯熄灭，围场入口开放',
+    'Paddock access granted'
+];
+
+const LAUNCH_SEQUENCE_TIMING = {
+    lightStepMs: 250,
+    holdAfterFullMs: 180,
+    sweepLeadMs: 70,
+    statusFinalDelayMs: 190,
+    shellRushDelayMs: 120,
+    finishDelayMs: 520,
+    hardTimeoutMs: 5200
+};
+
+let launchSequenceStarted = false;
+let launchSequenceFinished = false;
+let launchSequenceTimers = [];
+
+function clearLaunchSequenceTimers() {
+    launchSequenceTimers.forEach(timerId => clearTimeout(timerId));
+    launchSequenceTimers = [];
+}
+
+function finishLaunchSequence() {
+    if (launchSequenceFinished) return;
+    launchSequenceFinished = true;
+    clearLaunchSequenceTimers();
+    const launchScreen = document.getElementById('launchScreen');
+    const appShell = document.getElementById('appShell');
+    const shellWasHidden = appShell?.classList.contains('app-shell-hidden');
+    appShell?.classList.remove('app-shell-hidden');
+    appShell?.classList.add('app-shell-ready');
+    if (shellWasHidden) appShell?.classList.add('app-shell-entering');
+    launchScreen?.classList.add('is-exiting');
+    launchScreen?.classList.remove('is-firing', 'is-sweeping');
+    launchSequenceTimers.push(window.setTimeout(() => {
+        appShell?.classList.remove('app-shell-entering');
+    }, 700));
+    launchSequenceTimers.push(window.setTimeout(() => {
+        if (launchScreen) launchScreen.style.display = 'none';
+    }, 700));
+}
+
+function startLaunchSequence() {
+    if (launchSequenceStarted) return;
+    launchSequenceStarted = true;
+    const launchScreen = document.getElementById('launchScreen');
+    const lightsWrap = document.getElementById('launchLights');
+    const statusText = document.getElementById('launchStatusText');
+    const lights = Array.from(document.querySelectorAll('#launchLights .launch-light'));
+    if (!launchScreen || !lights.length || !statusText) {
+        finishLaunchSequence();
+        return;
+    }
+    const {
+        lightStepMs,
+        holdAfterFullMs,
+        sweepLeadMs,
+        statusFinalDelayMs,
+        shellRushDelayMs,
+        finishDelayMs,
+        hardTimeoutMs
+    } = LAUNCH_SEQUENCE_TIMING;
+    lightsWrap.classList.remove('is-out');
+    launchScreen.classList.remove('is-firing', 'is-sweeping');
+    statusText.textContent = LAUNCH_STATUS_STEPS[0];
+    lights.forEach(light => light.classList.remove('is-on'));
+
+    lights.forEach((light, index) => {
+        launchSequenceTimers.push(window.setTimeout(() => {
+            light.classList.add('is-on');
+            light.classList.add('is-striking');
+            launchSequenceTimers.push(window.setTimeout(() => light.classList.remove('is-striking'), 240));
+            statusText.textContent = LAUNCH_STATUS_STEPS[Math.min(index, LAUNCH_STATUS_STEPS.length - 3)];
+        }, lightStepMs * index));
+    });
+
+    const lightsOutAt = lightStepMs * lights.length + holdAfterFullMs;
+    launchSequenceTimers.push(window.setTimeout(() => {
+        launchScreen.classList.add('is-sweeping');
+    }, Math.max(0, lightsOutAt - sweepLeadMs)));
+    launchSequenceTimers.push(window.setTimeout(() => {
+        launchScreen.classList.add('is-firing');
+        lightsWrap.classList.add('is-out');
+        lights.forEach(light => light.classList.remove('is-on'));
+        statusText.textContent = LAUNCH_STATUS_STEPS[LAUNCH_STATUS_STEPS.length - 2];
+    }, lightsOutAt));
+    launchSequenceTimers.push(window.setTimeout(() => {
+        statusText.textContent = LAUNCH_STATUS_STEPS[LAUNCH_STATUS_STEPS.length - 1];
+    }, lightsOutAt + statusFinalDelayMs));
+    launchSequenceTimers.push(window.setTimeout(() => {
+        const appShell = document.getElementById('appShell');
+        appShell?.classList.remove('app-shell-hidden');
+        appShell?.classList.add('app-shell-ready', 'app-shell-entering');
+    }, lightsOutAt + shellRushDelayMs));
+    launchSequenceTimers.push(window.setTimeout(finishLaunchSequence, lightsOutAt + finishDelayMs));
+    launchSequenceTimers.push(window.setTimeout(finishLaunchSequence, hardTimeoutMs));
+}
+
+window.startLaunchSequence = startLaunchSequence;
+window.finishLaunchSequence = finishLaunchSequence;
+
 function clearSidebarActive() {
     document.querySelectorAll('.sidebar-btn.active').forEach(button => button.classList.remove('active'));
 }
@@ -223,6 +329,12 @@ function bindEvents() {
     document.getElementById('closePredictionSettlementBtn')?.addEventListener('click', () => {
         if (typeof acknowledgePredictionSettlementFeedback === 'function') acknowledgePredictionSettlementFeedback();
     });
+    document.getElementById('closeDateLimitModalBtn')?.addEventListener('click', () => {
+        if (typeof closeDateLimitModal === 'function') closeDateLimitModal();
+    });
+    document.getElementById('confirmDateLimitPurchaseBtn')?.addEventListener('click', async () => {
+        if (typeof confirmDateLimitPurchase === 'function') await confirmDateLimitPurchase();
+    });
     document.getElementById('doSignBtn')?.addEventListener('click', performSign);
     document.getElementById('closeThemeModalBtn')?.addEventListener('click', () => {
         document.getElementById('themeModal').style.display = 'none';
@@ -311,6 +423,10 @@ function bindEvents() {
             acknowledgePredictionSettlementFeedback();
             return;
         }
+        if (target.id === 'dateLimitModal' && typeof closeDateLimitModal === 'function') {
+            closeDateLimitModal();
+            return;
+        }
         if (target.id === 'messageForwardModal' && typeof closeMessageForwardModal === 'function') {
             closeMessageForwardModal();
             return;
@@ -335,6 +451,7 @@ function initFeedPosts() {
 }
 
 function init() {
+    startLaunchSequence();
     startStatusBarClock();
     loadTheme();
     if (typeof loadMediaNewsStatus === 'function') loadMediaNewsStatus();
@@ -354,9 +471,10 @@ function init() {
     window.addEventListener('standings:updated', () => {
         if (typeof renderStandingsAdminPanel === 'function') renderStandingsAdminPanel();
     });
-    loadPinnedDrivers();
-    loadSignData();
-    loadRacePredictions();
+      loadPinnedDrivers();
+      loadSignData();
+      if (typeof loadDateLimitState === 'function') loadDateLimitState();
+      loadRacePredictions();
     if (typeof loadGiftStoreState === 'function') loadGiftStoreState();
     loadDateMemories();
     if (typeof loadGroupDateMemories === 'function') loadGroupDateMemories();
@@ -385,4 +503,12 @@ function init() {
     if (typeof openPredictionSettlementModal === 'function') openPredictionSettlementModal();
 }
 
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', () => {
+    try {
+        init();
+    } catch (error) {
+        console.error('应用初始化失败', error);
+        finishLaunchSequence();
+        throw error;
+    }
+});

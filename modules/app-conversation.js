@@ -1233,6 +1233,10 @@ function renderChatMessages(driverId) {
     const area = document.getElementById('chatMessagesArea');
     if (!area) return;
     const history = chatHistories[driverId] || [];
+    const previousScrollTop = area.scrollTop;
+    const distanceFromBottom = area.scrollHeight - area.clientHeight - area.scrollTop;
+    const shouldStickBottom = distanceFromBottom <= 48;
+    const fragment = document.createDocumentFragment();
     area.innerHTML = '';
     history.forEach((msg, idx) => {
         if (msg.role === 'system') return;
@@ -1324,9 +1328,14 @@ function renderChatMessages(driverId) {
                 if (speakerId) renderAvatarOnElement(avatar, speakerId, '38px');
             });
         }
-        area.appendChild(wrapper);
+        fragment.appendChild(wrapper);
     });
-    area.scrollTop = area.scrollHeight;
+    area.appendChild(fragment);
+    if (shouldStickBottom) {
+        area.scrollTop = area.scrollHeight;
+    } else {
+        area.scrollTop = previousScrollTop;
+    }
     updateTokenDisplay(history);
 }
 

@@ -51,6 +51,11 @@ let currentDiaryTargetType = 'driver';
 let currentDiaryDateKey = null;
 let userCoins = 0;
 let signData = { lastSignDate: null, consecutiveDays: 0 };
+let dateLimitState = {
+    dateKey: null,
+    single: { used: 0, paidExtra: 0 },
+    group: { used: 0, paidExtra: 0 }
+};
 let giftInventory = {};
 let giftHistory = [];
 let racePredictions = {};
