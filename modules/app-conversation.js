@@ -1200,17 +1200,67 @@ async function confirmMessageForward() {
     }
 }
 
+function isLikelyGroupSpeakerBoundary(char) {
+    return !char || /[\s\r\n\t"'“”‘’《》〈〉「」『』（）()【】\[\]{}<>.,，。!?！？、…;；\-—]/.test(char);
+}
+
+function splitGroupReplyBySpeakerLabels(text, speakerEntries) {
+    const source = String(text || '').replace(/\r/g, '').trim();
+    if (!source || !speakerEntries.length) return [];
+    const matches = [];
+    for (let index = 0; index < source.length; index += 1) {
+        const prevChar = index === 0 ? '' : source[index - 1];
+        if (!isLikelyGroupSpeakerBoundary(prevChar)) continue;
+        for (const entry of speakerEntries) {
+            if (!source.startsWith(entry.name, index)) continue;
+            let cursor = index + entry.name.length;
+            while (cursor < source.length && /\s/.test(source[cursor])) cursor += 1;
+            if (!/[：:]/.test(source[cursor] || '')) continue;
+            cursor += 1;
+            while (cursor < source.length && /\s/.test(source[cursor])) cursor += 1;
+            matches.push({
+                start: index,
+                speaker: entry.name,
+                driver: entry.driver,
+                contentStart: cursor
+            });
+            index = cursor - 1;
+            break;
+        }
+    }
+    if (!matches.length) return [];
+    const lines = [];
+    matches.forEach((match, idx) => {
+        const next = matches[idx + 1];
+        const rawContent = source.slice(match.contentStart, next ? next.start : source.length).trim();
+        if (!rawContent) return;
+        lines.push({
+            speaker: match.speaker,
+            content: rawContent,
+            driver: match.driver || null
+        });
+    });
+    return lines;
+}
+
 function parseGroupReplyLines(group, text) {
     const members = getGroupChatMembers(group);
+    const allDrivers = window.DRIVERS || [];
+    const speakerEntries = [...members, ...allDrivers]
+        .filter(driver => driver?.name)
+        .sort((a, b) => b.name.length - a.name.length)
+        .map(driver => ({ name: driver.name, driver }));
+    const labeledLines = splitGroupReplyBySpeakerLabels(text, speakerEntries);
+    if (labeledLines.length) return labeledLines;
     return String(text || '')
         .split(/\r?\n/)
         .map(line => line.trim())
         .filter(Boolean)
         .map(line => {
-            const parts = line.split('：');
-            const speaker = parts.shift() || '车手';
-            const content = parts.join('：') || line;
-            const driver = members.find(member => member.name === speaker) || (window.DRIVERS || []).find(member => member.name === speaker) || null;
+            const match = line.match(/^([^：:]+)\s*[：:]\s*(.+)$/);
+            const speaker = match?.[1]?.trim() || '车手';
+            const content = match?.[2]?.trim() || line;
+            const driver = members.find(member => member.name === speaker) || allDrivers.find(member => member.name === speaker) || null;
             return { speaker, content, driver };
         });
 }
@@ -1617,7 +1667,7 @@ async function getGroupReply(group, userText) {
         const raceMemoryContext = typeof getCurrentRaceMemoryContext === 'function' ? getCurrentRaceMemoryContext() : '';
         const systemMsg = {
             role: 'system',
-            content: `今天是${getCurrentDateInfo()}。你正在一个围场群聊里回复用户，群名：${group.name}。群成员：${memberSummary}。${noticePrompt}\n【群聊输出规则】\n- 默认输出 1 到 2 行，只有真的有必要时才到 3 行。\n- 如果用户明确点了名字，就优先让被点到的车手接话。\n- 如果没人被点名，就由最可能对这个话题有兴趣、和用户更熟、或者此刻最自然会插话的人回复。\n- 每一行必须以“车手名：内容”的格式输出。\n- 不要让所有成员强行都说话，也不要输出解释、旁白或括号动作。\n- 群聊记忆和用户全局资料共通，回复时可以参考各成员已有记忆。\n- 当前这一站的比赛周情况、本站结果和赛季走势也属于稳定上下文，回复时不能忘掉。\n- 不要复用“我看到了”“我收到了”“这条不错”“差不多就是这样”之类的机械套话。\n- 每位车手都必须像自己，不要写成一群人共用同一种语气。\n- ${mentionRule}\n${getUserProfilePriorityPrompt()}\n${raceMemoryContext}\n${personalitySummary}\n${getGroupChatSharedMemoryContext(group.memberIds, group.id)}`
+            content: `今天是${getCurrentDateInfo()}。你正在一个围场群聊里回复用户，群名：${group.name}。群成员：${memberSummary}。${noticePrompt}\n【群聊输出规则】\n- 默认输出 1 到 2 行，只有真的有必要时才到 3 行。\n- 如果用户明确点了名字，就优先让被点到的车手接话。\n- 如果没人被点名，就由最可能对这个话题有兴趣、和用户更熟、或者此刻最自然会插话的人回复。\n- 每一行必须以“车手名：内容”的格式输出。\n- 不同车手之间必须换行，绝对不要把两个车手的台词写在同一行里。\n- 不要让所有成员强行都说话，也不要输出解释、旁白或括号动作。\n- 群聊记忆和用户全局资料共通，回复时可以参考各成员已有记忆。\n- 当前这一站的比赛周情况、本站结果和赛季走势也属于稳定上下文，回复时不能忘掉。\n- 不要复用“我看到了”“我收到了”“这条不错”“差不多就是这样”之类的机械套话。\n- 每位车手都必须像自己，不要写成一群人共用同一种语气。\n- ${mentionRule}\n${getUserProfilePriorityPrompt()}\n${raceMemoryContext}\n${personalitySummary}\n${getGroupChatSharedMemoryContext(group.memberIds, group.id)}`
         };
         const response = await fetch(`${apiConfig.url.replace(/\/$/, '')}/chat/completions`, {
             method: 'POST',
