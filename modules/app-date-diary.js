@@ -939,10 +939,30 @@ function shiftDiaryDate(offset) {
     renderDiaryModal();
 }
 
+function buildDiaryUserProfileFacts() {
+    const role = [
+        userProfile?.customRole || '',
+        userProfile?.roleType || ''
+    ].find(Boolean) || '未填写';
+    const fields = [
+        `姓名：${userProfile?.name || '未填写'}`,
+        `性别：${userProfile?.gender || '未填写'}`,
+        `年龄：${userProfile?.age || '未填写'}`,
+        `国籍：${userProfile?.nationality || '未填写'}`,
+        `身份：${role}`,
+        `性格：${userProfile?.personality || '未填写'}`,
+        `爱好：${userProfile?.hobby || '未填写'}`,
+        `背景：${userProfile?.background || '未填写'}`
+    ];
+    return `【用户稳定资料】\n- ${fields.join('\n- ')}\n- 上述资料属于稳定事实。写日记时不要改写、弱化、混淆或自行脑补这些信息，尤其不要写错用户的性别、身份、背景和称呼。`;
+}
+
 function buildDiaryGenerationSource(targetId, dateKey, targetType = currentDiaryTargetType) {
     const messages = getMessagesForDate(targetId, dateKey);
     if (targetType === 'group') {
         const group = typeof getGroupChatById === 'function' ? getGroupChatById(targetId) : null;
+        const userProfileFacts = buildDiaryUserProfileFacts();
+        const groupDiaryContext = typeof getGroupDiaryMemoryContext === 'function' ? getGroupDiaryMemoryContext(targetId, 2) : '';
         const chatText = messages.map(msg => {
             if (msg.role === 'user') return `${userProfile.name}: ${msg.content}`;
             if (msg.meta?.type === 'group-reply' && typeof parseGroupReplyLines === 'function') {
@@ -957,9 +977,9 @@ function buildDiaryGenerationSource(targetId, dateKey, targetType = currentDiary
             title: `${group?.name || '群聊'} 的群聊日记`,
             emptyHint: '这一天还没有群聊记录可用于生成日记',
             fallbackText: `今天在${group?.name || '这个群'}里聊了不少。\n\n${chatText.slice(0, 300)}`,
-            prompt: `请根据下面这一天的群聊内容，写一篇群聊日记。要求：第三人称概括、自然细腻、要能看出群里的氛围、谁更活跃、聊了哪些重点、你和这个群现在的熟悉程度，100 到 220 字。\n【群聊记录】\n${chatText}\n【群公告或备注】\n${group?.notice || '无'}`,
+            prompt: `请根据下面这一天的群聊内容，写一篇群聊日记。\n【写作要求】\n- 用第三人称概括，语气自然细腻。\n- 要能看出群里的氛围、谁更活跃、聊了哪些重点，以及用户和这个群现在的熟悉程度。\n- 字数控制在 100 到 220 字。\n- 如果聊天内容没有明确提到某项用户资料，就不要擅自补充设定。\n- 如果聊天里的零散称呼和用户资料冲突，一律以用户稳定资料为准。\n${userProfileFacts}\n【群聊记录】\n${chatText}\n【群公告或备注】\n${group?.notice || '无'}\n【最近群聊日记摘要】\n${groupDiaryContext || '无'}`,
             sourceMeta: `当日群聊记录 ${messages.length} 条`,
-            memoryHint: group?.notice ? `群公告：${group.notice}` : '这一天没有可同步的群聊备注。'
+            memoryHint: [group?.notice ? `群公告：${group.notice}` : '', '群聊日记会优先参考用户资料卡，避免写错性别或背景。'].filter(Boolean).join('\n')
         };
     }
     const dateMemory = driverDateMemories[targetId];
