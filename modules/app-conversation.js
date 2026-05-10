@@ -11,7 +11,6 @@ function trimChatHistory(driverId) {
     const systemMessages = history.filter(msg => msg.role === 'system').slice(0, 1);
     const normalMessages = history.filter(msg => msg.role !== 'system').slice(-60);
     chatHistories[driverId] = [...systemMessages, ...normalMessages];
-    saveChatHistories();
 }
 
 const CHAT_STYLE_PROFILES = {

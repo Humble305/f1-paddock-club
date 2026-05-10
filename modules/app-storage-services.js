@@ -621,8 +621,62 @@ function saveFavorability() {
     secureStorageSet('f1_favorability', favorability);
 }
 
+function compactChatHistoriesForStorage(source, normalLimit = 60) {
+    const compacted = {};
+    Object.entries(source || {}).forEach(([key, history]) => {
+        if (!Array.isArray(history)) {
+            compacted[key] = history;
+            return;
+        }
+        const systemMessages = history.filter(msg => msg?.role === 'system').slice(0, 1);
+        const normalMessages = history.filter(msg => msg?.role !== 'system').slice(-normalLimit);
+        compacted[key] = [...systemMessages, ...normalMessages];
+    });
+    return compacted;
+}
+
+function tryPersistChatHistories(snapshot) {
+    secureStorageSet('f1_chat_histories', snapshot);
+    return true;
+}
+
+function persistChatHistoriesWithFallback() {
+    try {
+        return tryPersistChatHistories(chatHistories);
+    } catch (error) {
+        console.warn('聊天记录保存失败，尝试压缩旧消息后重试。', error);
+    }
+    const retryLimits = [40, 24, 12];
+    for (const limit of retryLimits) {
+        try {
+            chatHistories = compactChatHistoriesForStorage(chatHistories, limit);
+            return tryPersistChatHistories(chatHistories);
+        } catch (error) {
+            console.warn(`聊天记录压缩到最近 ${limit} 条后仍保存失败。`, error);
+        }
+    }
+    showToast('本地聊天记录空间已满，已自动压缩失败。本次消息仍会显示，但可能无法长期保存。', true);
+    return false;
+}
+
+let chatHistoriesSaveTimer = null;
+const CHAT_HISTORIES_SAVE_DEBOUNCE_MS = 320;
+
+function flushChatHistoriesNow() {
+    if (chatHistoriesSaveTimer) {
+        clearTimeout(chatHistoriesSaveTimer);
+        chatHistoriesSaveTimer = null;
+    }
+    return persistChatHistoriesWithFallback();
+}
+
 function saveChatHistories() {
-    secureStorageSet('f1_chat_histories', chatHistories);
+    if (chatHistoriesSaveTimer) clearTimeout(chatHistoriesSaveTimer);
+    chatHistoriesSaveTimer = setTimeout(() => {
+        chatHistoriesSaveTimer = null;
+        persistChatHistoriesWithFallback();
+    }, CHAT_HISTORIES_SAVE_DEBOUNCE_MS);
+    return true;
 }
 
 function loadChatHistories() {

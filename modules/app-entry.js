@@ -512,3 +512,11 @@ document.addEventListener('DOMContentLoaded', () => {
         throw error;
     }
 });
+
+window.addEventListener('pagehide', () => {
+    if (typeof flushChatHistoriesNow === 'function') flushChatHistoriesNow();
+});
+
+window.addEventListener('beforeunload', () => {
+    if (typeof flushChatHistoriesNow === 'function') flushChatHistoriesNow();
+});
