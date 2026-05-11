@@ -73,7 +73,7 @@ function initDriverHistory(driver) {
     if (chatHistories[driver.id]) return;
     const userInfo = getUserProfileSummary();
     const mood = getFavorMood(favorability[driver.id] || 0);
-    const personalityContext = window.getDriverPersonalityContext ? window.getDriverPersonalityContext(driver.id) : '';
+    const personalityContext = window.buildDriverPromptContext ? window.buildDriverPromptContext(driver.id, 'chat') : (window.getDriverPersonalityContext ? window.getDriverPersonalityContext(driver.id, 'chat') : '');
     const chatStyle = getDriverChatStyleProfile(driver.id);
     const raceMemoryContext = typeof getCurrentRaceMemoryContext === 'function' ? getCurrentRaceMemoryContext() : '';
     const prompt = `你是 F1 车手 ${driver.name}（${driver.team}）。你正在和用户进行长期一对一私聊。当前关系：${mood}。\n${getChatWritingGuide()}\n【人格要求】\n- 你的说话方式必须稳定像同一个人，不能和别的车手混在一起。\n- 每次回复前，先判断这个人会不会这样说、会不会用这种词，再决定怎么回。\n- 如果一句话太像模板台词、太像安慰套餐、太像官话，就换掉。\n- 你的句长习惯：${chatStyle.length}\n${raceMemoryContext}\n${personalityContext}\n${userInfo}`;
@@ -551,7 +551,7 @@ function initGroupChatHistory(group) {
     const members = getGroupChatMembers(group);
     const memberSummary = members.map(driver => `${driver.name}（${driver.team}）`).join('、');
     const personalitySummary = members
-        .map(driver => `【${driver.name}】${window.getDriverPersonalityContext ? window.getDriverPersonalityContext(driver.id) : ''}`)
+        .map(driver => `【${driver.name}】${window.buildDriverPromptContext ? window.buildDriverPromptContext(driver.id, 'groupChat') : (window.getDriverPersonalityContext ? window.getDriverPersonalityContext(driver.id, 'groupChat') : '')}`)
         .join('\n');
     const noticePrompt = group.notice ? `\n【群公告】${group.notice}` : '';
     const raceMemoryContext = typeof getCurrentRaceMemoryContext === 'function' ? getCurrentRaceMemoryContext() : '';
@@ -1469,7 +1469,7 @@ function getDriverFavorTopics(driver) {
             .filter(Boolean)
             .sort((a, b) => b.affinity - a.affinity);
     }
-    const personality = window.DRIVER_PERSONALITIES?.[driver?.id];
+    const personality = window.getDriverTextProfile ? window.getDriverTextProfile(driver?.id, 'chat') : null;
     const profileText = normalizeFavorText(`${personality?.interests || ''} ${personality?.expertise || ''} ${personality?.ruleView || ''}`);
     const topics = FAVOR_TOPIC_LIBRARY
         .map(topic => {
@@ -1503,7 +1503,7 @@ function buildFavorJudgePrompt(driver) {
         favoriteTopics.length ? `高优先级方向：${favoriteTopics.join('；')}` : '',
         casualTopics.length ? `次一级方向：${casualTopics.join('；')}` : '',
         offTopics.length ? `低优先级方向：${offTopics.join('；')}` : '',
-        window.getDriverPersonalityContext ? window.getDriverPersonalityContext(driver.id) : '',
+        window.buildDriverPromptContext ? window.buildDriverPromptContext(driver.id, 'chat') : (window.getDriverPersonalityContext ? window.getDriverPersonalityContext(driver.id, 'chat') : ''),
         `只输出一行 JSON，例如 {"score":2}，不要输出解释。`
     ].filter(Boolean).join('\n');
 }
@@ -1654,7 +1654,7 @@ async function getGroupReply(group, userText) {
         const history = (chatHistories[group.id] || []).filter(msg => msg.role !== 'system').slice(-10);
         const memberSummary = members.map(driver => `${driver.name}（${driver.team}）`).join('、');
         const personalitySummary = members
-            .map(driver => `【${driver.name}】${window.getDriverPersonalityContext ? window.getDriverPersonalityContext(driver.id) : ''}`)
+            .map(driver => `【${driver.name}】${window.buildDriverPromptContext ? window.buildDriverPromptContext(driver.id, 'groupChat') : (window.getDriverPersonalityContext ? window.getDriverPersonalityContext(driver.id, 'groupChat') : '')}`)
             .join('\n');
         const pickedMembers = pickGroupReplyMembers(group, userText);
         const text = String(userText || '').trim();
@@ -1707,7 +1707,7 @@ async function getDriverReplyWithFavor(driver, userMessage, options = {}) {
         const giftPrompt = giftContext ? `\n【礼物事件】\n- 用户刚刚送来的礼物：${giftContext.name}\n- 礼物描述：${giftContext.description}\n- 这份礼物和你偏好的匹配程度：${giftContext.preferenceLevel === 'favorite' || giftContext.matched ? '最爱级别' : (giftContext.preferenceLevel === 'liked' || giftContext.liked ? '普通喜欢' : '普通收下')}\n- 如果是最爱级别，请明显更开心、更主动、更有被懂到的感觉，但不要直接说“这就是我最爱的礼物”。\n- 如果只是普通喜欢，请自然表现出“这份礼物挺对胃口”的感觉，开心但不要夸张。\n- 如果只是普通收下，请礼貌收下、语气自然，不要表现得扫兴，也不要直接说送错了。\n- 这是聊天小窗回复，只输出你对用户说的话。` : '';
         const systemMsg = {
             role: 'system',
-            content: `今天是${getCurrentDateInfo()}。${raceContext}\n你是 F1 车手 ${driver.name}（${driver.team}）。\n${getChatWritingGuide()}\n${getUserProfilePriorityPrompt()}\n【当前关系】${getFavorMood(favorability[driver.id] || 0)}\n【赛况参考】${rankingInfo}\n${raceMemoryContext}\n【额外语气要求】\n- 回复要像你本人，不要像通用恋爱模板。\n- 只回应当下最自然的一个点，不要把安慰、解释、表态一次性全塞进去。\n- 如果一句话听起来像任何车手都能说，就重写得更像你自己。\n- 你的句长习惯：${chatStyle.length}\n- 有些车手会更短促，有些会自然多解释半句；你必须保持自己的节奏。\n- 当前这站的比赛周状态、本站成绩和围场节奏属于稳定记忆；如果用户聊到本站相关内容，你不能像忘记了一样重新开始。\n${buildDriverSharedMemoryContext(driver.id)}\n${window.getDriverPersonalityContext ? window.getDriverPersonalityContext(driver.id) : ''}${giftPrompt}`
+            content: `今天是${getCurrentDateInfo()}。${raceContext}\n你是 F1 车手 ${driver.name}（${driver.team}）。\n${getChatWritingGuide()}\n${getUserProfilePriorityPrompt()}\n【当前关系】${getFavorMood(favorability[driver.id] || 0)}\n【赛况参考】${rankingInfo}\n${raceMemoryContext}\n【额外语气要求】\n- 回复要像你本人，不要像通用恋爱模板。\n- 只回应当下最自然的一个点，不要把安慰、解释、表态一次性全塞进去。\n- 如果一句话听起来像任何车手都能说，就重写得更像你自己。\n- 你的句长习惯：${chatStyle.length}\n- 有些车手会更短促，有些会自然多解释半句；你必须保持自己的节奏。\n- 当前这站的比赛周状态、本站成绩和围场节奏属于稳定记忆；如果用户聊到本站相关内容，你不能像忘记了一样重新开始。\n${buildDriverSharedMemoryContext(driver.id)}\n${window.buildDriverPromptContext ? window.buildDriverPromptContext(driver.id, 'chat') : (window.getDriverPersonalityContext ? window.getDriverPersonalityContext(driver.id, 'chat') : '')}${giftPrompt}`
         };
         const response = await fetch(`${apiConfig.url.replace(/\/$/, '')}/chat/completions`, {
             method: 'POST',

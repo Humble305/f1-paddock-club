@@ -199,7 +199,7 @@
         const favor = favorability[driver.id] || 0;
         const mood = typeof getFavorMood === 'function' ? getFavorMood(favor) : '';
         const companions = groupDrivers.filter(item => item.id !== driver.id).map(item => item.name);
-        const personalityContext = typeof window.getDriverPersonalityContext === 'function' ? window.getDriverPersonalityContext(driver.id) : '';
+        const personalityContext = typeof window.buildDriverPromptContext === 'function' ? window.buildDriverPromptContext(driver.id, 'groupDate') : (typeof window.getDriverPersonalityContext === 'function' ? window.getDriverPersonalityContext(driver.id, 'groupDate') : '');
         const raceMemoryContext = typeof getCurrentRaceMemoryContext === 'function' ? getCurrentRaceMemoryContext() : '';
         const sharedMemoryContext = typeof getGroupDateSharedMemoryContext === 'function' ? getGroupDateSharedMemoryContext(groupDrivers.map(item => item.id)) : '';
         const isOpening = /开始群约会/.test(String(userAction || '')) && !String(userMessage || '').trim();

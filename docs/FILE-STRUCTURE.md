@@ -28,6 +28,11 @@
 - 积分数据唯一入口
 - 内置兜底、远程 standings、手动导入三层来源管理
 
+### `/modules/core/driver-persona-registry.js`
+- 车手人设统一注册层
+- 从独立 JSON 聚合生成运行时资料
+- 对外兼容导出 `DRIVERS / DRIVER_PROFILES / DRIVER_PERSONALITIES`
+
 ## Chat / Feed
 
 ### `/modules/app-conversation.js`
@@ -97,10 +102,18 @@
 ## 静态数据
 
 ### `/data.js`
-- 车手、赛历、公告、内置积分兜底
+- 赛历、公告、内置积分兜底
+- 旧 `DRIVERS / DRIVER_PROFILES` 仅保留兼容占位，不再维护正文
 
-### `/driverPersonalities.js`
-- 车手人格、兴趣、表达习惯
+### `/data/drivers/`
+- 22 位车手的人设卡 JSON
+- 资料卡展示字段与文本生成字段共用同一来源
+
+### `/data/drivers/persona-bundle.js`
+- 人设卡前端运行时打包产物
+
+### `/scripts/build-driver-persona-bundle.ps1`
+- 把 `data/drivers/*.json` 打包成浏览器可直接加载的 bundle
 
 ### `/historyEvents.js`
 - F1 历史上的今天
@@ -118,3 +131,5 @@
 - 根目录旧版 `/app-*.js`
 
 当前正式运行链路以 `modules/` 目录下的脚本为准。
+
+旧的 `/driverPersonalities.js` 已下线，不再参与当前运行。

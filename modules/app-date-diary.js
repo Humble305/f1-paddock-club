@@ -302,14 +302,25 @@ async function confirmDateLimitPurchase() {
 }
 
 function getDriverSceneAffinity(driver, sceneId) {
-    const personality = String(window.DRIVER_PERSONALITIES?.[driver?.id]?.interests || '').toLowerCase();
+    const mode = ['night-market', 'arcade', 'bowling'].includes(sceneId) ? 'groupDate' : 'singleDate';
+    const textProfile = typeof window.getDriverTextProfile === 'function'
+        ? window.getDriverTextProfile(driver?.id, mode)
+        : null;
+    const personality = [
+        textProfile?.interests,
+        textProfile?.expertise,
+        textProfile?.relationshipHint,
+        textProfile?.modeHint,
+        textProfile?.publicIntro,
+        textProfile?.currentFocus
+    ].filter(Boolean).join(' ');
     if (!driver || !sceneId) return 0;
-    if (sceneId === 'paddock' && /technical|data|sim|engineering|cars|garage|setup|driving/.test(personality)) return 2;
-    if (sceneId === 'beach' && /travel|music|fashion|photography|art|coffee/.test(personality)) return 2;
-    if (sceneId === 'restaurant' && /food|coffee|fashion|music|friends|travel/.test(personality)) return 2;
-    if (sceneId === 'night-market' && /food|friends|travel|music|fashion|coffee|social|humor|photography/.test(personality)) return 2;
-    if (sceneId === 'arcade' && /games|gaming|sim|friends|humor|driving|competition|technical/.test(personality)) return 2;
-    if (sceneId === 'bowling' && /friends|competition|fitness|sports|humor|social|travel/.test(personality)) return 2;
+    if (sceneId === 'paddock' && /调校|轮胎|模拟器|工程|赛车|数据|车库|驾驶|技术/.test(personality)) return 2;
+    if (sceneId === 'beach' && /旅行|音乐|穿搭|摄影|艺术|咖啡|散步|海边|松弛/.test(personality)) return 2;
+    if (sceneId === 'restaurant' && /吃|食物|咖啡|穿搭|音乐|朋友|旅行|晚餐|餐桌/.test(personality)) return 2;
+    if (sceneId === 'night-market' && /吃|小吃|朋友|旅行|音乐|穿搭|咖啡|社交|好玩|摄影|夜市/.test(personality)) return 2;
+    if (sceneId === 'arcade' && /游戏|电玩|模拟器|朋友|好玩|驾驶|竞争|技术/.test(personality)) return 2;
+    if (sceneId === 'bowling' && /朋友|竞争|训练|运动|社交|旅行|放松|保龄/.test(personality)) return 2;
     return 0;
 }
 

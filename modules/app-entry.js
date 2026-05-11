@@ -450,8 +450,9 @@ function initFeedPosts() {
     feedPosts = [];
 }
 
-function init() {
+async function init() {
     startLaunchSequence();
+    if (typeof window.loadDriverPersonas === 'function') await window.loadDriverPersonas();
     startStatusBarClock();
     loadTheme();
     if (typeof loadMediaNewsStatus === 'function') loadMediaNewsStatus();
@@ -504,13 +505,18 @@ function init() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    try {
-        init();
-    } catch (error) {
+    (async () => {
+        try {
+            await init();
+        } catch (error) {
+            console.error('应用初始化失败', error);
+            finishLaunchSequence();
+            throw error;
+        }
+    })().catch(error => {
         console.error('应用初始化失败', error);
         finishLaunchSequence();
-        throw error;
-    }
+    });
 });
 
 window.addEventListener('pagehide', () => {

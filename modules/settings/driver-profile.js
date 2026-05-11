@@ -141,8 +141,9 @@
     }
 
     function buildDriverProfileViewModel(driverId) {
-        const profile = window.DRIVER_PROFILES?.[driverId];
-        const driver = (window.DRIVERS || []).find(item => item.id === driverId);
+        const displayProfile = typeof window.getDriverDisplayProfile === 'function' ? window.getDriverDisplayProfile(driverId) : null;
+        const profile = displayProfile?.profile || null;
+        const driver = displayProfile?.driver || (window.DRIVERS || []).find(item => item.id === driverId);
         if (!profile || !driver) return null;
         const favor = favorability?.[driverId] || 0;
         const avatarBg = getDriverAvatarStyle(driverId);

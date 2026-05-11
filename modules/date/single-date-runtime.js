@@ -206,7 +206,7 @@
         const favor = favorability[driver.id] || 0;
         const mood = getFavorMood(favor);
         const memoryContext = buildDriverSharedMemoryContext(driver.id);
-        const personalityContext = window.getDriverPersonalityContext ? window.getDriverPersonalityContext(driver.id) : '';
+        const personalityContext = window.buildDriverPromptContext ? window.buildDriverPromptContext(driver.id, 'singleDate') : (window.getDriverPersonalityContext ? window.getDriverPersonalityContext(driver.id, 'singleDate') : '');
         const eventContext = options.eventContext || null;
         const raceMemoryContext = typeof getCurrentRaceMemoryContext === 'function' ? getCurrentRaceMemoryContext() : '';
         const isOpening = /开始约会/.test(String(userAction || '')) && !String(userMessage || '').trim();

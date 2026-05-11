@@ -38,7 +38,7 @@ const DRIVER_SOCIAL_LINKS = {
 };
 
 function getFeedDriverPersonality(driverId) {
-    return window.DRIVER_PERSONALITIES?.[driverId] || null;
+    return window.getDriverTextProfile ? window.getDriverTextProfile(driverId, 'feed') : null;
 }
 
 function getDriverById(driverId) {
@@ -352,7 +352,7 @@ function buildLocalDriverCommentOnUserPost(driver, post, slotIndex = 0) {
 }
 
 function buildDriverCommentOnUserPostPrompt(driver, post) {
-    const personalityContext = window.getDriverPersonalityContext ? window.getDriverPersonalityContext(driver.id) : '';
+    const personalityContext = window.buildDriverPromptContext ? window.buildDriverPromptContext(driver.id, 'feed') : (window.getDriverPersonalityContext ? window.getDriverPersonalityContext(driver.id, 'feed') : '');
     const weekendContext = window.getRaceWeekendPromptContext ? window.getRaceWeekendPromptContext() : '';
     const favor = favorability?.[driver.id] || 0;
     const styleProfile = getFeedStyleProfile(driver.id);
@@ -386,7 +386,7 @@ async function generateDriverCommentOnUserPost(driver, post, slotIndex = 0) {
 }
 
 function buildDriverCircleCommentPrompt(commentDriver, postDriver, post) {
-    const personalityContext = window.getDriverPersonalityContext ? window.getDriverPersonalityContext(commentDriver.id) : '';
+    const personalityContext = window.buildDriverPromptContext ? window.buildDriverPromptContext(commentDriver.id, 'feed') : (window.getDriverPersonalityContext ? window.getDriverPersonalityContext(commentDriver.id, 'feed') : '');
     const postFacts = summarizeFeedReality(postDriver);
     const weekendContext = window.getRaceWeekendPromptContext ? window.getRaceWeekendPromptContext() : '';
     const styleProfile = getFeedStyleProfile(commentDriver.id);
@@ -567,7 +567,7 @@ function sanitizeFeedPost(text = '') {
 }
 
 function buildFeedPrompt(driver, topic) {
-    const personalityContext = window.getDriverPersonalityContext ? window.getDriverPersonalityContext(driver.id) : '';
+    const personalityContext = window.buildDriverPromptContext ? window.buildDriverPromptContext(driver.id, 'feed') : (window.getDriverPersonalityContext ? window.getDriverPersonalityContext(driver.id, 'feed') : '');
     const personality = getFeedDriverPersonality(driver.id);
     const styleProfile = getFeedStyleProfile(driver.id);
     const facts = summarizeFeedReality(driver);
@@ -606,7 +606,7 @@ function buildLocalFeedReply(driver, post, userComment) {
 }
 
 function buildFeedReplyPrompt(driver, post, userComment) {
-    const personalityContext = window.getDriverPersonalityContext ? window.getDriverPersonalityContext(driver.id) : '';
+    const personalityContext = window.buildDriverPromptContext ? window.buildDriverPromptContext(driver.id, 'feed') : (window.getDriverPersonalityContext ? window.getDriverPersonalityContext(driver.id, 'feed') : '');
     const personality = getFeedDriverPersonality(driver.id);
     const styleProfile = getFeedStyleProfile(driver.id);
     const facts = summarizeFeedReality(driver);
@@ -1209,22 +1209,26 @@ function getDriverCareerHighlight(profile) {
 
 function buildStandingsDriverProfile(standing, index) {
     const driver = (window.DRIVERS || []).find(item => item.name === standing?.name) || null;
-    const profile = driver ? window.DRIVER_PROFILES?.[driver.id] : null;
+    const displayProfile = driver && typeof window.getDriverDisplayProfile === 'function'
+        ? window.getDriverDisplayProfile(driver.id)
+        : null;
+    const profile = displayProfile?.profile || null;
+    const runtimeDriver = displayProfile?.driver || driver;
     const teamKey = resolveDriverTeamKey(driver?.id, standing?.team || driver?.team || '');
     const teamProfile = TEAM_PROFILE_DETAILS[teamKey] || null;
     return {
-        id: driver?.id || `driver-${index}`,
+        id: runtimeDriver?.id || `driver-${index}`,
         rank: index + 1,
         points: Number(standing?.points || 0),
-        name: standing?.name || driver?.name || 'Driver',
+        name: standing?.name || runtimeDriver?.name || 'Driver',
         teamDisplay: teamProfile?.label || getStandingsTeamDisplayName(standing?.team || driver?.team || ''),
         accent: teamProfile?.color || null,
         teamColor: teamProfile ? (window.teamStandings || []).find(item => normalizeStandingsTeamKey(item.name) === teamKey)?.color || '#9aa5b5' : '#9aa5b5',
         profile,
-        driver,
+        driver: runtimeDriver,
         status: buildDriverLegacyStatus(profile),
-        hero: buildDriverLegacyHero(driver || { name: standing?.name || '这位车手' }, profile, standing, index + 1),
-        note: buildDriverLegacyNote(driver || { name: standing?.name || '这位车手' }, profile),
+        hero: buildDriverLegacyHero(runtimeDriver || { name: standing?.name || '这位车手' }, profile, standing, index + 1),
+        note: buildDriverLegacyNote(runtimeDriver || { name: standing?.name || '这位车手' }, profile),
         highlight: getDriverCareerHighlight(profile)
     };
 }

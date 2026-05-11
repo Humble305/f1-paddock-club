@@ -14,55 +14,10 @@ const TEAM_COLORS = {
     "凯迪拉克": "#C1C6D1"
 };
 
-const DRIVERS = [
-    { id: "nor", name: "Lando Norris", team: "迈凯伦", avatarLetter: "LN", handle: "landonorris", initialMsg: "新赛季终于开始了。卫冕听起来很酷，但我更在意的是把每个周末都跑得足够好。规则变了不少，不过我们已经准备好了。你觉得今年会是什么走向？" },
-    { id: "pia", name: "Oscar Piastri", team: "迈凯伦", avatarLetter: "OP", handle: "oscarpiastri", initialMsg: "新赛季，新规则，我和 Lando 还会继续并肩作战。去年离世界冠军只差一点，今年我当然想再往前走一步。先看看这个赛季会把我们带到哪里吧。" },
-    { id: "lec", name: "Charles Leclerc", team: "法拉利", avatarLetter: "CL", handle: "charles_leclerc", initialMsg: "新赛季开始了，赛车给我的感觉很不错。和 Lewis 搭档来到第二年，很多东西都比以前更顺了。我很期待这个赛季，也很想知道你最关注什么。" },
-    { id: "ham", name: "Lewis Hamilton", team: "法拉利", avatarLetter: "LH", handle: "lewishamilton", initialMsg: "来到法拉利的第二年，我的状态比刚开始时更稳定，也更自在了。这台车还在继续进化，我也一样。接下来会很有意思，你可以和我聊聊你对这个赛季的期待。" },
-    { id: "rus", name: "George Russell", team: "梅赛德斯", avatarLetter: "GR", handle: "georgerussell63", initialMsg: "欢迎来到新赛季。我和 Kimi 的配合比之前更顺，车队这个冬天也做了很多扎实的工作。现在最重要的是把这些东西兑现到赛道上。你怎么看今年的竞争格局？" },
-    { id: "ant", name: "Kimi Antonelli", team: "梅赛德斯", avatarLetter: "KA", handle: "kimi.antonelli", initialMsg: "第二个 F1 赛季开始之后，我整个人确实更放松了一点。之前拿到领奖台让我更确定自己能做到什么，现在目标当然是继续往前。希望今年能给大家带来更多惊喜。" },
-    { id: "ver", name: "Max Verstappen", team: "红牛", avatarLetter: "MV", handle: "maxverstappen1", initialMsg: "新规则就是新的挑战，仅此而已。和新的队友合作也意味着要重新建立一些节奏，不过这没什么。车还是要开，比赛还是要赢。你要是愿意，可以直接告诉我你最想看什么。" },
-    { id: "hadjar", name: "Isack Hadjar", team: "红牛", avatarLetter: "IH", handle: "isack.hadjar", initialMsg: "终于正式来到红牛了，说不紧张肯定是假的，但更多还是兴奋。和 Max 做队友的压力很真实，不过我也很清楚自己为什么会站在这里。接下来我会一步一步证明自己。" },
-    { id: "alo", name: "Fernando Alonso", team: "阿斯顿马丁", avatarLetter: "FA", handle: "fernandoalo_oficial", initialMsg: "来到第 23 个赛季，我还是会对新的挑战有感觉。经验当然重要，但真正让我留在这里的，还是那种想继续往前的念头。只要赛车还有潜力，我就不会轻易停下。" },
-    { id: "str", name: "Lance Stroll", team: "阿斯顿马丁", avatarLetter: "LS", handle: "lance.stroll", initialMsg: "第十个 F1 赛季了，时间过得确实很快。和 Fernando 继续搭档让我学到了很多，车队也还在一点点往前推。希望今年能把一些该拿到的结果真正拿回来。" },
-    { id: "alb", name: "Alex Albon", team: "威廉姆斯", avatarLetter: "AA", handle: "alex.albon", initialMsg: "欢迎来到威廉姆斯。今年和 Carlos 一起搭档，我对很多事情都挺期待的。车队这段时间一直在努力把节奏拉回正轨，现在就是看看我们能把它带到什么位置。" },
-    { id: "sai", name: "Carlos Sainz", team: "威廉姆斯", avatarLetter: "CS", handle: "carlossainz55", initialMsg: "加入威廉姆斯以后，我能很明显感觉到这支车队想往前走的决心。重建从来都不是一句好听的话，而是很多具体又耐心的工作。我会把自己该做的部分做到最好。" },
-    { id: "gas", name: "Pierre Gasly", team: "Alpine", avatarLetter: "PG", handle: "pierre.gasly", initialMsg: "Alpine 今年又是新的开始。车队做了不少调整，我和 Franco 也在慢慢把配合找出来。赛季会很长，所以我更在意的是每一站都能不能比上一站更好一点。" },
-    { id: "col", name: "Franco Colapinto", team: "Alpine", avatarLetter: "FC", handle: "franco.colapinto", initialMsg: "第二个 F1 赛季开始之后，我的感觉和去年已经很不一样了。很多东西不再只是新鲜，而是真的要去扛起来。和 Pierre 一起，我想帮车队带回更多像样的结果。" },
-    { id: "oco", name: "Esteban Ocon", team: "哈斯", avatarLetter: "EO", handle: "esteban.ocon", initialMsg: "哈斯的新赛季已经开始了。车队现在最重要的事还是稳稳往前走，把该抓住的机会抓住。和 Oliver 一起搭档会是新的节奏，我希望今年能把表现再往上提一截。" },
-    { id: "bea", name: "Oliver Bearman", team: "哈斯", avatarLetter: "OB", handle: "oliver.bearman", initialMsg: "第二个 F1 赛季让我感觉踏实了不少。很多去年还在适应的东西，现在终于开始有了熟悉感。接下来我还是想继续成长，然后把积分一点点争回来。" },
-    { id: "hul", name: "Nico Hulkenberg", team: "奥迪", avatarLetter: "NH", handle: "nico.hulkenberg", initialMsg: "奥迪正式进入 F1，这对很多人来说都是一件大事。对我而言，这也是一段很有分量的新篇章。把一支全新的项目真正带上正轨，会是很难但也很值得的挑战。" },
-    { id: "bor", name: "Gabriel Bortoleto", team: "奥迪", avatarLetter: "GB", handle: "gabriel.bortoleto", initialMsg: "和奥迪一起进入第二个赛季，我心里还是会有那种很新的期待。巴西车迷给了我很多力量，但最后还是要回到赛道上把事情做好。希望今年我能比去年更成熟一点。" },
-    { id: "law", name: "Liam Lawson", team: "Racing Bulls", avatarLetter: "LL", handle: "liam.lawson", initialMsg: "继续留在 Racing Bulls，对我来说最重要的就是把位置坐稳，然后把该跑出来的东西跑出来。和 Arvid 搭档会有新的化学反应，车队也在继续往前。这个赛季会很有看头。" },
-    { id: "lin", name: "Arvid Lindblad", team: "Racing Bulls", avatarLetter: "AL", handle: "arvid.lindblad", initialMsg: "这是我的 F1 新秀赛季，到现在还是会觉得一切有点不真实。能走到这一步，我当然很兴奋，但真正开始之后就只剩下专注了。我会尽全力把每一次机会都用好。" },
-    { id: "per", name: "Sergio Perez", team: "凯迪拉克", avatarLetter: "SP", handle: "sergio.perez", initialMsg: "重新回到围场的感觉很好，而且这次还是和一支全新的车队一起开始。凯迪拉克有很大的野心，也有很多事情要一步步搭起来。我喜欢这样的挑战，也想把这段路走漂亮一点。" },
-    { id: "bot", name: "Valtteri Bottas", team: "凯迪拉克", avatarLetter: "VB", handle: "valtteri.bottas", initialMsg: "凯迪拉克的 F1 元年，听起来就已经很有分量了。从零开始搭一支车队当然不轻松，但这也是这件事最有意思的地方。我们有很多工作要做，不过我还挺享受这种过程的。" }
-];
-
-const DRIVER_PROFILES = {
-    "nor": { fullName:"Lando Norris", team:"迈凯伦车队", nationality:"英国", birthDate:"1999年11月13日", age:27, height:"177 cm", weight:"64 kg", f1Debut:"2019年澳大利亚大奖赛", championships:[{year:2025,desc:"迈凯伦车队，生涯首个世界冠军"}], wins:[{year:2024,race:"迈阿密大奖赛",desc:"F1生涯首胜"}], totalWins:11, totalPoles:8, totalPodiums:28 },
-    "pia": { fullName:"Oscar Piastri", team:"迈凯伦车队", nationality:"澳大利亚", birthDate:"2001年4月6日", age:25, height:"178 cm", weight:"68 kg", f1Debut:"2023年巴林大奖赛", championships:[], wins:[{year:2024,race:"匈牙利大奖赛",desc:"F1生涯首胜"}], totalWins:3, totalPoles:1, totalPodiums:9 },
-    "lec": { fullName:"Charles Leclerc", team:"法拉利车队", nationality:"摩纳哥", birthDate:"1997年10月16日", age:29, height:"180 cm", weight:"62 kg", f1Debut:"2018年澳大利亚大奖赛", championships:[], wins:[{year:2019,race:"比利时大奖赛",desc:"F1生涯首胜"},{year:2019,race:"意大利大奖赛",desc:"蒙扎主场夺冠"},{year:2024,race:"摩纳哥大奖赛",desc:"主场首冠"}], totalWins:8, totalPoles:23, totalPodiums:38 },
-    "ham": { fullName:"Lewis Hamilton", team:"法拉利车队", nationality:"英国", birthDate:"1985年1月7日", age:41, height:"175 cm", weight:"66 kg", f1Debut:"2007年澳大利亚大奖赛", championships:[{year:2008,desc:"迈凯伦车队"},{year:2014,desc:"梅赛德斯车队"},{year:2015,desc:"梅赛德斯车队"},{year:2017,desc:"梅赛德斯车队"},{year:2018,desc:"梅赛德斯车队"},{year:2019,desc:"梅赛德斯车队"},{year:2020,desc:"梅赛德斯车队"}], wins:[{year:2007,race:"加拿大大奖赛",desc:"F1生涯首胜"},{year:2019,race:"中国大奖赛",desc:"F1历史第1000站冠军"}], totalWins:103, totalPoles:104, totalPodiums:197 },
-    "rus": { fullName:"George Russell", team:"梅赛德斯车队", nationality:"英国", birthDate:"1998年2月15日", age:28, height:"185 cm", weight:"66 kg", f1Debut:"2019年澳大利亚大奖赛", championships:[], wins:[{year:2022,race:"巴西大奖赛",desc:"F1生涯首胜"}], totalWins:3, totalPoles:4, totalPodiums:14 },
-    "ant": { fullName:"Kimi Antonelli", team:"梅赛德斯车队", nationality:"意大利", birthDate:"2006年8月25日", age:20, height:"172 cm", weight:"63 kg", f1Debut:"2025年澳大利亚大奖赛", championships:[], wins:[{year:2026,race:"中国大奖赛",desc:"F1生涯首胜"}], totalWins:2, totalPoles:1, totalPodiums:5 },
-    "ver": { fullName:"Max Verstappen", team:"红牛车队", nationality:"荷兰", birthDate:"1997年9月30日", age:29, height:"181 cm", weight:"72 kg", f1Debut:"2015年澳大利亚大奖赛", championships:[{year:2021,desc:"红牛车队"},{year:2022,desc:"红牛车队"},{year:2023,desc:"红牛车队"},{year:2024,desc:"红牛车队"}], wins:[{year:2016,race:"西班牙大奖赛",desc:"F1生涯首胜"}], totalWins:63, totalPoles:40, totalPodiums:112 },
-    "hadjar": { fullName:"Isack Hadjar", team:"红牛车队", nationality:"法国", birthDate:"2004年9月28日", age:22, height:"178 cm", weight:"65 kg", f1Debut:"2025年澳大利亚大奖赛", championships:[], wins:[], totalWins:0, totalPoles:0, totalPodiums:0 },
-    "alo": { fullName:"Fernando Alonso", team:"阿斯顿·马丁车队", nationality:"西班牙", birthDate:"1981年7月29日", age:45, height:"171 cm", weight:"68 kg", f1Debut:"2001年澳大利亚大奖赛", championships:[{year:2005,desc:"雷诺车队"},{year:2006,desc:"雷诺车队"}], wins:[{year:2003,race:"匈牙利大奖赛",desc:"F1生涯首胜"}], totalWins:32, totalPoles:22, totalPodiums:106 },
-    "str": { fullName:"Lance Stroll", team:"阿斯顿·马丁车队", nationality:"加拿大", birthDate:"1998年10月29日", age:28, height:"182 cm", weight:"70 kg", f1Debut:"2017年澳大利亚大奖赛", championships:[], wins:[], totalWins:0, totalPoles:1, totalPodiums:3 },
-    "alb": { fullName:"Alexander Albon", team:"威廉姆斯车队", nationality:"泰国", birthDate:"1996年3月23日", age:30, height:"186 cm", weight:"74 kg", f1Debut:"2019年澳大利亚大奖赛", championships:[], wins:[], totalWins:0, totalPoles:0, totalPodiums:2 },
-    "sai": { fullName:"Carlos Sainz", team:"威廉姆斯车队", nationality:"西班牙", birthDate:"1994年9月1日", age:32, height:"178 cm", weight:"68 kg", f1Debut:"2015年澳大利亚大奖赛", championships:[], wins:[{year:2022,race:"英国大奖赛",desc:"F1生涯首胜"}], totalWins:2, totalPoles:5, totalPodiums:18 },
-    "gas": { fullName:"Pierre Gasly", team:"Alpine车队", nationality:"法国", birthDate:"1996年2月7日", age:30, height:"177 cm", weight:"70 kg", f1Debut:"2017年马来西亚大奖赛", championships:[], wins:[{year:2020,race:"意大利大奖赛",desc:"F1生涯首胜"}], totalWins:1, totalPoles:0, totalPodiums:4 },
-    "col": { fullName:"Franco Colapinto", team:"Alpine车队", nationality:"阿根廷", birthDate:"2003年5月27日", age:23, height:"176 cm", weight:"68 kg", f1Debut:"2024年意大利大奖赛", championships:[], wins:[], totalWins:0, totalPoles:0, totalPodiums:0 },
-    "oco": { fullName:"Esteban Ocon", team:"哈斯车队", nationality:"法国", birthDate:"1996年9月17日", age:30, height:"186 cm", weight:"66 kg", f1Debut:"2016年比利时大奖赛", championships:[], wins:[{year:2021,race:"匈牙利大奖赛",desc:"F1生涯首胜"}], totalWins:1, totalPoles:0, totalPodiums:3 },
-    "bea": { fullName:"Oliver Bearman", team:"哈斯车队", nationality:"英国", birthDate:"2005年5月8日", age:21, height:"178 cm", weight:"65 kg", f1Debut:"2025年澳大利亚大奖赛", championships:[], wins:[], totalWins:0, totalPoles:0, totalPodiums:0 },
-    "hul": { fullName:"Nico Hulkenberg", team:"奥迪车队", nationality:"德国", birthDate:"1987年8月19日", age:39, height:"184 cm", weight:"78 kg", f1Debut:"2010年巴林大奖赛", championships:[], wins:[], totalWins:0, totalPoles:1, totalPodiums:1 },
-    "bor": { fullName:"Gabriel Bortoleto", team:"奥迪车队", nationality:"巴西", birthDate:"2004年10月14日", age:22, height:"175 cm", weight:"65 kg", f1Debut:"2025年澳大利亚大奖赛", championships:[], wins:[], totalWins:0, totalPoles:0, totalPodiums:0 },
-    "law": { fullName:"Liam Lawson", team:"Racing Bulls车队", nationality:"新西兰", birthDate:"2002年2月11日", age:24, height:"175 cm", weight:"65 kg", f1Debut:"2023年荷兰大奖赛", championships:[], wins:[], totalWins:0, totalPoles:0, totalPodiums:0 },
-    "lin": { fullName:"Arvid Lindblad", team:"Racing Bulls车队", nationality:"瑞典", birthDate:"2007年8月8日", age:19, height:"175 cm", weight:"65 kg", f1Debut:"2026年澳大利亚大奖赛", championships:[], wins:[], totalWins:0, totalPoles:0, totalPodiums:0 },
-    "per": { fullName:"Sergio Perez", team:"凯迪拉克车队", nationality:"墨西哥", birthDate:"1990年1月26日", age:36, height:"173 cm", weight:"66 kg", f1Debut:"2011年澳大利亚大奖赛", championships:[], wins:[{year:2020,race:"萨基尔大奖赛",desc:"F1生涯首胜"},{year:2021,race:"阿塞拜疆大奖赛",desc:"巴库冠军"},{year:2022,race:"摩纳哥大奖赛",desc:"摩纳哥冠军"},{year:2022,race:"新加坡大奖赛",desc:"新加坡冠军"}], totalWins:6, totalPoles:1, totalPodiums:39 },
-    "bot": { fullName:"Valtteri Bottas", team:"凯迪拉克车队", nationality:"芬兰", birthDate:"1989年8月28日", age:37, height:"173 cm", weight:"69 kg", f1Debut:"2013年澳大利亚大奖赛", championships:[], wins:[{year:2017,race:"俄罗斯大奖赛",desc:"F1生涯首胜"},{year:2017,race:"阿布扎比大奖赛",desc:"赛季收官战冠军"}], totalWins:10, totalPoles:20, totalPodiums:67 }
-};
+// 车手身份、人设、资料卡正文已经迁移到 data/drivers/*.json，
+// 这里仅保留兼容壳，避免继续在 data.js 维护第二套人物真相。
+const DRIVERS = [];
+const DRIVER_PROFILES = {};
 
 const teamStandings = [
     { name: "梅赛德斯 (Mercedes)", points: 135, color: "#00D2BE" },
