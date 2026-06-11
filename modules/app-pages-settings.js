@@ -120,14 +120,16 @@ function importGameDataFromFile(file) {
 function formatStandingsSourceLabel(source = '') {
     const value = String(source || '').trim();
     if (value === 'remote') return '远程官方源';
-    if (value === 'manual' || value === 'local') return '手动导入';
+    if (value === 'local') return '本地直开数据包';
+    if (value === 'manual') return '手动导入';
     return '内置兜底';
 }
 
 function formatStandingsSourceBadge(source = '') {
     const value = String(source || '').trim();
     if (value === 'remote') return 'REMOTE';
-    if (value === 'manual' || value === 'local') return 'MANUAL';
+    if (value === 'local') return 'LOCAL';
+    if (value === 'manual') return 'MANUAL';
     return 'BUILTIN';
 }
 
@@ -749,13 +751,13 @@ const CALENDAR_RACE_DETAILS = {
     7: { circuit: 'Circuit Gilles Villeneuve', lapLength: '4.361 km', laps: '70', distance: '305.270 km', firstHeld: '1978', signature: '减速弯、牵引和攻路肩是主旋律，圈速听起来像不断地吸气再爆发。', sectorNote: '墙很多、缓冲少，最后那道出口永远在提醒人不要太贪。', hero: '敢在减速弯里直接把车立住、再把动力很早交出去的人，会很有存在感。', note: '这条赛道总有种“下一次进攻就会出事或出彩”的悬念感。' },
     8: { circuit: 'Circuit de Monaco', lapLength: '3.337 km', laps: '78', distance: '260.286 km', firstHeld: '1950', signature: '墙边、慢速、精度和神经，一切都被压到离失误只有几厘米的范围里。', sectorNote: '这里只要方向盘多给半度，或者刹车少给半寸，画面就会立刻改变。', hero: '真正能把街道赛开成绣花的人，在这站总会被看见。', note: '排位的重要性在这里几乎像规则本身一样真实。' },
     9: { circuit: 'Circuit de Barcelona-Catalunya', lapLength: '4.657 km', laps: '66', distance: '307.236 km', firstHeld: '1991', signature: '高速长弯、空气动力学平衡和轮胎工作窗都藏不住，是很标准的综合体检。', sectorNote: '长弯里只要前轴信心稍微不够，后面一连串节拍都会跟着塌。', hero: '那种能把基础设定和驾驶节奏都做得特别“正”的车手，在这里通常很稳。', note: '很多车队都会把这里当成升级件和真实竞争力的照妖镜。' },
-    10: { circuit: 'Circuit Gilles Villeneuve', lapLength: '4.361 km', laps: '70', distance: '305.270 km', firstHeld: '1978', signature: '减速弯、牵引和攻路肩是主旋律，圈速听起来像不断地吸气再爆发。', sectorNote: '墙很多、缓冲少，最后那道出口永远在提醒人不要太贪。', hero: '敢在减速弯里直接把车立住、再把动力很早交出去的人，会很有存在感。', note: '这条赛道总有种“下一次进攻就会出事或出彩”的悬念感。' },
-    11: { circuit: 'Red Bull Ring', lapLength: '4.318 km', laps: '71', distance: '306.452 km', firstHeld: '1970', signature: '海拔、短圈、长直道和硬制动点让一切都很浓缩，失误也会被反复看到。', sectorNote: '前三个重刹车区和后段高速收尾，是这站节奏最鲜明的骨架。', hero: '能把圈速做得很利落、每个重刹点都不浪费的人，会把这里跑得很凶。', note: '短圈意味着排位和正赛里一点点差距都会被看得特别清楚。' },
-    12: { circuit: 'Silverstone Circuit', lapLength: '5.891 km', laps: '52', distance: '306.198 km', firstHeld: '1950', signature: '真正的高速信心赛道，空气动力学平台和驾驶胆量会一起被放大。', sectorNote: 'Maggotts-Becketts-Chapel 一段就是整条赛道的性格本体。', hero: '越是敢把转向做成一口气、敢高速信任赛车的人，越容易在这里飞起来。', note: '这里的快不是数字感的快，是人能直接看出来的那种快。' },
-    13: { circuit: 'Spa-Francorchamps', lapLength: '7.004 km', laps: '44', distance: '308.052 km', firstHeld: '1950', signature: '长、快、起伏巨大，而且天气经常自己写剧本，是典型的史诗赛道。', sectorNote: '从山脚一路拉上去的那段勇气测试，总能替一整圈定调。', hero: '擅长在不确定里继续压节奏的人，在这里通常会显得特别像赛车手。', note: '只要天气一动，这站的情绪和策略就会立刻全场改写。' },
-    14: { circuit: 'Hungaroring', lapLength: '4.381 km', laps: '70', distance: '306.630 km', firstHeld: '1986', signature: '连续中低速节拍很多，像在一条几乎没空喘气的技术带里反复拧圈速。', sectorNote: '流畅与否特别关键，动作一旦碎掉，时间会在每个小出口里慢慢流走。', hero: '擅长把赛车转得很圆、节奏很稳的人，会在这里非常舒服。', note: '超车难度通常会把排位和起步表现的重要性推得更高。' },
-    15: { circuit: 'Circuit Zandvoort', lapLength: '4.259 km', laps: '72', distance: '306.587 km', firstHeld: '1952', signature: '沙丘地形、倾角弯和很有过山车感的节拍，让这站看起来又紧又快。', sectorNote: '节奏变化很密，尤其需要赛车在载荷转移里保持听话。', hero: '敢在带倾角的高速段继续保持节奏、又不让车头乱掉的人，会很有统治力。', note: '视觉上很轻快，但其实对赛车平衡的要求一点都不轻松。' },
-    16: { circuit: 'Monza Circuit', lapLength: '5.793 km', laps: '53', distance: '306.720 km', firstHeld: '1950', signature: '低下压力、超长全油门和几次决定生死的制动，是速度信仰最直接的一站。', sectorNote: '如果你在第一套减速弯和最后两段出口处理不好，整圈都会显得不够锋利。', hero: '敢在直线末端把刹车点压到很晚、又能把车迅速扶正的人，在这里总很抢眼。', note: '这站的快非常纯粹，像把一切装饰都撕掉之后留下来的骨架。' },
+    10: { circuit: 'Red Bull Ring', lapLength: '4.318 km', laps: '71', distance: '306.452 km', firstHeld: '1970', signature: '海拔、短圈、长直道和硬制动点让一切都很浓缩，失误也会被反复看到。', sectorNote: '前三个重刹车区和后段高速收尾，是这站节奏最鲜明的骨架。', hero: '能把圈速做得很利落、每个重刹点都不浪费的人，会把这里跑得很凶。', note: '短圈意味着排位和正赛里一点点差距都会被看得特别清楚。' },
+    11: { circuit: 'Silverstone Circuit', lapLength: '5.891 km', laps: '52', distance: '306.198 km', firstHeld: '1950', signature: '真正的高速信心赛道，空气动力学平台和驾驶胆量会一起被放大。', sectorNote: 'Maggotts-Becketts-Chapel 一段就是整条赛道的性格本体。', hero: '越是敢把转向做成一口气、敢高速信任赛车的人，越容易在这里飞起来。', note: '这里的快不是数字感的快，是人能直接看出来的那种快。' },
+    12: { circuit: 'Spa-Francorchamps', lapLength: '7.004 km', laps: '44', distance: '308.052 km', firstHeld: '1950', signature: '长、快、起伏巨大，而且天气经常自己写剧本，是典型的史诗赛道。', sectorNote: '从山脚一路拉上去的那段勇气测试，总能替一整圈定调。', hero: '擅长在不确定里继续压节奏的人，在这里通常会显得特别像赛车手。', note: '只要天气一动，这站的情绪和策略就会立刻全场改写。' },
+    13: { circuit: 'Hungaroring', lapLength: '4.381 km', laps: '70', distance: '306.630 km', firstHeld: '1986', signature: '连续中低速节拍很多，像在一条几乎没空喘气的技术带里反复拧圈速。', sectorNote: '流畅与否特别关键，动作一旦碎掉，时间会在每个小出口里慢慢流走。', hero: '擅长把赛车转得很圆、节奏很稳的人，会在这里非常舒服。', note: '超车难度通常会把排位和起步表现的重要性推得更高。' },
+    14: { circuit: 'Circuit Zandvoort', lapLength: '4.259 km', laps: '72', distance: '306.587 km', firstHeld: '1952', signature: '沙丘地形、倾角弯和很有过山车感的节拍，让这站看起来又紧又快。', sectorNote: '节奏变化很密，尤其需要赛车在载荷转移里保持听话。', hero: '敢在带倾角的高速段继续保持节奏、又不让车头乱掉的人，会很有统治力。', note: '视觉上很轻快，但其实对赛车平衡的要求一点都不轻松。' },
+    15: { circuit: 'Monza Circuit', lapLength: '5.793 km', laps: '53', distance: '306.720 km', firstHeld: '1950', signature: '低下压力、超长全油门和几次决定生死的制动，是速度信仰最直接的一站。', sectorNote: '如果你在第一套减速弯和最后两段出口处理不好，整圈都会显得不够锋利。', hero: '敢在直线末端把刹车点压到很晚、又能把车迅速扶正的人，在这里总很抢眼。', note: '这站的快非常纯粹，像把一切装饰都撕掉之后留下来的骨架。' },
+    16: { circuit: 'Madring', lapLength: '5.470 km', laps: '56', distance: '306.320 km', firstHeld: '2026', signature: '作为全新城市赛道，节奏会更看重连续制动、低速牵引和贴墙信心，很多判断都还在被这一站自己写出来。', sectorNote: '新赛道最容易把车手的适应速度放大出来，前几次正式跑法往往比既有经验更重要。', hero: '那种很快就能把参考点记进身体里、又愿意贴着墙把线路压窄的人，会更容易先站稳。', note: '全新分站的魅力就在于没有既定答案，围场会边跑边重新定义它的脾气。' },
     17: { circuit: 'Baku City Circuit', lapLength: '6.003 km', laps: '51', distance: '306.049 km', firstHeld: '2016', signature: '最慢的城堡段和极长的主直道被硬拴在一起，赛道性格很分裂，也很好看。', sectorNote: '狭窄技术区容错极低，最后一路把车放上直线时又要求你特别干脆。', hero: '能在墙边低速段保持冷静，又愿意在直线尽头狠狠干进去的人，会有很强存在感。', note: '这站很擅长把稳态周末突然改写成戏剧周末。' },
     18: { circuit: 'Marina Bay Street Circuit', lapLength: '4.940 km', laps: '62', distance: '306.143 km', firstHeld: '2008', signature: '夜赛、湿热、慢弯和长时间专注，像一场耐力和精度同时在线的城市战。', sectorNote: '长时间不断方向输入会把体能、散热和注意力一起拖出来。', hero: '越能在高压环境里把每个低速弯都处理得不急不躁的人，越容易后程发力。', note: '它的疲劳感是真实存在的，所以后半程经常比前半程更像较量。' },
     19: { circuit: 'Circuit of the Americas', lapLength: '5.513 km', laps: '56', distance: '308.405 km', firstHeld: '2012', signature: '上坡进一号弯、仿经典赛道的节奏拼接、再加上长直道，是很完整的一条综合赛道。', sectorNote: '前段的连续高速变向和后段的强牵引区，对平衡设定要求都很明确。', hero: '能够快速切换节奏模式的车手，往往会在这里显得很全面。', note: '这条赛道很少给单一类型赛车留下太舒服的偷懒方式。' },
@@ -803,13 +805,13 @@ const CALENDAR_HISTORY_DRIVERS = {
     7: { name: 'Lewis Hamilton / Michael Schumacher', tag: '蒙特利尔并列 7 胜', note: '加拿大奖励那种能在减速弯和直线之间把风险算得很清的人。' },
     8: { name: 'Ayrton Senna', tag: '摩纳哥 6 胜纪录', note: '蒙特卡洛和塞纳几乎是绑定的：墙边精度、神经强度和排位魔法。' },
     9: { name: 'Lewis Hamilton / Michael Schumacher', tag: '巴塞罗那并列 6 胜', note: '这条综合试车场一样的赛道，同时留下了两个时代的满分解法。' },
-    10: { name: 'Lewis Hamilton / Michael Schumacher', tag: '蒙特利尔并列 7 胜', note: '加拿大奖励那种能在减速弯和直线之间把风险算得很清的人。' },
-    11: { name: 'Max Verstappen', tag: 'Spielberg 5 胜纪录', note: '短圈、重刹、重复进攻窗口很多的地方，他的节奏压制感非常明显。' },
-    12: { name: 'Lewis Hamilton', tag: '银石 9 胜纪录', note: '这条高速信心赛道几乎已经被他写成了自己的主场传记。' },
-    13: { name: 'Michael Schumacher', tag: 'Spa 6 胜纪录', note: 'Spa 这种长、快、天气又难测的地方，最容易留下真正的赛道型车手。' },
-    14: { name: 'Lewis Hamilton', tag: 'Hungaroring 8 胜纪录', note: '在这条“没有太多喘息位”的技术赛道上，他把耐心和控制感拉到了极致。' },
-    15: { name: 'Jim Clark', tag: '赞德沃特 4 胜纪录', note: '老赞德沃特时代最有代表性的名字之一，节奏轻快又极具海岸速度感。' },
-    16: { name: 'Lewis Hamilton / Michael Schumacher', tag: 'Monza 并列 5 胜', note: '速度圣殿最终留下的是两位不同时代王者对直线末端制动的同样统治。' },
+    10: { name: 'Max Verstappen', tag: 'Spielberg 5 胜纪录', note: '短圈、重刹、重复进攻窗口很多的地方，他的节奏压制感非常明显。' },
+    11: { name: 'Lewis Hamilton', tag: '银石 9 胜纪录', note: '这条高速信心赛道几乎已经被他写成了自己的主场传记。' },
+    12: { name: 'Michael Schumacher', tag: 'Spa 6 胜纪录', note: 'Spa 这种长、快、天气又难测的地方，最容易留下真正的赛道型车手。' },
+    13: { name: 'Lewis Hamilton', tag: 'Hungaroring 8 胜纪录', note: '在这条“没有太多喘息位”的技术赛道上，他把耐心和控制感拉到了极致。' },
+    14: { name: 'Jim Clark', tag: '赞德沃特 4 胜纪录', note: '老赞德沃特时代最有代表性的名字之一，节奏轻快又极具海岸速度感。' },
+    15: { name: 'Lewis Hamilton / Michael Schumacher', tag: 'Monza 并列 5 胜', note: '速度圣殿最终留下的是两位不同时代王者对直线末端制动的同样统治。' },
+    16: { name: 'Still Writing', tag: '全新分站', note: '马德里这一站是新赛历成员，真正能先把名字留在这里的人，还要等赛道自己把历史写出来。' },
     17: { name: 'Sergio Perez', tag: '巴库代表胜者', note: '巴库这种又窄又长的城市赛道，他那种在混乱里找窗口的能力特别显眼。' },
     18: { name: 'Sebastian Vettel', tag: '新加坡 5 胜纪录', note: '夜赛、新加坡、维特尔，这三个关键词放在一起就自带整站的历史画面。' },
     19: { name: 'Lewis Hamilton', tag: '奥斯汀 5 胜纪录', note: '这条现代综合赛道里，他很长时间都是最会切换节奏模式的那个人。' },
@@ -820,10 +822,64 @@ const CALENDAR_HISTORY_DRIVERS = {
     24: { name: 'Lewis Hamilton / Max Verstappen', tag: 'Yas Marina 并列 5 胜', note: '收官站的历史情绪很重，所以这里现在也留下了两位时代焦点的并列纪录。' }
 };
 
-const CALENDAR_UNHELD_RACE_NOTES = {
-    4: '官方已确认 2026 年 4 月的巴林大奖赛不举行，因此这一站不会显示结果，也不会进入预测结算。',
-    5: '官方已确认 2026 年 4 月的沙特大奖赛不举行，因此这一站不会显示结果，也不会进入预测结算。'
+const CALENDAR_UNHELD_RACE_NOTES = {};
+
+const CALENDAR_TRACK_MAP_SLUGS = {
+    1: ['melbourne', 'albertpark', 'australia'],
+    2: ['shanghai', 'china'],
+    3: ['suzuka', 'japan'],
+    6: ['miami'],
+    7: ['montreal', 'canada'],
+    8: ['monaco', 'montecarlo'],
+    9: ['barcelona', 'catalunya', 'spain'],
+    10: ['spielberg', 'austria', 'redbullring'],
+    11: ['silverstone', 'greatbritain', 'britain'],
+    12: ['spa', 'spafrancorchamps', 'belgium'],
+    13: ['hungaroring', 'budapest', 'hungary'],
+    14: ['zandvoort', 'netherlands', 'dutch'],
+    15: ['monza', 'italy'],
+    16: ['madring', 'madrid', 'spain'],
+    17: ['baku', 'azerbaijan'],
+    18: ['singapore', 'marinabay'],
+    19: ['cota', 'austin', 'unitedstates', 'usa'],
+    20: ['mexicocity', 'mexico', 'rodriguez'],
+    21: ['interlagos', 'saopaulo', 'brazil'],
+    22: ['lasvegas', 'vegas'],
+    23: ['lusail', 'qatar'],
+    24: ['yasmarina', 'abudhabi', 'abu-dhabi']
 };
+
+function buildOfficialTrackMapCandidates(slugs = []) {
+    const unique = [];
+    const pushCandidate = (url) => {
+        if (!url || unique.includes(url)) return;
+        unique.push(url);
+    };
+    slugs.forEach(slug => {
+        const clean = String(slug || '').trim();
+        if (!clean) return;
+        [2026, 2025].forEach(year => {
+            ['webp', 'png'].forEach(ext => {
+                pushCandidate(`https://media.formula1.com/image/upload/c_fit,h_704/q_auto/common/f1/${year}/track/${year}track${clean}detailed.${ext}`);
+            });
+        });
+    });
+    return unique;
+}
+
+function getCalendarTrackMap(round, gp = '') {
+    const slugs = CALENDAR_TRACK_MAP_SLUGS[round] || [];
+    if (!slugs.length) return null;
+    const candidates = buildOfficialTrackMapCandidates(slugs);
+    if (!candidates.length) return null;
+    return {
+        src: candidates[0],
+        fallbacks: candidates.slice(1),
+        alt: `${gp || '大奖赛'}官方赛道图`,
+        kicker: 'OFFICIAL CIRCUIT MAP',
+        note: '官方赛道图，含扇区、弯角编号与起终点。'
+    };
+}
 
 let activeCalendarRound = null;
 let calendarPredictionCountdownTimer = null;
@@ -929,6 +985,53 @@ function getPredictionDriverOptions() {
 
 function getRacePredictionEntry(round) {
     return racePredictions?.[String(round)] || null;
+}
+
+function normalizePredictionResultFromStandings(result) {
+    if (!result || typeof result !== 'object') return null;
+    const round = Number(result.round || 0);
+    const pole = String(result.pole || '').trim();
+    const winner = String(result.winner || '').trim();
+    const podium = (Array.isArray(result.podium) ? result.podium : [])
+        .map(name => String(name || '').trim())
+        .filter(Boolean)
+        .slice(0, 2);
+    if (!round || !pole || !winner || podium.length < 2) return null;
+    return { round, pole, winner, podium };
+}
+
+function applyPredictionResultsFromStandings(result, options = {}) {
+    const normalized = normalizePredictionResultFromStandings(result);
+    if (!normalized) return null;
+    if (!window.CALENDAR_PREDICTION_RESULTS || typeof window.CALENDAR_PREDICTION_RESULTS !== 'object') {
+        window.CALENDAR_PREDICTION_RESULTS = {};
+    }
+    window.CALENDAR_PREDICTION_RESULTS[normalized.round] = {
+        pole: normalized.pole,
+        winner: normalized.winner,
+        podium: [...normalized.podium]
+    };
+    window.__standingsPredictionResult = { ...normalized };
+
+    const race = (window.F1_CALENDAR || []).find(item => Number(item.round) === normalized.round);
+    if (!race || typeof settleRacePredictionIfNeeded !== 'function') return normalized;
+
+    const beforeEntry = typeof getRacePredictionEntry === 'function' ? getRacePredictionEntry(normalized.round) : null;
+    const wasSettled = Boolean(beforeEntry?.settled);
+    settleRacePredictionIfNeeded(race);
+    const afterEntry = typeof getRacePredictionEntry === 'function' ? getRacePredictionEntry(normalized.round) : null;
+    const didSettle = !wasSettled && Boolean(afterEntry?.settled);
+
+    if (didSettle) {
+        if (typeof renderCalendar === 'function' && document.getElementById('calendarPage')?.classList.contains('active-page')) {
+            renderCalendar();
+        }
+        if (options.openModal !== false && typeof openPredictionSettlementModal === 'function') {
+            openPredictionSettlementModal();
+        }
+    }
+
+    return normalized;
 }
 
 function calculateRacePredictionScore(prediction, result) {
@@ -1071,6 +1174,11 @@ function closePredictionSettlementModal() {
     delete modal.dataset.predictionRound;
 }
 
+window.applyPredictionResultsFromStandings = applyPredictionResultsFromStandings;
+if (window.__standingsPredictionResult) {
+    applyPredictionResultsFromStandings(window.__standingsPredictionResult, { openModal: false });
+}
+
 function buildRacePredictionPanel(profile) {
     const roundKey = String(profile.round);
     const entry = getRacePredictionEntry(roundKey);
@@ -1164,6 +1272,7 @@ function buildRacePredictionPanel(profile) {
 function buildCalendarRaceProfile(race, stateKey) {
     const details = CALENDAR_RACE_DETAILS[race?.round] || {};
     const history = CALENDAR_HISTORY_DRIVERS[race?.round] || {};
+    const trackMap = getCalendarTrackMap(race?.round, race?.gp);
     const isCancelled = race?.status === 'cancelled' || Boolean(CALENDAR_UNHELD_RACE_NOTES[race.round]);
     const stateLabel = isCancelled
         ? '未举行'
@@ -1203,6 +1312,7 @@ function buildCalendarRaceProfile(race, stateKey) {
         historyDriver: history.name || 'Still Writing',
         historyTag: history.tag || '历史名片待续',
         historyNote: history.note || '这条赛道的故事还在继续，下一位把名字刻进去的人也许就在这个周末。',
+        trackMap,
         stateNote,
         predictionPanel: buildRacePredictionPanel({
             round: race.round,
@@ -1225,6 +1335,26 @@ function renderCalendarDetailPanel(profile) {
                 ? '<span class="calendar-detail-status is-completed">FINISHED FILE</span>'
                 : '<span class="calendar-detail-status is-upcoming">GRID PRELOAD</span>'));
     const sprintBadge = profile.sprint ? '<span class="calendar-detail-chip">Sprint Weekend</span>' : '';
+    const trackMapMarkup = profile.trackMap ? `
+        <article class="calendar-track-map-card">
+            <div class="calendar-track-map-top">
+                <span class="calendar-track-map-kicker">${escapeHtml(profile.trackMap.kicker || 'TRACK MAP')}</span>
+                <span class="calendar-track-map-chip">官方图</span>
+            </div>
+            <div class="calendar-track-map-frame">
+                <img
+                    class="calendar-track-map-image"
+                    src="${escapeHtml(profile.trackMap.src)}"
+                    data-track-fallbacks="${escapeHtml((profile.trackMap.fallbacks || []).join('|'))}"
+                    alt="${escapeHtml(profile.trackMap.alt || `${profile.gp} 赛道图`)}"
+                    loading="eager"
+                    decoding="async"
+                    referrerpolicy="no-referrer"
+                />
+            </div>
+            <div class="calendar-track-map-note">${escapeHtml(profile.trackMap.note || '')}</div>
+        </article>
+    ` : '';
     return `
         <section class="calendar-detail-panel is-${profile.stateKey}" data-calendar-panel-state="${profile.stateKey}" style="--calendar-panel-rgb:${profile.accentRgb};">
             <span class="calendar-detail-speedline" aria-hidden="true"></span>
@@ -1245,6 +1375,7 @@ function renderCalendarDetailPanel(profile) {
                 <span>${escapeHtml(profile.date)}</span>
                 <span>${escapeHtml(profile.location)}</span>
             </div>
+            ${trackMapMarkup}
             <div class="calendar-detail-grid">
                 <article class="calendar-detail-stat">
                     <span class="calendar-detail-label">单圈长度</span>
@@ -1292,6 +1423,35 @@ function renderCalendarDetailPanel(profile) {
             ${profile.predictionPanel || ''}
         </section>
     `;
+}
+
+function hydrateCalendarTrackMaps(scope = document) {
+    const images = Array.from(scope.querySelectorAll('.calendar-track-map-image'));
+    images.forEach(image => {
+        if (image.dataset.trackMapHydrated === 'true') return;
+        image.dataset.trackMapHydrated = 'true';
+        const fallbacks = String(image.dataset.trackFallbacks || '')
+            .split('|')
+            .map(item => item.trim())
+            .filter(Boolean);
+        let fallbackIndex = 0;
+        image.addEventListener('error', () => {
+            if (fallbackIndex < fallbacks.length) {
+                image.src = fallbacks[fallbackIndex];
+                fallbackIndex += 1;
+                return;
+            }
+            const card = image.closest('.calendar-track-map-card');
+            if (card) {
+                card.classList.add('is-track-map-unavailable');
+                const note = card.querySelector('.calendar-track-map-note');
+                if (note) {
+                    note.textContent = '这站的官方赛道图暂时未接通，稍后可以继续重试。';
+                }
+            }
+            image.remove();
+        });
+    });
 }
 
 renderCalendar = function renderCalendarOverride() {
@@ -1481,6 +1641,7 @@ renderCalendar = function renderCalendarOverride() {
         detailPanelWrap.innerHTML = renderCalendarDetailPanel(profile);
         detailPanelWrap.classList.remove('is-panel-refresh');
         window.requestAnimationFrame(() => detailPanelWrap.classList.add('is-panel-refresh'));
+        hydrateCalendarTrackMaps(detailPanelWrap);
         bindCalendarPredictionActions(profile.round);
         mountCalendarPredictionCountdown();
     };
@@ -1519,6 +1680,7 @@ renderCalendar = function renderCalendarOverride() {
         item.addEventListener('click', () => activate(true));
     });
     if (selectedProfile) {
+        hydrateCalendarTrackMaps(detailPanelWrap);
         bindCalendarPredictionActions(selectedProfile.round);
         mountCalendarPredictionCountdown();
     }

@@ -2172,6 +2172,10 @@ body.mobile-chat-focus .messages-area{
     0%{transform:translateX(-128%) skewX(-18deg)}
     100%{transform:translateX(155%) skewX(-18deg)}
 }
+@keyframes calendarTrackMapSweep{
+    0%{transform:translateX(-118%) skewX(-18deg)}
+    100%{transform:translateX(148%) skewX(-18deg)}
+}
 .calendar-detail-panel::after{content:"";position:absolute;inset:auto -48px -74px auto;width:178px;height:178px;border-radius:50%;background:radial-gradient(circle, rgba(var(--calendar-panel-rgb),0.18), transparent 70%);filter:blur(10px);opacity:.6;pointer-events:none}
 .calendar-detail-panel.is-current{border-color:rgba(var(--calendar-panel-rgb),0.22);box-shadow:0 24px 46px rgba(0,0,0,0.28), 0 0 26px rgba(var(--calendar-panel-rgb),0.12)}
 .calendar-detail-panel.is-completed{background:linear-gradient(180deg, rgba(255,255,255,0.042), rgba(255,255,255,0.014)), rgba(11,14,21,0.92)}
@@ -2198,6 +2202,17 @@ body.mobile-chat-focus .messages-area{
 .calendar-detail-chip{background:rgba(255,255,255,0.05);color:#d5deea}
 .calendar-detail-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
 .calendar-detail-meta span{display:inline-flex;align-items:center;min-height:24px;padding:0 10px;border-radius:999px;background:rgba(255,255,255,0.045);border:1px solid rgba(255,255,255,0.06);font-size:.67rem;color:#cfd7e3}
+.calendar-track-map-card{position:relative;overflow:hidden;margin-top:16px;padding:14px;border-radius:22px;background:radial-gradient(circle at top right, rgba(var(--calendar-panel-rgb),0.12), transparent 40%), linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.016));border:1px solid rgba(255,255,255,0.07);box-shadow:0 14px 28px rgba(0,0,0,0.16)}
+.calendar-track-map-card::before{content:"";position:absolute;inset:0;background:linear-gradient(118deg, transparent 0 34%, rgba(255,255,255,0.08) 48%, transparent 62%);transform:translateX(-118%) skewX(-18deg);animation:calendarTrackMapSweep 6.4s linear infinite;opacity:.6;pointer-events:none}
+.calendar-track-map-top,.calendar-track-map-frame,.calendar-track-map-note{position:relative;z-index:1}
+.calendar-track-map-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.calendar-track-map-kicker{display:block;font-size:.62rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-color)}
+.calendar-track-map-chip{display:inline-flex;align-items:center;min-height:22px;padding:0 9px;border-radius:999px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);color:#f4f7fb;font-size:.6rem;font-weight:800;letter-spacing:.08em}
+.calendar-track-map-frame{display:flex;align-items:center;justify-content:center;margin-top:12px;padding:12px;border-radius:18px;background:rgba(5,9,14,0.78);border:1px solid rgba(255,255,255,0.06)}
+.calendar-track-map-image{display:block;width:100%;max-width:420px;height:auto;object-fit:contain;filter:drop-shadow(0 14px 20px rgba(0,0,0,0.22))}
+.calendar-track-map-note{margin-top:10px;color:#cfd7e3;font-size:.73rem;line-height:1.55}
+.calendar-track-map-card.is-track-map-unavailable .calendar-track-map-frame{min-height:170px;background:linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));border-style:dashed}
+.calendar-track-map-card.is-track-map-unavailable .calendar-track-map-frame::before{content:"官方赛道图暂未载入";color:#dce6f4;font-size:.8rem;font-weight:800;letter-spacing:.08em}
 .calendar-detail-grid{display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:10px;margin-top:16px}
 .calendar-detail-stat{position:relative;overflow:hidden;padding:13px 13px 12px;border-radius:18px;background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));border:1px solid rgba(255,255,255,0.06)}
 .calendar-detail-stat::after{content:"";position:absolute;right:-18px;top:-18px;width:52px;height:52px;border-radius:50%;background:radial-gradient(circle, rgba(var(--calendar-panel-rgb),0.15), transparent 72%);opacity:.7}
@@ -5995,11 +6010,27 @@ body.mobile-chat-focus .messages-area{
 
 :root[data-theme-mode="light"] .calendar-detail-chip,
 :root[data-theme-mode="light"] .calendar-detail-meta span,
+:root[data-theme-mode="light"] .calendar-track-map-card,
 :root[data-theme-mode="light"] .calendar-detail-stat,
 :root[data-theme-mode="light"] .calendar-detail-brief,
 :root[data-theme-mode="light"] .calendar-detail-legend{
     background:rgba(255,255,255,0.7);
     border-color:rgba(108,128,155,0.14);
+}
+
+:root[data-theme-mode="light"] .calendar-track-map-frame{
+    background:rgba(244,248,252,0.92);
+    border-color:rgba(108,128,155,0.14);
+}
+
+:root[data-theme-mode="light"] .calendar-track-map-note{
+    color:rgba(20,32,51,0.72);
+}
+
+:root[data-theme-mode="light"] .calendar-track-map-chip{
+    background:rgba(20,32,51,0.06);
+    border-color:rgba(108,128,155,0.14);
+    color:var(--phone-contrast);
 }
 
 :root[data-theme-mode="light"] .calendar-detail-legend-name{

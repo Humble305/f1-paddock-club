@@ -32,10 +32,24 @@ const LAUNCH_SEQUENCE_TIMING = {
 let launchSequenceStarted = false;
 let launchSequenceFinished = false;
 let launchSequenceTimers = [];
+window.__appBootErrors = Array.isArray(window.__appBootErrors) ? window.__appBootErrors : [];
 
 function clearLaunchSequenceTimers() {
     launchSequenceTimers.forEach(timerId => clearTimeout(timerId));
     launchSequenceTimers = [];
+}
+
+async function runInitStep(label, handler) {
+    try {
+        return await handler();
+    } catch (error) {
+        console.error(`[init] ${label} failed`, error);
+        window.__appBootErrors.push({
+            label,
+            message: error?.message || String(error)
+        });
+        return null;
+    }
 }
 
 function finishLaunchSequence() {
@@ -452,56 +466,99 @@ function initFeedPosts() {
 
 async function init() {
     startLaunchSequence();
-    if (typeof window.loadDriverPersonas === 'function') await window.loadDriverPersonas();
-    startStatusBarClock();
-    loadTheme();
-    if (typeof loadMediaNewsStatus === 'function') loadMediaNewsStatus();
-    if (typeof loadMediaNewsFilter === 'function') loadMediaNewsFilter();
-    loadChatViewMode();
-    if (typeof loadStandingsData === 'function') loadStandingsData();
-    loadFavorability();
-    loadAvatars();
-    loadChatHistories();
-    loadGroupChats();
-    loadGroupChatUiState();
-    loadTeamSectionUiState();
-    loadUserProfile();
-    loadApiConfigProfiles();
-    loadApiConfig();
-    if (typeof renderStandingsAdminPanel === 'function') renderStandingsAdminPanel();
+    window.__appBootErrors.length = 0;
+    await runInitStep('loadDriverPersonas', async () => {
+        if (typeof window.loadDriverPersonas === 'function') await window.loadDriverPersonas();
+    });
+    await runInitStep('startStatusBarClock', () => startStatusBarClock());
+    await runInitStep('loadTheme', () => loadTheme());
+    await runInitStep('loadMediaNewsStatus', () => {
+        if (typeof loadMediaNewsStatus === 'function') loadMediaNewsStatus();
+    });
+    await runInitStep('loadMediaNewsFilter', () => {
+        if (typeof loadMediaNewsFilter === 'function') loadMediaNewsFilter();
+    });
+    await runInitStep('loadChatViewMode', () => loadChatViewMode());
+    await runInitStep('loadStandingsData', async () => {
+        if (typeof loadStandingsData === 'function') await loadStandingsData();
+    });
+    await runInitStep('loadFavorability', () => loadFavorability());
+    await runInitStep('loadAvatars', () => loadAvatars());
+    await runInitStep('loadChatHistories', () => loadChatHistories());
+    await runInitStep('loadGroupChats', () => loadGroupChats());
+    await runInitStep('loadGroupChatUiState', () => loadGroupChatUiState());
+    await runInitStep('loadTeamSectionUiState', () => loadTeamSectionUiState());
+    await runInitStep('loadUserProfile', () => loadUserProfile());
+    await runInitStep('loadApiConfigProfiles', () => loadApiConfigProfiles());
+    await runInitStep('loadApiConfig', () => loadApiConfig());
+    await runInitStep('renderStandingsAdminPanel', () => {
+        if (typeof renderStandingsAdminPanel === 'function') renderStandingsAdminPanel();
+    });
     window.addEventListener('standings:updated', () => {
         if (typeof renderStandingsAdminPanel === 'function') renderStandingsAdminPanel();
     });
-      loadPinnedDrivers();
-      loadSignData();
-      if (typeof loadDateLimitState === 'function') loadDateLimitState();
-      loadRacePredictions();
-    if (typeof loadGiftStoreState === 'function') loadGiftStoreState();
-    loadDateMemories();
-    if (typeof loadGroupDateMemories === 'function') loadGroupDateMemories();
-    if (typeof loadGroupDateSessions === 'function') loadGroupDateSessions();
-    loadDriverDiaries();
-    loadGroupDiaries();
-    initFeedPosts();
-    initRaceSessionData();
-    raceSessionData = window.raceSessionData;
-    if (typeof settleAllRacePredictions === 'function') settleAllRacePredictions();
-    bindEvents();
-    initThemeSelector();
-    if (typeof renderPaddockStore === 'function') renderPaddockStore();
-    if (typeof renderChatGiftPanel === 'function') renderChatGiftPanel();
-    renderDriverList();
-    renderFeed();
-    renderStandings();
-    renderDatePage();
-    renderCalendar();
-    renderMediaPage();
-    renderRaceRankings();
-    renderSignPage();
-    switchTab('chat');
-    if (typeof window.renderChatWorkspaceState === 'function') window.renderChatWorkspaceState();
-    checkAndShowNewAnnouncements();
-    if (typeof openPredictionSettlementModal === 'function') openPredictionSettlementModal();
+    await runInitStep('loadPinnedDrivers', () => loadPinnedDrivers());
+    await runInitStep('loadSignData', () => loadSignData());
+    await runInitStep('loadDateLimitState', () => {
+        if (typeof loadDateLimitState === 'function') loadDateLimitState();
+    });
+    await runInitStep('loadRacePredictions', () => loadRacePredictions());
+    await runInitStep('syncStandingsPredictionResult', () => {
+        if (window.__standingsPredictionResult && typeof window.applyPredictionResultsFromStandings === 'function') {
+            window.applyPredictionResultsFromStandings(window.__standingsPredictionResult, { openModal: false });
+        }
+    });
+    await runInitStep('loadGiftStoreState', () => {
+        if (typeof loadGiftStoreState === 'function') loadGiftStoreState();
+    });
+    await runInitStep('loadDateMemories', () => loadDateMemories());
+    await runInitStep('loadGroupDateMemories', () => {
+        if (typeof loadGroupDateMemories === 'function') loadGroupDateMemories();
+    });
+    await runInitStep('loadGroupDateSessions', () => {
+        if (typeof loadGroupDateSessions === 'function') loadGroupDateSessions();
+    });
+    await runInitStep('loadDriverDiaries', () => loadDriverDiaries());
+    await runInitStep('loadGroupDiaries', () => loadGroupDiaries());
+    await runInitStep('initFeedPosts', () => initFeedPosts());
+    await runInitStep('initRaceSessionData', () => {
+        initRaceSessionData();
+        raceSessionData = window.raceSessionData;
+    });
+    await runInitStep('settleAllRacePredictions', () => {
+        if (typeof settleAllRacePredictions === 'function') settleAllRacePredictions();
+    });
+    await runInitStep('bindEvents', () => bindEvents());
+    await runInitStep('initThemeSelector', () => initThemeSelector());
+    await runInitStep('renderPaddockStore', () => {
+        if (typeof renderPaddockStore === 'function') renderPaddockStore();
+    });
+    await runInitStep('renderChatGiftPanel', () => {
+        if (typeof renderChatGiftPanel === 'function') renderChatGiftPanel();
+    });
+    await runInitStep('renderDriverList', () => renderDriverList());
+    await runInitStep('renderFeed', () => renderFeed());
+    await runInitStep('renderStandings', () => renderStandings());
+    await runInitStep('renderDatePage', () => renderDatePage());
+    await runInitStep('renderCalendar', () => renderCalendar());
+    await runInitStep('renderMediaPage', () => renderMediaPage());
+    await runInitStep('renderRaceRankings', () => renderRaceRankings());
+    await runInitStep('renderSignPage', () => renderSignPage());
+    await runInitStep('switchTab', () => switchTab('chat'));
+    await runInitStep('renderChatWorkspaceState', () => {
+        if (typeof window.renderChatWorkspaceState === 'function') window.renderChatWorkspaceState();
+    });
+    await runInitStep('checkAndShowNewAnnouncements', () => checkAndShowNewAnnouncements());
+    await runInitStep('openPredictionSettlementModal', () => {
+        if (typeof openPredictionSettlementModal === 'function') openPredictionSettlementModal();
+    });
+    if (window.__appBootErrors.length) {
+        console.warn('应用以容错模式完成启动', window.__appBootErrors);
+        if (typeof showToast === 'function') {
+            const failedLabels = window.__appBootErrors.slice(0, 2).map(item => item.label).join('、');
+            showToast(`部分模块加载失败：${failedLabels}`, true);
+        }
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {

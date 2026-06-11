@@ -1,0 +1,57 @@
+// 直接双击打开 index.html 时，积分页优先读取这份本地数据包。
+// 后面如果你还是用本地直开方式玩，手改积分就改这个文件。
+
+window.STANDINGS_LIVE_PAYLOAD = {
+    meta: {
+        source: 'local',
+        season: 2026,
+        raceLabel: 'Monaco Grand Prix',
+        updatedAt: '2026-06-07T21:00:00+08:00'
+    },
+    predictionResult: {
+        round: 8,
+        pole: 'Kimi Antonelli',
+        winner: 'Kimi Antonelli',
+        podium: [
+            'Lewis Hamilton',
+            'Isack Hadjar'
+        ]
+    },
+    teamStandings: [
+        { name: 'Mercedes', points: 244, color: '#00D2BE' },
+        { name: 'Ferrari', points: 165, color: '#DC0000' },
+        { name: 'McLaren', points: 118, color: '#FF8700' },
+        { name: 'Red Bull', points: 72, color: '#3671C6' },
+        { name: 'Alpine', points: 41, color: '#2293D1' },
+        { name: 'Racing Bulls', points: 39, color: '#2B6E9F' },
+        { name: 'Haas', points: 21, color: '#B6BABD' },
+        { name: 'Williams', points: 11, color: '#005AFF' },
+        { name: 'Audi', points: 2, color: '#1A1C2B' },
+        { name: 'Aston Martin', points: 1, color: '#229971' },
+        { name: 'Cadillac', points: 0, color: '#C1C6D1' }
+    ],
+    driverStandings: [
+        { name: 'Kimi Antonelli', team: 'Mercedes', points: 156 },
+        { name: 'Lewis Hamilton', team: 'Ferrari', points: 90 },
+        { name: 'George Russell', team: 'Mercedes', points: 88 },
+        { name: 'Charles Leclerc', team: 'Ferrari', points: 75 },
+        { name: 'Oscar Piastri', team: 'McLaren', points: 60 },
+        { name: 'Lando Norris', team: 'McLaren', points: 58 },
+        { name: 'Max Verstappen', team: 'Red Bull', points: 43 },
+        { name: 'Isack Hadjar', team: 'Red Bull', points: 29 },
+        { name: 'Liam Lawson', team: 'Racing Bulls', points: 26 },
+        { name: 'Pierre Gasly', team: 'Alpine', points: 26 },
+        { name: 'Oliver Bearman', team: 'Haas', points: 18 },
+        { name: 'Franco Colapinto', team: 'Alpine', points: 15 },
+        { name: 'Arvid Lindblad', team: 'Racing Bulls', points: 13 },
+        { name: 'Carlos Sainz', team: 'Williams', points: 6 },
+        { name: 'Alexander Albon', team: 'Williams', points: 5 },
+        { name: 'Esteban Ocon', team: 'Haas', points: 3 },
+        { name: 'Gabriel Bortoleto', team: 'Audi', points: 2 },
+        { name: 'Fernando Alonso', team: 'Aston Martin', points: 1 },
+        { name: 'Nico Hulkenberg', team: 'Audi', points: 0 },
+        { name: 'Lance Stroll', team: 'Aston Martin', points: 0 },
+        { name: 'Valtteri Bottas', team: 'Cadillac', points: 0 },
+        { name: 'Sergio Perez', team: 'Cadillac', points: 0 }
+    ]
+};

@@ -68,8 +68,6 @@ const F1_CALENDAR = [
     { round: 1, date: "3月6-8日", gp: "澳大利亚大奖赛", location: "墨尔本阿尔伯特公园", sprint: false },
     { round: 2, date: "3月13-15日", gp: "中国大奖赛", location: "上海国际赛车场", sprint: true },
     { round: 3, date: "3月27-29日", gp: "日本大奖赛", location: "铃鹿赛道", sprint: false },
-    { round: 4, date: "4月10-12日", gp: "巴林大奖赛", location: "萨基尔赛道", sprint: false },
-    { round: 5, date: "4月17-19日", gp: "沙特阿拉伯大奖赛", location: "吉达街道赛道", sprint: false },
     { round: 6, date: "5月1-3日", gp: "迈阿密大奖赛", location: "迈阿密国际赛车场", sprint: true },
     {
         round: 7,

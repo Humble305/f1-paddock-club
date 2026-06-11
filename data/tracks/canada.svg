@@ -1,0 +1,157 @@
+<svg width="1024" height="576" viewBox="0 0 1024 576" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="soft-glow" x="-40" y="-40" width="1104" height="656" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+      <feGaussianBlur stdDeviation="6" result="effect1_foregroundBlur"/>
+    </filter>
+    <filter id="shadow" x="0" y="0" width="1024" height="576" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <rect width="1024" height="576" rx="26" fill="#0B0E13"/>
+  <rect x="16" y="16" width="992" height="544" rx="18" stroke="rgba(255,255,255,0.08)" stroke-width="2"/>
+
+  <g filter="url(#shadow)">
+    <!-- outer track shell -->
+    <path
+      d="M739 326
+         C786 328 827 331 865 338
+         C906 346 943 359 968 379
+         C987 394 997 416 994 437
+         C991 458 974 476 952 480
+         C931 484 911 472 903 451
+         C897 435 888 426 873 425
+         C853 424 832 435 810 448
+         C783 463 758 478 735 484
+         C707 491 684 497 675 514
+         C669 525 670 540 681 549
+         C695 561 718 560 736 546
+         C755 531 767 503 772 480
+         C778 453 789 431 801 411
+         C811 394 809 381 799 374
+         C786 365 769 367 759 381
+         C744 402 739 430 729 446
+         C716 466 691 469 660 463
+         C625 456 587 442 548 425
+         C507 407 468 381 428 344
+         C393 311 359 276 321 243
+         C288 214 252 195 214 187
+         C177 179 137 179 104 190
+         C81 198 67 210 67 222
+         C67 236 84 246 112 249
+         C145 252 181 248 222 246
+         C270 243 317 244 364 246
+         C415 248 463 255 517 265
+         C571 275 625 286 679 297
+         C730 307 779 316 824 324"
+      stroke="#1E2430"
+      stroke-width="42"
+      stroke-linecap="round"
+      stroke-linejoin="round"/>
+
+    <!-- sector 1 -->
+    <path
+      d="M739 326
+         C786 328 827 331 865 338
+         C906 346 943 359 968 379
+         C987 394 997 416 994 437
+         C991 458 974 476 952 480
+         C931 484 911 472 903 451
+         C897 435 888 426 873 425
+         C853 424 832 435 810 448
+         C783 463 758 478 735 484"
+      stroke="#FF4B55"
+      stroke-width="28"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      filter="url(#soft-glow)"/>
+
+    <!-- sector 2 -->
+    <path
+      d="M735 484
+         C707 491 684 497 675 514
+         C669 525 670 540 681 549
+         C695 561 718 560 736 546
+         C755 531 767 503 772 480
+         C778 453 789 431 801 411
+         C811 394 809 381 799 374
+         C786 365 769 367 759 381
+         C744 402 739 430 729 446
+         C716 466 691 469 660 463
+         C625 456 587 442 548 425
+         C507 407 468 381 428 344"
+      stroke="#3DD7FF"
+      stroke-width="28"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      filter="url(#soft-glow)"/>
+
+    <!-- sector 3 -->
+    <path
+      d="M428 344
+         C393 311 359 276 321 243
+         C288 214 252 195 214 187
+         C177 179 137 179 104 190
+         C81 198 67 210 67 222
+         C67 236 84 246 112 249
+         C145 252 181 248 222 246
+         C270 243 317 244 364 246
+         C415 248 463 255 517 265
+         C571 275 625 286 679 297
+         C730 307 779 316 824 324"
+      stroke="#FFD451"
+      stroke-width="28"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      filter="url(#soft-glow)"/>
+  </g>
+
+  <!-- start finish -->
+  <g>
+    <path d="M770 340L805 347" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/>
+    <path d="M767 355L802 362" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/>
+    <text x="720" y="388" fill="#F2F7FF" font-family="'Segoe UI', 'PingFang SC', sans-serif" font-size="13" font-weight="700" letter-spacing="0.18em">START / FINISH</text>
+  </g>
+
+  <!-- labels -->
+  <g font-family="'Segoe UI', 'PingFang SC', sans-serif" font-weight="700" font-size="12" fill="#F8FBFF">
+    <g>
+      <circle cx="993" cy="432" r="15" fill="#FF4B55" fill-opacity="0.15" stroke="#FF6A72"/>
+      <text x="984" y="436">1</text>
+    </g>
+    <g>
+      <circle cx="934" cy="488" r="15" fill="#FF4B55" fill-opacity="0.15" stroke="#FF6A72"/>
+      <text x="925" y="492">2</text>
+    </g>
+    <g>
+      <circle cx="753" cy="494" r="15" fill="#3DD7FF" fill-opacity="0.15" stroke="#76E3FF"/>
+      <text x="744" y="498">10</text>
+    </g>
+    <g>
+      <circle cx="113" cy="174" r="15" fill="#FFD451" fill-opacity="0.15" stroke="#FFE081"/>
+      <text x="101" y="178">6/7</text>
+    </g>
+    <g>
+      <circle cx="842" cy="447" r="15" fill="#FF4B55" fill-opacity="0.15" stroke="#FF6A72"/>
+      <text x="829" y="451">13/14</text>
+    </g>
+  </g>
+
+  <!-- wall of champions -->
+  <g>
+    <path d="M833 432L867 416" stroke="#FF6666" stroke-width="4" stroke-linecap="round"/>
+    <text x="842" y="404" fill="#FF8B8B" font-family="'Segoe UI', 'PingFang SC', sans-serif" font-size="13" font-weight="700" letter-spacing="0.1em">WALL OF CHAMPIONS</text>
+  </g>
+
+  <!-- footer meta -->
+  <g>
+    <text x="74" y="66" fill="#F4F8FF" font-family="Georgia, 'Times New Roman', serif" font-size="30" font-style="italic" letter-spacing="0.06em">CIRCUIT GILLES-VILLENEUVE</text>
+    <text x="74" y="90" fill="#91A5C0" font-family="'Segoe UI', 'PingFang SC', sans-serif" font-size="13" letter-spacing="0.22em">MONTREAL · CANADIAN GRAND PRIX</text>
+
+    <rect x="70" y="488" width="322" height="52" rx="14" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.08)"/>
+    <text x="92" y="511" fill="#F0F6FF" font-family="'Segoe UI', 'PingFang SC', sans-serif" font-size="18" font-weight="700">4.361 km · 70 laps</text>
+    <text x="92" y="529" fill="#97AAC2" font-family="'Segoe UI', 'PingFang SC', sans-serif" font-size="12">Heavy braking chicanes, traction hairpin, narrow island layout</text>
+  </g>
+</svg>

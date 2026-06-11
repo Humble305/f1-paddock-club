@@ -5,6 +5,7 @@ const STANDINGS_CONFIG_STORAGE_KEY = 'f1_standings_config';
 const STANDINGS_DATA_VERSION = '2026-official-remote-v1';
 const DEFAULT_STANDINGS_REMOTE_URL = 'https://raw.githubusercontent.com/Humble305/f1-paddock-club/main/standings.live.json';
 const LOCAL_STANDINGS_MIRROR_URL = './standings.live.json';
+const LOCAL_STANDINGS_BUNDLE_URL = './standings.live.bundle.js';
 
 let standingsMeta = {
     source: 'builtin',
@@ -27,41 +28,41 @@ function cloneStandingsList(list = []) {
 
 const BUILTIN_STANDINGS_SNAPSHOT = {
     teamStandings: [
-        { name: 'Mercedes', points: 180, color: '#00D2BE' },
-        { name: 'Ferrari', points: 110, color: '#DC0000' },
-        { name: 'McLaren', points: 94, color: '#FF8700' },
-        { name: 'Red Bull', points: 30, color: '#3671C6' },
-        { name: 'Alpine', points: 23, color: '#2293D1' },
-        { name: 'Haas', points: 18, color: '#B6BABD' },
-        { name: 'Racing Bulls', points: 14, color: '#2B6E9F' },
-        { name: 'Williams', points: 5, color: '#005AFF' },
+        { name: 'Mercedes', points: 244, color: '#00D2BE' },
+        { name: 'Ferrari', points: 165, color: '#DC0000' },
+        { name: 'McLaren', points: 118, color: '#FF8700' },
+        { name: 'Red Bull', points: 72, color: '#3671C6' },
+        { name: 'Alpine', points: 41, color: '#2293D1' },
+        { name: 'Racing Bulls', points: 39, color: '#2B6E9F' },
+        { name: 'Haas', points: 21, color: '#B6BABD' },
+        { name: 'Williams', points: 11, color: '#005AFF' },
         { name: 'Audi', points: 2, color: '#1A1C2B' },
-        { name: 'Cadillac', points: 0, color: '#C1C6D1' },
-        { name: 'Aston Martin', points: 0, color: '#229971' }
+        { name: 'Aston Martin', points: 1, color: '#229971' },
+        { name: 'Cadillac', points: 0, color: '#C1C6D1' }
     ],
     driverStandings: [
-        { name: 'Kimi Antonelli', team: 'Mercedes', points: 100 },
-        { name: 'George Russell', team: 'Mercedes', points: 80 },
-        { name: 'Charles Leclerc', team: 'Ferrari', points: 59 },
-        { name: 'Lando Norris', team: 'McLaren', points: 51 },
-        { name: 'Lewis Hamilton', team: 'Ferrari', points: 51 },
-        { name: 'Oscar Piastri', team: 'McLaren', points: 43 },
-        { name: 'Max Verstappen', team: 'Red Bull', points: 26 },
-        { name: 'Oliver Bearman', team: 'Haas', points: 17 },
-        { name: 'Pierre Gasly', team: 'Alpine', points: 16 },
-        { name: 'Liam Lawson', team: 'Racing Bulls', points: 10 },
-        { name: 'Franco Colapinto', team: 'Alpine', points: 7 },
-        { name: 'Arvid Lindblad', team: 'Racing Bulls', points: 4 },
-        { name: 'Isack Hadjar', team: 'Red Bull', points: 4 },
-        { name: 'Carlos Sainz', team: 'Williams', points: 4 },
+        { name: 'Kimi Antonelli', team: 'Mercedes', points: 156 },
+        { name: 'Lewis Hamilton', team: 'Ferrari', points: 90 },
+        { name: 'George Russell', team: 'Mercedes', points: 88 },
+        { name: 'Charles Leclerc', team: 'Ferrari', points: 75 },
+        { name: 'Oscar Piastri', team: 'McLaren', points: 60 },
+        { name: 'Lando Norris', team: 'McLaren', points: 58 },
+        { name: 'Max Verstappen', team: 'Red Bull', points: 43 },
+        { name: 'Isack Hadjar', team: 'Red Bull', points: 29 },
+        { name: 'Liam Lawson', team: 'Racing Bulls', points: 26 },
+        { name: 'Pierre Gasly', team: 'Alpine', points: 26 },
+        { name: 'Oliver Bearman', team: 'Haas', points: 18 },
+        { name: 'Franco Colapinto', team: 'Alpine', points: 15 },
+        { name: 'Arvid Lindblad', team: 'Racing Bulls', points: 13 },
+        { name: 'Carlos Sainz', team: 'Williams', points: 6 },
+        { name: 'Alexander Albon', team: 'Williams', points: 5 },
+        { name: 'Esteban Ocon', team: 'Haas', points: 3 },
         { name: 'Gabriel Bortoleto', team: 'Audi', points: 2 },
-        { name: 'Esteban Ocon', team: 'Haas', points: 1 },
-        { name: 'Alexander Albon', team: 'Williams', points: 1 },
+        { name: 'Fernando Alonso', team: 'Aston Martin', points: 1 },
         { name: 'Nico Hulkenberg', team: 'Audi', points: 0 },
+        { name: 'Lance Stroll', team: 'Aston Martin', points: 0 },
         { name: 'Valtteri Bottas', team: 'Cadillac', points: 0 },
-        { name: 'Sergio Perez', team: 'Cadillac', points: 0 },
-        { name: 'Fernando Alonso', team: 'Aston Martin', points: 0 },
-        { name: 'Lance Stroll', team: 'Aston Martin', points: 0 }
+        { name: 'Sergio Perez', team: 'Cadillac', points: 0 }
     ]
 };
 
@@ -72,6 +73,46 @@ function normalizeStandingsMeta(meta = {}) {
         raceLabel: String(meta.raceLabel || '').trim() || 'Built-in fallback',
         updatedAt: String(meta.updatedAt || '').trim() || ''
     };
+}
+
+function normalizePredictionResultEntry(entry = {}, fallbackRound = 0) {
+    if (!entry || typeof entry !== 'object') return null;
+    const round = Number(entry.round || fallbackRound || 0);
+    const pole = String(entry.pole || '').trim();
+    const winner = String(entry.winner || '').trim();
+    const podium = (Array.isArray(entry.podium) ? entry.podium : [])
+        .map(name => String(name || '').trim())
+        .filter(Boolean)
+        .slice(0, 2);
+    if (!round || !pole || !winner || podium.length < 2) return null;
+    return { round, pole, winner, podium };
+}
+
+function normalizeStandingsPredictionResult(payload = {}, meta = {}) {
+    const direct = normalizePredictionResultEntry(payload.predictionResult, meta.currentRound);
+    if (direct) return direct;
+
+    if (Array.isArray(payload.predictionResults)) {
+        const first = payload.predictionResults
+            .map(item => normalizePredictionResultEntry(item, meta.currentRound))
+            .find(Boolean);
+        if (first) return first;
+    }
+
+    if (payload.predictionResults && typeof payload.predictionResults === 'object') {
+        const entries = Object.entries(payload.predictionResults)
+            .map(([roundKey, item]) => normalizePredictionResultEntry({
+                round: item?.round || roundKey,
+                pole: item?.pole,
+                winner: item?.winner,
+                podium: item?.podium
+            }, meta.currentRound))
+            .filter(Boolean)
+            .sort((left, right) => right.round - left.round);
+        if (entries.length) return entries[0];
+    }
+
+    return null;
 }
 
 function getBuiltinStandingsPayload() {
@@ -85,6 +126,16 @@ function getBuiltinStandingsPayload() {
         teamStandings: cloneStandingsList(BUILTIN_STANDINGS_SNAPSHOT.teamStandings),
         driverStandings: cloneStandingsList(BUILTIN_STANDINGS_SNAPSHOT.driverStandings)
     };
+}
+
+function getBundledStandingsPayload() {
+    const payload = window.STANDINGS_LIVE_PAYLOAD;
+    if (!payload || typeof payload !== 'object') return null;
+    return payload;
+}
+
+function shouldPreferBundledStandingsPayload() {
+    return window.location?.protocol === 'file:';
 }
 
 function normalizeTeamStandingEntry(entry = {}) {
@@ -112,12 +163,14 @@ function normalizeStandingsPayload(payload = {}) {
         .map(normalizeDriverStandingEntry)
         .filter(item => item.name);
     const meta = normalizeStandingsMeta(payload.meta || fallback.meta);
-    return { meta, teamStandings, driverStandings };
+    const predictionResult = normalizeStandingsPredictionResult(payload, meta);
+    return { meta, predictionResult, teamStandings, driverStandings };
 }
 
 function getCurrentStandingsPayload() {
     return {
         meta: { ...standingsMeta },
+        predictionResult: window.__standingsPredictionResult ? { ...window.__standingsPredictionResult } : null,
         teamStandings: cloneStandingsList(window.teamStandings || []),
         driverStandings: cloneStandingsList(window.driverStandings || [])
     };
@@ -152,6 +205,7 @@ function applyStandingsPayload(payload = {}, options = {}) {
     window.driverStandings = normalized.driverStandings;
     window.defaultTeamStandings = cloneStandingsList(normalized.teamStandings);
     window.defaultDriverStandings = cloneStandingsList(normalized.driverStandings);
+    window.__standingsPredictionResult = normalized.predictionResult ? { ...normalized.predictionResult } : null;
     standingsDataConfig = {
         ...standingsDataConfig,
         version: STANDINGS_DATA_VERSION,
@@ -160,6 +214,11 @@ function applyStandingsPayload(payload = {}, options = {}) {
         lastUpdated: options.lastUpdated || standingsMeta.updatedAt || new Date().toISOString(),
         defaultRemoteUrl: DEFAULT_STANDINGS_REMOTE_URL
     };
+    if (window.__standingsPredictionResult && typeof window.applyPredictionResultsFromStandings === 'function') {
+        window.applyPredictionResultsFromStandings(window.__standingsPredictionResult, {
+            openModal: options.openPredictionModal !== false
+        });
+    }
     if (options.persist !== false) saveStandingsData();
     if (options.rerender !== false) rerenderStandingsConsumers();
     return normalized;
@@ -180,7 +239,34 @@ async function loadStandingsData() {
     const storedVersion = String(storedConfig.version || '').trim();
     const isVersionMatch = storedVersion === STANDINGS_DATA_VERSION;
 
-    if (storedSource === 'manual' && storedPayload) {
+    if (shouldPreferBundledStandingsPayload()) {
+        const bundledPayload = getBundledStandingsPayload();
+        if (bundledPayload) {
+            return applyStandingsPayload(bundledPayload, {
+                persist: true,
+                rerender: false,
+                source: 'local',
+                remoteUrl: LOCAL_STANDINGS_BUNDLE_URL,
+                lastUpdated: bundledPayload?.meta?.updatedAt || new Date().toISOString(),
+                openPredictionModal: false
+            });
+        }
+    }
+
+    const localMirrorUrl = LOCAL_STANDINGS_MIRROR_URL;
+    if (localMirrorUrl) {
+        try {
+            return await refreshStandingsFromUrl(localMirrorUrl, {
+                source: 'local',
+                persist: true,
+                rerender: false
+            });
+        } catch (error) {
+            console.warn(`Failed to refresh standings from local mirror ${localMirrorUrl}, trying next fallback:`, error);
+        }
+    }
+
+    if (storedSource === 'manual' && storedPayload && isVersionMatch) {
         return applyStandingsPayload(storedPayload, {
             persist: false,
             rerender: false,
@@ -191,12 +277,12 @@ async function loadStandingsData() {
     }
 
     const remoteCandidates = [
-        standingsDataConfig.remoteUrl || DEFAULT_STANDINGS_REMOTE_URL,
-        LOCAL_STANDINGS_MIRROR_URL
-    ].filter((url, index, list) => url && list.indexOf(url) === index);
+        standingsDataConfig.remoteUrl || DEFAULT_STANDINGS_REMOTE_URL
+    ].filter((url, index, list) => url && list.indexOf(url) === index && url !== LOCAL_STANDINGS_MIRROR_URL);
     for (const remoteUrl of remoteCandidates) {
         try {
             return await refreshStandingsFromUrl(remoteUrl, {
+                source: 'remote',
                 persist: true,
                 rerender: false
             });
@@ -205,11 +291,11 @@ async function loadStandingsData() {
         }
     }
 
-    if (storedSource === 'remote' && storedPayload && isVersionMatch) {
+    if ((storedSource === 'remote' || storedSource === 'local') && storedPayload && isVersionMatch) {
         return applyStandingsPayload(storedPayload, {
             persist: false,
             rerender: false,
-            source: 'remote',
+            source: storedSource || 'remote',
             remoteUrl: standingsDataConfig.remoteUrl || DEFAULT_STANDINGS_REMOTE_URL,
             lastUpdated: standingsDataConfig.lastUpdated || new Date().toISOString()
         });
@@ -271,3 +357,4 @@ window.resetStandingsData = resetStandingsData;
 window.refreshStandingsFromUrl = refreshStandingsFromUrl;
 window.getStandingsDataConfig = () => ({ ...standingsDataConfig });
 window.getDefaultStandingsRemoteUrl = () => DEFAULT_STANDINGS_REMOTE_URL;
+window.getBundledStandingsPayload = getBundledStandingsPayload;

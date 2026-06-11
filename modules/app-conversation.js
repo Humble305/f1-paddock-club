@@ -1199,17 +1199,11 @@ async function confirmMessageForward() {
     }
 }
 
-function isLikelyGroupSpeakerBoundary(char) {
-    return !char || /[\s\r\n\t"'“”‘’《》〈〉「」『』（）()【】\[\]{}<>.,，。!?！？、…;；\-—]/.test(char);
-}
-
 function splitGroupReplyBySpeakerLabels(text, speakerEntries) {
     const source = String(text || '').replace(/\r/g, '').trim();
     if (!source || !speakerEntries.length) return [];
     const matches = [];
     for (let index = 0; index < source.length; index += 1) {
-        const prevChar = index === 0 ? '' : source[index - 1];
-        if (!isLikelyGroupSpeakerBoundary(prevChar)) continue;
         for (const entry of speakerEntries) {
             if (!source.startsWith(entry.name, index)) continue;
             let cursor = index + entry.name.length;

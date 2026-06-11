@@ -1,0 +1,54 @@
+{
+  "meta": {
+    "source": "manual",
+    "season": 2026,
+    "raceLabel": "在这里写这次更新对应的分站名",
+    "updatedAt": "2026-06-11T22:00:00+08:00"
+  },
+  "predictionResult": {
+    "round": 0,
+    "pole": "在这里写杆位车手",
+    "winner": "在这里写正赛冠军",
+    "podium": [
+      "在这里写 P2 车手",
+      "在这里写 P3 车手"
+    ]
+  },
+  "teamStandings": [
+    { "name": "Mercedes", "points": 0, "color": "#00D2BE" },
+    { "name": "Ferrari", "points": 0, "color": "#DC0000" },
+    { "name": "McLaren", "points": 0, "color": "#FF8700" },
+    { "name": "Red Bull", "points": 0, "color": "#3671C6" },
+    { "name": "Aston Martin", "points": 0, "color": "#229971" },
+    { "name": "Williams", "points": 0, "color": "#005AFF" },
+    { "name": "Haas", "points": 0, "color": "#B6BABD" },
+    { "name": "Alpine", "points": 0, "color": "#2293D1" },
+    { "name": "Racing Bulls", "points": 0, "color": "#2B6E9F" },
+    { "name": "Audi", "points": 0, "color": "#1A1C2B" },
+    { "name": "Cadillac", "points": 0, "color": "#C1C6D1" }
+  ],
+  "driverStandings": [
+    { "name": "Kimi Antonelli", "team": "Mercedes", "points": 0 },
+    { "name": "George Russell", "team": "Mercedes", "points": 0 },
+    { "name": "Charles Leclerc", "team": "Ferrari", "points": 0 },
+    { "name": "Lewis Hamilton", "team": "Ferrari", "points": 0 },
+    { "name": "Lando Norris", "team": "McLaren", "points": 0 },
+    { "name": "Oscar Piastri", "team": "McLaren", "points": 0 },
+    { "name": "Max Verstappen", "team": "Red Bull", "points": 0 },
+    { "name": "Isack Hadjar", "team": "Red Bull", "points": 0 },
+    { "name": "Fernando Alonso", "team": "Aston Martin", "points": 0 },
+    { "name": "Lance Stroll", "team": "Aston Martin", "points": 0 },
+    { "name": "Alexander Albon", "team": "Williams", "points": 0 },
+    { "name": "Carlos Sainz", "team": "Williams", "points": 0 },
+    { "name": "Oliver Bearman", "team": "Haas", "points": 0 },
+    { "name": "Esteban Ocon", "team": "Haas", "points": 0 },
+    { "name": "Pierre Gasly", "team": "Alpine", "points": 0 },
+    { "name": "Franco Colapinto", "team": "Alpine", "points": 0 },
+    { "name": "Liam Lawson", "team": "Racing Bulls", "points": 0 },
+    { "name": "Arvid Lindblad", "team": "Racing Bulls", "points": 0 },
+    { "name": "Gabriel Bortoleto", "team": "Audi", "points": 0 },
+    { "name": "Nico Hulkenberg", "team": "Audi", "points": 0 },
+    { "name": "Sergio Perez", "team": "Cadillac", "points": 0 },
+    { "name": "Valtteri Bottas", "team": "Cadillac", "points": 0 }
+  ]
+}
