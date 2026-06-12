@@ -161,6 +161,179 @@ function saveDateLimitState() {
     secureStorageSet('f1_date_limit_state', dateLimitState);
 }
 
+function normalizeRewardInboxItem(rawItem) {
+    if (!rawItem || typeof rawItem !== 'object') return null;
+    const id = String(rawItem.id || '').trim();
+    const amount = Math.max(0, Number(rawItem.amount) || 0);
+    const createdAt = rawItem.createdAt || new Date().toISOString();
+    if (!id || amount <= 0) return null;
+    return {
+        id,
+        source: String(rawItem.source || 'system'),
+        title: String(rawItem.title || '围场奖励'),
+        body: String(rawItem.body || '这封邮件里有一份待领取奖励。'),
+        amount,
+        status: rawItem.status === 'claimed' ? 'claimed' : 'pending',
+        createdAt,
+        claimedAt: rawItem.claimedAt || null,
+        meta: rawItem.meta && typeof rawItem.meta === 'object' ? rawItem.meta : {}
+    };
+}
+
+function normalizeRewardInbox(rawInbox) {
+    if (!Array.isArray(rawInbox)) return [];
+    const seen = new Set();
+    return rawInbox
+        .map(normalizeRewardInboxItem)
+        .filter(Boolean)
+        .filter(item => {
+            if (seen.has(item.id)) return false;
+            seen.add(item.id);
+            return true;
+        })
+        .sort((left, right) => new Date(right.createdAt || 0).getTime() - new Date(left.createdAt || 0).getTime());
+}
+
+function loadRewardInbox() {
+    rewardInbox = normalizeRewardInbox(secureStorageGet('f1_reward_inbox', rewardInbox));
+    saveRewardInbox();
+}
+
+function saveRewardInbox() {
+    rewardInbox = normalizeRewardInbox(rewardInbox);
+    secureStorageSet('f1_reward_inbox', rewardInbox);
+    updateRewardInboxBadge();
+}
+
+function getPendingRewardInboxCount() {
+    return (rewardInbox || []).filter(item => item?.status !== 'claimed').length;
+}
+
+function updateRewardInboxBadge() {
+    const badge = document.getElementById('sidebarInboxBadge');
+    if (!badge) return;
+    const count = getPendingRewardInboxCount();
+    badge.textContent = String(count);
+    badge.style.display = count > 0 ? 'inline-flex' : 'none';
+}
+
+function createRewardMail(options = {}) {
+    const source = String(options.source || 'system');
+    const id = String(options.id || `${source}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+    if ((rewardInbox || []).some(item => item?.id === id)) return null;
+    const mail = normalizeRewardInboxItem({
+        id,
+        source,
+        title: options.title || '围场奖励',
+        body: options.body || '这封邮件里有一份待领取奖励。',
+        amount: options.amount,
+        createdAt: options.createdAt || new Date().toISOString(),
+        status: 'pending',
+        meta: options.meta || {}
+    });
+    if (!mail) return null;
+    rewardInbox = [mail, ...(rewardInbox || [])];
+    saveRewardInbox();
+    if (document.getElementById('inboxPage')?.classList.contains('active-page')) renderInboxPage();
+    return mail;
+}
+
+function claimRewardMail(mailId) {
+    const target = (rewardInbox || []).find(item => item?.id === mailId);
+    if (!target) {
+        showToast('这封邮件已经不在邮箱里了', true);
+        return;
+    }
+    if (target.status === 'claimed') {
+        showToast('这封邮件的奖励已经领过了', true);
+        return;
+    }
+    target.status = 'claimed';
+    target.claimedAt = new Date().toISOString();
+    userCoins += Number(target.amount || 0);
+    saveSignData();
+    saveRewardInbox();
+    renderSignPage();
+    renderInboxPage();
+    showToast(`已领取围场币 +${target.amount}`, false);
+}
+
+function deleteRewardMail(mailId) {
+    const target = (rewardInbox || []).find(item => item?.id === mailId);
+    if (target?.status !== 'claimed') {
+        showToast('先领取奖励，再删除这封邮件', true);
+        return;
+    }
+    const before = rewardInbox.length;
+    rewardInbox = (rewardInbox || []).filter(item => item?.id !== mailId);
+    if (rewardInbox.length === before) return;
+    saveRewardInbox();
+    renderInboxPage();
+    showToast('邮件已删除', false);
+}
+
+function formatRewardMailDate(value) {
+    const date = new Date(value || Date.now());
+    if (Number.isNaN(date.getTime())) return '刚刚';
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hour = String(date.getHours()).padStart(2, '0');
+    const minute = String(date.getMinutes()).padStart(2, '0');
+    return `${month}/${day} ${hour}:${minute}`;
+}
+
+function renderInboxPage() {
+    const container = document.getElementById('inboxContainer');
+    if (!container) return;
+    updateRewardInboxBadge();
+    const mails = normalizeRewardInbox(rewardInbox);
+    const pendingCount = mails.filter(item => item.status !== 'claimed').length;
+    const claimedCount = mails.length - pendingCount;
+    const mailMarkup = mails.length
+        ? mails.map(mail => {
+            const isClaimed = mail.status === 'claimed';
+            return `
+                <article class="inbox-mail-card${isClaimed ? ' is-claimed' : ''}">
+                    <div class="inbox-mail-main">
+                        <div class="inbox-mail-topline">
+                            <span class="inbox-mail-source">${escapeHtml(mail.source === 'prediction' ? '预测结算' : '围场邮件')}</span>
+                            <span class="inbox-mail-date">${escapeHtml(formatRewardMailDate(mail.createdAt))}</span>
+                        </div>
+                        <h4>${escapeHtml(mail.title)}</h4>
+                        <p>${escapeHtml(mail.body)}</p>
+                        <div class="inbox-mail-reward"><span class="btn-leading-icon" data-ui-icon="coin" data-icon-label="围场币"></span><strong>+${mail.amount}</strong><span>围场币</span></div>
+                    </div>
+                    <div class="inbox-mail-actions">
+                        ${isClaimed
+                            ? '<span class="inbox-mail-claimed">已领取</span>'
+                            : `<button type="button" class="modal-btn modal-btn-primary inbox-mail-claim-btn" data-inbox-claim="${escapeHtml(mail.id)}">领取</button>`}
+                        ${isClaimed ? `<button type="button" class="modal-btn inbox-mail-delete-btn" data-inbox-delete="${escapeHtml(mail.id)}">删除</button>` : ''}
+                    </div>
+                </article>
+            `;
+        }).join('')
+        : '<div class="inbox-empty"><span class="inbox-empty-icon" data-ui-icon="mail" data-icon-label="邮箱"></span><strong>邮箱暂时是空的</strong><span>预测结算和后续活动奖励都会先放在这里。</span></div>';
+    container.innerHTML = `
+        <section class="inbox-hero">
+            <div>
+                <div class="inbox-kicker">PADDOCK MAIL</div>
+                <h3>围场邮箱</h3>
+                <p>结算奖励会先送到这里，领完也可以继续留作记录，或者自己删掉。</p>
+            </div>
+            <div class="inbox-wallet">
+                <span>当前围场币</span>
+                <strong>${userCoins}</strong>
+            </div>
+        </section>
+        <section class="inbox-stats">
+            <div><span>待领取</span><strong>${pendingCount}</strong></div>
+            <div><span>已领取</span><strong>${claimedCount}</strong></div>
+        </section>
+        <section class="inbox-list">${mailMarkup}</section>
+    `;
+    window.injectUiIcons?.(container);
+}
+
 function getAvailableDateSlots(mode) {
     const safeMode = mode === 'group' ? 'group' : 'single';
     const state = ensureDateLimitState();
@@ -199,6 +372,42 @@ function loadRacePredictions() {
     if (!racePredictions || typeof racePredictions !== 'object') {
         racePredictions = {};
         return;
+    }
+    let changed = false;
+    Object.entries(racePredictions).forEach(([round, entry]) => {
+        if (!entry?.settled || entry.rewardMailId) return;
+        const mailId = `prediction-${round}`;
+        const race = (window.F1_CALENDAR || []).find(item => String(item.round) === String(round));
+        const raceName = race?.gp || `第 ${round} 站`;
+        const hasMail = (rewardInbox || []).some(mail => mail?.id === mailId);
+        if (!hasMail && Number(entry.reward || 0) > 0) {
+            rewardInbox = [{
+                id: mailId,
+                source: 'prediction',
+                title: `${raceName} 预测结算`,
+                body: '这是一封旧版本结算记录，奖励已经在当时直接入账。',
+                amount: Number(entry.reward || 0),
+                status: 'claimed',
+                createdAt: entry.settledAt || new Date().toISOString(),
+                claimedAt: entry.settledAt || new Date().toISOString(),
+                meta: {
+                    round: Number(round),
+                    raceName,
+                    score: entry.score || 0,
+                    hitCount: entry.hitCount || 0,
+                    breakdown: Array.isArray(entry.breakdown) ? entry.breakdown : []
+                }
+            }, ...(rewardInbox || [])];
+        }
+        racePredictions[String(round)] = {
+            ...entry,
+            rewardMailId: mailId
+        };
+        changed = true;
+    });
+    if (changed) {
+        if (typeof saveRewardInbox === 'function') saveRewardInbox();
+        saveRacePredictions();
     }
     const settledEntries = Object.entries(racePredictions)
         .filter(([, entry]) => entry?.settled)

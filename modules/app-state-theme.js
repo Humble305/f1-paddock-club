@@ -58,6 +58,7 @@ let dateLimitState = {
 };
 let giftInventory = {};
 let giftHistory = [];
+let rewardInbox = [];
 let racePredictions = {};
 let currentTheme = null;
 let chatViewMode = 'mobile';

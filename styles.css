@@ -610,6 +610,20 @@ body.mobile-chat-focus .messages-area{
 .tab-icon{font-size:1.16rem}
 .page{flex:1;overflow-y:auto;display:none;flex-direction:column;scrollbar-width:thin}
 .page.active-page{display:flex}
+.sidebar-badge{
+    min-width:18px;
+    height:18px;
+    padding:0 5px;
+    border-radius:999px;
+    align-items:center;
+    justify-content:center;
+    background:var(--accent-color);
+    color:#111827;
+    font-size:.62rem;
+    font-weight:900;
+    line-height:1;
+    box-shadow:0 0 0 2px rgba(0,0,0,0.22)
+}
 .driver-list{padding:12px;display:flex;flex-direction:column;gap:10px}
 .group-chat-section{
     margin-bottom:8px;
@@ -2168,6 +2182,198 @@ body.mobile-chat-focus .messages-area{
 .prediction-settlement-copy{color:#cdd8e6;font-size:.78rem;line-height:1.65}
 .prediction-settlement-breakdown{display:flex;flex-wrap:wrap;gap:8px}
 .prediction-settlement-breakdown span{padding:7px 10px;border-radius:999px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.06);color:#e8eff8;font-size:.7rem;font-weight:700}
+.inbox-container{
+    padding:14px;
+    display:flex;
+    flex-direction:column;
+    gap:12px
+}
+.inbox-hero{
+    display:flex;
+    justify-content:space-between;
+    gap:14px;
+    padding:18px;
+    border-radius:24px;
+    background:
+        radial-gradient(circle at 88% 18%, rgba(var(--primary-color-rgb),0.22), transparent 34%),
+        linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.018));
+    border:1px solid rgba(255,255,255,0.07);
+    box-shadow:var(--shadow-card)
+}
+.inbox-kicker{
+    color:var(--accent-color);
+    font-size:.62rem;
+    font-weight:900;
+    letter-spacing:.14em
+}
+.inbox-hero h3{
+    color:#fff;
+    font-size:1.28rem;
+    line-height:1.2;
+    margin-top:6px
+}
+.inbox-hero p{
+    color:#b9c7d9;
+    font-size:.76rem;
+    line-height:1.65;
+    margin-top:7px
+}
+.inbox-wallet{
+    min-width:92px;
+    padding:12px;
+    border-radius:18px;
+    background:rgba(0,0,0,0.18);
+    border:1px solid rgba(255,255,255,0.07);
+    display:grid;
+    align-content:center;
+    gap:5px;
+    text-align:right
+}
+.inbox-wallet span,
+.inbox-stats span{
+    color:#93a4b8;
+    font-size:.66rem;
+    font-weight:800
+}
+.inbox-wallet strong{
+    color:var(--accent-color);
+    font-size:1.45rem;
+    font-weight:900
+}
+.inbox-stats{
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap:10px
+}
+.inbox-stats div{
+    padding:13px 14px;
+    border-radius:18px;
+    background:rgba(255,255,255,0.045);
+    border:1px solid rgba(255,255,255,0.06);
+    display:flex;
+    align-items:center;
+    justify-content:space-between
+}
+.inbox-stats strong{
+    color:#fff;
+    font-size:1rem;
+    font-weight:900
+}
+.inbox-list{
+    display:flex;
+    flex-direction:column;
+    gap:10px
+}
+.inbox-mail-card{
+    padding:14px;
+    border-radius:22px;
+    background:linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.016));
+    border:1px solid rgba(255,255,255,0.07);
+    display:grid;
+    gap:13px;
+    box-shadow:var(--shadow-card)
+}
+.inbox-mail-card.is-claimed{
+    opacity:.78
+}
+.inbox-mail-topline{
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    align-items:center
+}
+.inbox-mail-source{
+    color:var(--accent-color);
+    font-size:.62rem;
+    font-weight:900;
+    letter-spacing:.1em
+}
+.inbox-mail-date{
+    color:#8293a8;
+    font-size:.66rem;
+    font-weight:700
+}
+.inbox-mail-card h4{
+    margin-top:7px;
+    color:#fff;
+    font-size:.94rem;
+    line-height:1.35
+}
+.inbox-mail-card p{
+    margin-top:6px;
+    color:#b9c7d9;
+    font-size:.76rem;
+    line-height:1.65
+}
+.inbox-mail-reward{
+    margin-top:10px;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    width:max-content;
+    max-width:100%;
+    padding:8px 11px;
+    border-radius:999px;
+    background:rgba(var(--primary-color-rgb),0.14);
+    border:1px solid rgba(var(--primary-color-rgb),0.18);
+    color:#fff;
+    font-size:.72rem;
+    font-weight:800
+}
+.inbox-mail-reward strong{
+    color:var(--accent-color);
+    font-size:.9rem
+}
+.inbox-mail-actions{
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    gap:8px;
+    flex-wrap:wrap
+}
+.inbox-mail-actions .modal-btn{
+    margin:0;
+    min-width:72px;
+    padding:9px 12px;
+    font-size:.72rem
+}
+.inbox-mail-claimed{
+    min-height:34px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:0 12px;
+    border-radius:999px;
+    background:rgba(255,255,255,0.06);
+    color:#aebcd0;
+    font-size:.72rem;
+    font-weight:800
+}
+.inbox-empty{
+    min-height:210px;
+    border-radius:24px;
+    border:1px dashed rgba(255,255,255,0.12);
+    background:rgba(255,255,255,0.025);
+    display:grid;
+    place-items:center;
+    align-content:center;
+    gap:8px;
+    text-align:center;
+    color:#9baabd;
+    padding:22px
+}
+.inbox-empty-icon{
+    color:var(--accent-color);
+    font-size:1.4rem
+}
+.inbox-empty strong{
+    color:#fff;
+    font-size:.96rem
+}
+.inbox-empty span:last-child{
+    font-size:.76rem;
+    line-height:1.55
+}
 @keyframes calendarPredictSweep{
     0%{transform:translateX(-128%) skewX(-18deg)}
     100%{transform:translateX(155%) skewX(-18deg)}
@@ -7031,6 +7237,36 @@ body.mobile-chat-focus .messages-area{
     text-transform:uppercase;
     letter-spacing:.12em;
     font-size:.66rem!important
+}
+:root[data-theme-mode="light"] .inbox-hero,
+:root[data-theme-mode="light"] .inbox-stats div,
+:root[data-theme-mode="light"] .inbox-mail-card{
+    background:linear-gradient(180deg, rgba(255,255,255,0.96), rgba(244,248,252,0.96));
+    border-color:rgba(106,127,156,0.14)
+}
+:root[data-theme-mode="light"] .inbox-hero h3,
+:root[data-theme-mode="light"] .inbox-stats strong,
+:root[data-theme-mode="light"] .inbox-mail-card h4,
+:root[data-theme-mode="light"] .inbox-empty strong{
+    color:var(--phone-contrast)
+}
+:root[data-theme-mode="light"] .inbox-hero p,
+:root[data-theme-mode="light"] .inbox-mail-card p,
+:root[data-theme-mode="light"] .inbox-mail-date,
+:root[data-theme-mode="light"] .inbox-empty,
+:root[data-theme-mode="light"] .inbox-wallet span,
+:root[data-theme-mode="light"] .inbox-stats span{
+    color:var(--phone-muted)
+}
+:root[data-theme-mode="light"] .inbox-wallet,
+:root[data-theme-mode="light"] .inbox-empty,
+:root[data-theme-mode="light"] .inbox-mail-claimed{
+    background:rgba(241,245,249,0.92);
+    border-color:rgba(106,127,156,0.14)
+}
+:root[data-theme-mode="light"] .inbox-mail-reward{
+    background:rgba(var(--primary-color-rgb),0.10);
+    color:var(--phone-contrast)
 }
 @media (max-width: 820px){
     .announce-modal-card{

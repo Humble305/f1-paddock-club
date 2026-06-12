@@ -8,6 +8,7 @@ const PAGE_IDS = {
     date: 'datePage',
     calendar: 'calendarPage',
     media: 'mediaPage',
+    inbox: 'inboxPage',
     sign: 'signPage'
 };
 
@@ -172,6 +173,7 @@ function renderPageByKey(pageKey) {
     if (pageKey === 'date') renderDatePage();
     if (pageKey === 'calendar') renderCalendar();
     if (pageKey === 'media') renderMediaPage();
+    if (pageKey === 'inbox' && typeof renderInboxPage === 'function') renderInboxPage();
     if (pageKey === 'sign') renderSignPage();
 }
 
@@ -279,6 +281,7 @@ function bindEvents() {
     document.getElementById('sidebarCalendarBtn')?.addEventListener('click', () => { setSidebarActive('sidebarCalendarBtn'); switchTab('calendar'); });
     document.getElementById('sidebarMediaBtn')?.addEventListener('click', () => { setSidebarActive('sidebarMediaBtn'); switchTab('media'); });
     document.getElementById('sidebarSignBtn')?.addEventListener('click', () => { setSidebarActive('sidebarSignBtn'); switchTab('sign'); });
+    document.getElementById('sidebarInboxBtn')?.addEventListener('click', () => { setSidebarActive('sidebarInboxBtn'); switchTab('inbox'); });
     document.getElementById('sidebarThemeBtn')?.addEventListener('click', () => {
         setSidebarActive('sidebarThemeBtn');
         document.getElementById('themeModal').style.display = 'flex';
@@ -342,6 +345,20 @@ function bindEvents() {
     });
     document.getElementById('closePredictionSettlementBtn')?.addEventListener('click', () => {
         if (typeof acknowledgePredictionSettlementFeedback === 'function') acknowledgePredictionSettlementFeedback();
+        clearSidebarActive();
+        setSidebarActive('sidebarInboxBtn');
+        switchTab('inbox');
+    });
+    document.getElementById('inboxContainer')?.addEventListener('click', event => {
+        const claimButton = event.target.closest('[data-inbox-claim]');
+        const deleteButton = event.target.closest('[data-inbox-delete]');
+        if (claimButton && typeof claimRewardMail === 'function') {
+            claimRewardMail(claimButton.dataset.inboxClaim);
+            return;
+        }
+        if (deleteButton && typeof deleteRewardMail === 'function') {
+            deleteRewardMail(deleteButton.dataset.inboxDelete);
+        }
     });
     document.getElementById('closeDateLimitModalBtn')?.addEventListener('click', () => {
         if (typeof closeDateLimitModal === 'function') closeDateLimitModal();
@@ -502,6 +519,9 @@ async function init() {
     await runInitStep('loadDateLimitState', () => {
         if (typeof loadDateLimitState === 'function') loadDateLimitState();
     });
+    await runInitStep('loadRewardInbox', () => {
+        if (typeof loadRewardInbox === 'function') loadRewardInbox();
+    });
     await runInitStep('loadRacePredictions', () => loadRacePredictions());
     await runInitStep('syncStandingsPredictionResult', () => {
         if (window.__standingsPredictionResult && typeof window.applyPredictionResultsFromStandings === 'function') {
@@ -544,6 +564,9 @@ async function init() {
     await runInitStep('renderMediaPage', () => renderMediaPage());
     await runInitStep('renderRaceRankings', () => renderRaceRankings());
     await runInitStep('renderSignPage', () => renderSignPage());
+    await runInitStep('renderInboxPage', () => {
+        if (typeof renderInboxPage === 'function') renderInboxPage();
+    });
     await runInitStep('switchTab', () => switchTab('chat'));
     await runInitStep('renderChatWorkspaceState', () => {
         if (typeof window.renderChatWorkspaceState === 'function') window.renderChatWorkspaceState();

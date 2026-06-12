@@ -1,6 +1,4 @@
 (function () {
-    const ANNOUNCEMENT_DISPLAY_ORDER = ['v4.9.0', 'v4.8.0', 'v4.7.0'];
-
     function getDisplayAnnouncements() {
         const announcementMap = new Map();
         (window.ANNOUNCEMENTS || []).forEach((item) => {
@@ -8,9 +6,15 @@
             announcementMap.set(item.version, item);
         });
 
-        return ANNOUNCEMENT_DISPLAY_ORDER
-            .map((version) => announcementMap.get(version))
-            .filter(Boolean);
+        return Array.from(announcementMap.values()).sort((left, right) => {
+            const leftVersion = String(left.version || '').replace(/^v/i, '').split('.').map(Number);
+            const rightVersion = String(right.version || '').replace(/^v/i, '').split('.').map(Number);
+            for (let index = 0; index < Math.max(leftVersion.length, rightVersion.length); index += 1) {
+                const diff = (rightVersion[index] || 0) - (leftVersion[index] || 0);
+                if (diff !== 0) return diff;
+            }
+            return 0;
+        });
     }
 
     function showAnnouncements() {

@@ -21,6 +21,7 @@ function exportGameData() {
         userCoins,
         signData,
         dateLimitState: typeof ensureDateLimitState === 'function' ? ensureDateLimitState() : dateLimitState,
+        rewardInbox,
         giftInventory,
         giftHistory,
         standingsData: typeof getCurrentStandingsPayload === 'function' ? getCurrentStandingsPayload() : null,
@@ -57,6 +58,7 @@ function applyLoadedData(saveData) {
     userCoins = saveData.userCoins ?? userCoins;
     signData = saveData.signData || signData;
     dateLimitState = saveData.dateLimitState || dateLimitState;
+    rewardInbox = typeof normalizeRewardInbox === 'function' ? normalizeRewardInbox(saveData.rewardInbox || rewardInbox) : (saveData.rewardInbox || rewardInbox);
     giftInventory = saveData.giftInventory || giftInventory;
     giftHistory = saveData.giftHistory || giftHistory;
     if (saveData.standingsData && typeof applyStandingsPayload === 'function') {
@@ -88,6 +90,8 @@ function applyLoadedData(saveData) {
     if (typeof ensureDateLimitState === 'function') ensureDateLimitState();
     if (typeof saveDateLimitState === 'function') saveDateLimitState();
     else secureStorageSet('f1_date_limit_state', dateLimitState);
+    if (typeof saveRewardInbox === 'function') saveRewardInbox();
+    else secureStorageSet('f1_reward_inbox', rewardInbox);
     secureStorageSet('f1_gift_inventory', giftInventory);
     secureStorageSet('f1_gift_history', giftHistory);
     if (saveData.currentTheme) applyTheme(saveData.currentTheme);
@@ -101,6 +105,7 @@ function applyLoadedData(saveData) {
     renderMediaPage();
     renderRaceRankings();
     renderSignPage();
+    if (typeof renderInboxPage === 'function') renderInboxPage();
     if (typeof renderPaddockStore === 'function') renderPaddockStore();
 }
 
@@ -1078,14 +1083,30 @@ function settleRacePredictionIfNeeded(race) {
         settledAt: new Date().toISOString(),
         score: outcome.score,
         reward: outcome.reward,
+        rewardMailId: `prediction-${key}`,
         hitCount: outcome.hitCount,
         result,
         breakdown: outcome.breakdown,
         feedbackPending: true
     };
-    userCoins += outcome.reward;
+    if (typeof createRewardMail === 'function') {
+        const raceName = race.gp || `第 ${race.round} 站`;
+        createRewardMail({
+            id: `prediction-${key}`,
+            source: 'prediction',
+            amount: outcome.reward,
+            title: `${raceName} 预测结算`,
+            body: `命中 ${outcome.hitCount || 0} 项，本站得分 ${outcome.score || 0}。奖励已经放进邮箱，等你来领取。`,
+            meta: {
+                round: race.round,
+                raceName,
+                score: outcome.score,
+                hitCount: outcome.hitCount,
+                breakdown: outcome.breakdown
+            }
+        });
+    }
     saveRacePredictions();
-    saveSignData();
 }
 
 function settleAllRacePredictions() {
@@ -1138,7 +1159,7 @@ function openPredictionSettlementModal() {
                     <strong>+${reward}</strong>
                 </div>
             </div>
-            <div class="prediction-settlement-copy">这站预测已经自动结算，奖励已经发进你的围场币余额。</div>
+            <div class="prediction-settlement-copy">这站预测已经自动结算，奖励已经放进围场邮箱，打开邮箱就能自己领取。</div>
             <div class="prediction-settlement-breakdown">
                 ${breakdown.length ? breakdown.map(item => `<span>${escapeHtml(item)}</span>`).join('') : '<span>这次没有命中项，保底奖励已发放。</span>'}
             </div>
