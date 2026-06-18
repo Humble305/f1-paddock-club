@@ -2,47 +2,47 @@
   "meta": {
     "source": "formula1.com",
     "season": 2026,
-    "raceLabel": "Monaco Grand Prix",
-    "updatedAt": "2026-06-07T21:00:00+08:00"
+    "raceLabel": "Barcelona-Catalunya Grand Prix",
+    "updatedAt": "2026-06-17T22:27:32+08:00"
   },
   "predictionResult": {
-    "round": 8,
-    "pole": "Kimi Antonelli",
-    "winner": "Kimi Antonelli",
+    "round": 9,
+    "pole": "George Russell",
+    "winner": "Lewis Hamilton",
     "podium": [
-      "Lewis Hamilton",
-      "Isack Hadjar"
+      "George Russell",
+      "Lando Norris"
     ]
   },
   "teamStandings": [
     {
       "name": "Mercedes",
-      "points": 244,
+      "points": 262,
       "color": "#00D2BE"
     },
     {
       "name": "Ferrari",
-      "points": 165,
+      "points": 190,
       "color": "#DC0000"
     },
     {
       "name": "McLaren",
-      "points": 118,
+      "points": 141,
       "color": "#FF8700"
     },
     {
       "name": "Red Bull",
-      "points": 72,
+      "points": 89,
       "color": "#3671C6"
     },
     {
       "name": "Alpine",
-      "points": 41,
+      "points": 57,
       "color": "#2293D1"
     },
     {
       "name": "Racing Bulls",
-      "points": 39,
+      "points": 41,
       "color": "#2B6E9F"
     },
     {
@@ -80,12 +80,12 @@
     {
       "name": "Lewis Hamilton",
       "team": "Ferrari",
-      "points": 90
+      "points": 115
     },
     {
       "name": "George Russell",
       "team": "Mercedes",
-      "points": 88
+      "points": 106
     },
     {
       "name": "Charles Leclerc",
@@ -93,34 +93,34 @@
       "points": 75
     },
     {
-      "name": "Oscar Piastri",
-      "team": "McLaren",
-      "points": 60
-    },
-    {
       "name": "Lando Norris",
       "team": "McLaren",
-      "points": 58
+      "points": 73
+    },
+    {
+      "name": "Oscar Piastri",
+      "team": "McLaren",
+      "points": 68
     },
     {
       "name": "Max Verstappen",
       "team": "Red Bull",
-      "points": 43
-    },
-    {
-      "name": "Isack Hadjar",
-      "team": "Red Bull",
-      "points": 29
-    },
-    {
-      "name": "Liam Lawson",
-      "team": "Racing Bulls",
-      "points": 26
+      "points": 55
     },
     {
       "name": "Pierre Gasly",
       "team": "Alpine",
-      "points": 26
+      "points": 41
+    },
+    {
+      "name": "Isack Hadjar",
+      "team": "Red Bull",
+      "points": 34
+    },
+    {
+      "name": "Liam Lawson",
+      "team": "Racing Bulls",
+      "points": 28
     },
     {
       "name": "Oliver Bearman",
@@ -130,7 +130,7 @@
     {
       "name": "Franco Colapinto",
       "team": "Alpine",
-      "points": 15
+      "points": 16
     },
     {
       "name": "Arvid Lindblad",
@@ -168,11 +168,6 @@
       "points": 0
     },
     {
-      "name": "Lance Stroll",
-      "team": "Aston Martin",
-      "points": 0
-    },
-    {
       "name": "Valtteri Bottas",
       "team": "Cadillac",
       "points": 0
@@ -180,6 +175,11 @@
     {
       "name": "Sergio Perez",
       "team": "Cadillac",
+      "points": 0
+    },
+    {
+      "name": "Lance Stroll",
+      "team": "Aston Martin",
       "points": 0
     }
   ]

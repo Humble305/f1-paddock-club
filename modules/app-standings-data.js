@@ -28,12 +28,12 @@ function cloneStandingsList(list = []) {
 
 const BUILTIN_STANDINGS_SNAPSHOT = {
     teamStandings: [
-        { name: 'Mercedes', points: 244, color: '#00D2BE' },
-        { name: 'Ferrari', points: 165, color: '#DC0000' },
-        { name: 'McLaren', points: 118, color: '#FF8700' },
-        { name: 'Red Bull', points: 72, color: '#3671C6' },
-        { name: 'Alpine', points: 41, color: '#2293D1' },
-        { name: 'Racing Bulls', points: 39, color: '#2B6E9F' },
+        { name: 'Mercedes', points: 262, color: '#00D2BE' },
+        { name: 'Ferrari', points: 190, color: '#DC0000' },
+        { name: 'McLaren', points: 141, color: '#FF8700' },
+        { name: 'Red Bull', points: 89, color: '#3671C6' },
+        { name: 'Alpine', points: 57, color: '#2293D1' },
+        { name: 'Racing Bulls', points: 41, color: '#2B6E9F' },
         { name: 'Haas', points: 21, color: '#B6BABD' },
         { name: 'Williams', points: 11, color: '#005AFF' },
         { name: 'Audi', points: 2, color: '#1A1C2B' },
@@ -42,17 +42,17 @@ const BUILTIN_STANDINGS_SNAPSHOT = {
     ],
     driverStandings: [
         { name: 'Kimi Antonelli', team: 'Mercedes', points: 156 },
-        { name: 'Lewis Hamilton', team: 'Ferrari', points: 90 },
-        { name: 'George Russell', team: 'Mercedes', points: 88 },
+        { name: 'Lewis Hamilton', team: 'Ferrari', points: 115 },
+        { name: 'George Russell', team: 'Mercedes', points: 106 },
         { name: 'Charles Leclerc', team: 'Ferrari', points: 75 },
-        { name: 'Oscar Piastri', team: 'McLaren', points: 60 },
-        { name: 'Lando Norris', team: 'McLaren', points: 58 },
-        { name: 'Max Verstappen', team: 'Red Bull', points: 43 },
-        { name: 'Isack Hadjar', team: 'Red Bull', points: 29 },
-        { name: 'Liam Lawson', team: 'Racing Bulls', points: 26 },
-        { name: 'Pierre Gasly', team: 'Alpine', points: 26 },
+        { name: 'Lando Norris', team: 'McLaren', points: 73 },
+        { name: 'Oscar Piastri', team: 'McLaren', points: 68 },
+        { name: 'Max Verstappen', team: 'Red Bull', points: 55 },
+        { name: 'Pierre Gasly', team: 'Alpine', points: 41 },
+        { name: 'Isack Hadjar', team: 'Red Bull', points: 34 },
+        { name: 'Liam Lawson', team: 'Racing Bulls', points: 28 },
         { name: 'Oliver Bearman', team: 'Haas', points: 18 },
-        { name: 'Franco Colapinto', team: 'Alpine', points: 15 },
+        { name: 'Franco Colapinto', team: 'Alpine', points: 16 },
         { name: 'Arvid Lindblad', team: 'Racing Bulls', points: 13 },
         { name: 'Carlos Sainz', team: 'Williams', points: 6 },
         { name: 'Alexander Albon', team: 'Williams', points: 5 },
@@ -60,9 +60,9 @@ const BUILTIN_STANDINGS_SNAPSHOT = {
         { name: 'Gabriel Bortoleto', team: 'Audi', points: 2 },
         { name: 'Fernando Alonso', team: 'Aston Martin', points: 1 },
         { name: 'Nico Hulkenberg', team: 'Audi', points: 0 },
-        { name: 'Lance Stroll', team: 'Aston Martin', points: 0 },
         { name: 'Valtteri Bottas', team: 'Cadillac', points: 0 },
-        { name: 'Sergio Perez', team: 'Cadillac', points: 0 }
+        { name: 'Sergio Perez', team: 'Cadillac', points: 0 },
+        { name: 'Lance Stroll', team: 'Aston Martin', points: 0 }
     ]
 };
 

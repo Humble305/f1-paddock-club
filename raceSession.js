@@ -120,6 +120,27 @@ const COMPLETED_RACE_RESULTS = {
             { pos: 9, driver: 'Esteban Ocon', team: 'Haas', points: 2 },
             { pos: 10, driver: 'Fernando Alonso', team: 'Aston Martin', points: 1 }
         ]
+    },
+    9: {
+        qualifying: [
+            { pos: 1, driver: 'George Russell', team: 'Mercedes', time: '1:14.679' },
+            { pos: 2, driver: 'Lewis Hamilton', team: 'Ferrari', time: '1:14.743' },
+            { pos: 3, driver: 'Kimi Antonelli', team: 'Mercedes', time: '1:14.812' },
+            { pos: 4, driver: 'Lando Norris', team: 'McLaren', time: '1:14.946' },
+            { pos: 5, driver: 'Max Verstappen', team: 'Red Bull', time: '1:15.021' },
+            { pos: 6, driver: 'Isack Hadjar', team: 'Red Bull', time: '1:15.184' }
+        ],
+        race: [
+            { pos: 1, driver: 'Lewis Hamilton', team: 'Ferrari', points: 25 },
+            { pos: 2, driver: 'George Russell', team: 'Mercedes', points: 18 },
+            { pos: 3, driver: 'Lando Norris', team: 'McLaren', points: 15 },
+            { pos: 4, driver: 'Max Verstappen', team: 'Red Bull', points: 12 },
+            { pos: 5, driver: 'Oscar Piastri', team: 'McLaren', points: 10 },
+            { pos: 6, driver: 'Isack Hadjar', team: 'Red Bull', points: 8 },
+            { pos: 7, driver: 'Pierre Gasly', team: 'Alpine', points: 6 },
+            { pos: 8, driver: 'Franco Colapinto', team: 'Alpine', points: 4 },
+            { pos: 9, driver: 'Liam Lawson', team: 'Racing Bulls', points: 2 }
+        ]
     }
 };
 
