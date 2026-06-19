@@ -1396,6 +1396,109 @@ function renderStandingsViewToggle() {
     `;
 }
 
+function getStandingsRefreshMetaText() {
+    const meta = typeof window.getCurrentStandingsMeta === 'function' ? window.getCurrentStandingsMeta() : {};
+    const updatedAt = String(meta.updatedAt || '').trim();
+    const parsed = updatedAt ? new Date(updatedAt) : null;
+    const updatedText = parsed && !Number.isNaN(parsed.getTime())
+        ? parsed.toLocaleString('zh-CN', {
+            hour12: false,
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        })
+        : '待同步';
+    const source = String(meta.source || '').trim();
+    const sourceText = source === 'formula1.com'
+        ? 'F1 官方'
+        : (source === 'local' ? '本地数据' : (source === 'manual' ? '手动导入' : (source === 'remote' ? '项目远程 JSON' : '内置兜底')));
+    return `${sourceText} · ${updatedText}`;
+}
+
+function renderStandingsRefreshBar(context = 'standings') {
+    const title = context === 'raceRankings' ? '分站积分同步' : '官方积分同步';
+    return `
+        <div class="standings-refresh-bar">
+            <div class="standings-refresh-copy">
+                <div class="standings-refresh-title">${title}</div>
+                <div class="standings-refresh-meta">${escapeHtml(getStandingsRefreshMetaText())}</div>
+            </div>
+            <button type="button" class="standings-refresh-btn" data-standings-official-refresh>
+                从 F1 官方刷新
+            </button>
+        </div>
+    `;
+}
+
+function maybeSettlePredictionAfterStandingsRefresh(refreshResult = {}) {
+    if (!refreshResult?.changed) return false;
+    const predictionResult = refreshResult.predictionResult
+        || window.__standingsPredictionResult
+        || (typeof window.getCurrentStandingsPayload === 'function' ? window.getCurrentStandingsPayload()?.predictionResult : null);
+    if (!predictionResult) {
+        if (typeof showToast === 'function') showToast('积分已更新，暂无可结算的赛前预测结果', true);
+        return true;
+    }
+    if (typeof window.applyPredictionResultsFromStandings !== 'function') {
+        if (typeof showToast === 'function') showToast('积分已更新，但预测结算模块还没加载', true);
+        return true;
+    }
+    const round = Number(predictionResult.round || 0);
+    const beforeEntry = typeof getRacePredictionEntry === 'function' && round
+        ? getRacePredictionEntry(round)
+        : null;
+    const wasSettled = Boolean(beforeEntry?.settled);
+    const normalized = window.applyPredictionResultsFromStandings(predictionResult, { openModal: true });
+    if (!normalized) {
+        if (typeof showToast === 'function') showToast('积分已更新，但赛前预测结果格式还不完整', true);
+        return true;
+    }
+    const afterEntry = typeof getRacePredictionEntry === 'function' && round
+        ? getRacePredictionEntry(round)
+        : null;
+    return !wasSettled && Boolean(afterEntry?.settled);
+}
+
+window.maybeSettlePredictionAfterStandingsRefresh = maybeSettlePredictionAfterStandingsRefresh;
+
+function bindStandingsRefreshButtons(scope = document) {
+    scope.querySelectorAll('[data-standings-official-refresh]').forEach(button => {
+        button.addEventListener('click', async () => {
+            const buttons = Array.from(document.querySelectorAll('[data-standings-official-refresh]'));
+            const originalTexts = new Map(buttons.map(item => [item, item.textContent]));
+            buttons.forEach(item => {
+                item.disabled = true;
+                item.textContent = '正在连接 F1 官方';
+            });
+            try {
+                if (typeof window.refreshStandingsFromOfficial !== 'function') {
+                    throw new Error('当前版本没有加载官方积分刷新模块');
+                }
+                const refreshResult = await window.refreshStandingsFromOfficial();
+                const settled = maybeSettlePredictionAfterStandingsRefresh(refreshResult);
+                if (typeof showToast === 'function' && !settled) showToast('积分数据已从 F1 官方刷新', false);
+            } catch (error) {
+                try {
+                    const defaultUrl = typeof window.getDefaultStandingsRemoteUrl === 'function' ? window.getDefaultStandingsRemoteUrl() : '';
+                    const refreshResult = await refreshStandingsFromUrl(defaultUrl, { openPredictionModal: false });
+                    const settled = maybeSettlePredictionAfterStandingsRefresh(refreshResult);
+                    if (typeof showToast === 'function' && !settled) showToast('F1 官方直连失败，已改用项目远程 JSON 刷新', false);
+                } catch (fallbackError) {
+                    const message = `${error.message || error}；项目远程 JSON 兜底也刷新失败：${fallbackError.message || fallbackError}`;
+                    if (typeof handleApiError === 'function') handleApiError(new Error(message), '积分数据刷新');
+                    else console.error(message);
+                }
+            } finally {
+                buttons.forEach(item => {
+                    item.disabled = false;
+                    item.textContent = originalTexts.get(item) || '从 F1 官方刷新';
+                });
+            }
+        });
+    });
+}
+
 function renderStandingsSection(teamProfiles, driverProfiles, activeTeamKey, activeDriverId, emptyTitle = '', emptyCopy = '') {
     if (!teamProfiles.length || !driverProfiles.length) {
         return `
@@ -1488,6 +1591,7 @@ function renderStandings() {
         activeWeekendStandingsDriverId = weekendDriverProfiles[0]?.id || '';
     }
     container.innerHTML = `
+        ${renderStandingsRefreshBar('standings')}
         ${renderStandingsViewToggle()}
         <div class="standings-view-panel${activeStandingsView === 'season' ? ' is-active' : ''}" data-standings-panel="season">
             ${renderStandingsSection(seasonTeamProfiles, seasonDriverProfiles, activeStandingsTeamKey, activeStandingsDriverId)}
@@ -1507,6 +1611,7 @@ function renderStandings() {
             )}
         </div>
     `;
+    bindStandingsRefreshButtons(container);
     const activePanel = container.querySelector('.standings-view-panel.is-active');
     const panelWrap = activePanel?.querySelector('#standingsTeamPanelWrap') || null;
     const driverPanelWrap = activePanel?.querySelector('#standingsDriverPanelWrap') || null;
@@ -1993,10 +2098,15 @@ function renderRaceRankings() {
     if (!container) return;
     const standings = window.raceSessionData?.seasonStandings?.drivers || [];
     if (!standings.length) {
-        container.innerHTML = '<div class="rankings-section"><div class="section-title">当前暂无排名数据</div></div>';
+        container.innerHTML = `
+            ${renderStandingsRefreshBar('raceRankings')}
+            <div class="rankings-section"><div class="section-title">当前暂无排名数据</div></div>
+        `;
+        bindStandingsRefreshButtons(container);
         return;
     }
     container.innerHTML = `
+        ${renderStandingsRefreshBar('raceRankings')}
         <div class="rankings-section">
             <div class="section-title">当前赛季排名</div>
             <table class="rankings-table">
@@ -2005,5 +2115,6 @@ function renderRaceRankings() {
             </table>
         </div>
     `;
+    bindStandingsRefreshButtons(container);
 }
 

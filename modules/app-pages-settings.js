@@ -124,7 +124,8 @@ function importGameDataFromFile(file) {
 
 function formatStandingsSourceLabel(source = '') {
     const value = String(source || '').trim();
-    if (value === 'remote') return '远程官方源';
+    if (value === 'formula1.com') return 'F1 官方积分页';
+    if (value === 'remote') return '项目远程 JSON';
     if (value === 'local') return '本地直开数据包';
     if (value === 'manual') return '手动导入';
     return '内置兜底';
@@ -132,6 +133,7 @@ function formatStandingsSourceLabel(source = '') {
 
 function formatStandingsSourceBadge(source = '') {
     const value = String(source || '').trim();
+    if (value === 'formula1.com') return 'F1';
     if (value === 'remote') return 'REMOTE';
     if (value === 'local') return 'LOCAL';
     if (value === 'manual') return 'MANUAL';
@@ -156,7 +158,11 @@ function renderStandingsAdminPanel() {
     const config = typeof window.getStandingsDataConfig === 'function' ? window.getStandingsDataConfig() : {};
     const meta = typeof window.getCurrentStandingsMeta === 'function' ? window.getCurrentStandingsMeta() : {};
     const source = config.source || meta.source || 'builtin';
+    const officialUrls = typeof window.getOfficialStandingsUrls === 'function' ? window.getOfficialStandingsUrls() : {};
     const remoteUrl = config.remoteUrl || config.defaultRemoteUrl || (typeof window.getDefaultStandingsRemoteUrl === 'function' ? window.getDefaultStandingsRemoteUrl() : '');
+    const sourceUrlText = source === 'formula1.com'
+        ? `${officialUrls.drivers || config.officialDriversUrl || ''} + ${officialUrls.teams || config.officialTeamsUrl || ''}`
+        : remoteUrl;
     const updatedAt = meta.updatedAt || config.lastUpdated || '';
     const sourceBadge = document.getElementById('standingsSourceBadge');
     const sourceText = document.getElementById('standingsSourceText');
@@ -168,21 +174,44 @@ function renderStandingsAdminPanel() {
     }
     if (sourceText) sourceText.textContent = formatStandingsSourceLabel(source);
     if (updatedText) updatedText.textContent = formatStandingsUpdatedText(updatedAt);
-    if (remoteUrlText) remoteUrlText.textContent = remoteUrl || '未配置远程地址';
+    if (remoteUrlText) remoteUrlText.textContent = sourceUrlText || '未配置远程地址';
 }
 
 async function refreshStandingsFromDefaultRemote() {
     const refreshButton = document.getElementById('refreshStandingsBtn');
-    if (refreshButton) refreshButton.disabled = true;
+    const originalText = refreshButton?.textContent || '';
+    if (refreshButton) {
+        refreshButton.disabled = true;
+        refreshButton.textContent = '正在连接 F1 官方积分页';
+    }
     try {
-        const defaultUrl = typeof window.getDefaultStandingsRemoteUrl === 'function' ? window.getDefaultStandingsRemoteUrl() : '';
-        await refreshStandingsFromUrl(defaultUrl);
+        if (typeof window.refreshStandingsFromOfficial !== 'function') {
+            throw new Error('当前版本没有加载官方积分刷新模块');
+        }
+        const refreshResult = await window.refreshStandingsFromOfficial();
+        const settled = typeof window.maybeSettlePredictionAfterStandingsRefresh === 'function'
+            ? window.maybeSettlePredictionAfterStandingsRefresh(refreshResult)
+            : false;
         renderStandingsAdminPanel();
-        showToast('积分数据已从远程源刷新', false);
+        if (!settled) showToast('积分数据已从 F1 官方刷新', false);
     } catch (error) {
-        handleApiError(error, '积分数据刷新');
+        try {
+            const defaultUrl = typeof window.getDefaultStandingsRemoteUrl === 'function' ? window.getDefaultStandingsRemoteUrl() : '';
+            const refreshResult = await refreshStandingsFromUrl(defaultUrl, { openPredictionModal: false });
+            const settled = typeof window.maybeSettlePredictionAfterStandingsRefresh === 'function'
+                ? window.maybeSettlePredictionAfterStandingsRefresh(refreshResult)
+                : false;
+            renderStandingsAdminPanel();
+            if (!settled) showToast('F1 官方直连失败，已改用项目远程 JSON 刷新', false);
+        } catch (fallbackError) {
+            const message = `${error.message || error}；项目远程 JSON 兜底也刷新失败：${fallbackError.message || fallbackError}`;
+            handleApiError(new Error(message), '积分数据刷新');
+        }
     } finally {
-        if (refreshButton) refreshButton.disabled = false;
+        if (refreshButton) {
+            refreshButton.disabled = false;
+            refreshButton.textContent = originalText || '从 F1 官方刷新';
+        }
     }
 }
 

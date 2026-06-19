@@ -1373,6 +1373,13 @@ body.mobile-chat-focus .messages-area{
 .comment-item{font-size:0.75rem;color:#b9c7d9;margin-bottom:8px;padding:4px 0}
 .comment-driver{color:var(--primary-color);font-weight:bold}
 .standings-container{padding:12px;display:flex;flex-direction:column;gap:16px}
+.standings-refresh-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 14px;border-radius:22px;background:linear-gradient(135deg, rgba(225,6,0,0.13), rgba(255,255,255,0.035)), rgba(10,14,21,0.92);border:1px solid rgba(225,6,0,0.22);box-shadow:var(--shadow-card)}
+.standings-refresh-copy{min-width:0;display:flex;flex-direction:column;gap:4px}
+.standings-refresh-title{color:#fff;font-size:.82rem;font-weight:900;letter-spacing:.04em}
+.standings-refresh-meta{color:#aeb9c8;font-size:.68rem;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.standings-refresh-btn{flex-shrink:0;border:none;border-radius:16px;min-height:38px;padding:0 13px;background:linear-gradient(135deg, #e10600, rgba(var(--primary-color-rgb),0.82));color:#fff;font-size:.72rem;font-weight:900;letter-spacing:.03em;cursor:pointer;box-shadow:0 14px 26px rgba(0,0,0,0.22);transition:transform .2s ease, opacity .2s ease}
+.standings-refresh-btn:hover{transform:translateY(-1px)}
+.standings-refresh-btn:disabled{cursor:wait;opacity:.66;transform:none}
 .standings-view-toggle{display:inline-grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px;border-radius:22px;background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015)), rgba(10,14,21,0.92);border:1px solid rgba(255,255,255,0.06);box-shadow:var(--shadow-card)}
 .standings-view-btn{border:none;border-radius:16px;padding:11px 14px;background:transparent;color:#9fb0c5;font-size:.78rem;font-weight:800;letter-spacing:.06em;cursor:pointer;transition:background .2s ease, color .2s ease, transform .2s ease}
 .standings-view-btn.is-active{background:linear-gradient(135deg, rgba(var(--primary-color-rgb),0.9), rgba(255,255,255,0.12));color:#fff;box-shadow:0 14px 24px rgba(0,0,0,0.18)}
@@ -3835,6 +3842,11 @@ body.mobile-chat-focus .messages-area{
     background:rgba(26,202,138,0.14);
     border-color:rgba(26,202,138,0.3);
     color:#7ff0bf
+}
+.standings-admin-source-badge[data-source="formula1.com"]{
+    background:rgba(225,6,0,0.16);
+    border-color:rgba(225,6,0,0.34);
+    color:#ffb3ae
 }
 .standings-admin-source-badge[data-source="manual"]{
     background:rgba(255,173,52,0.14);
@@ -7291,6 +7303,8 @@ body.mobile-chat-focus .messages-area{
     .group-chat-member-list{grid-template-columns:1fr}
     .standings-admin-meta-grid,
     .standings-admin-actions{grid-template-columns:1fr}
+    .standings-refresh-bar{align-items:stretch;flex-direction:column}
+    .standings-refresh-btn{width:100%}
     .group-chat-modal-footer{
         flex-direction:column;
         align-items:stretch

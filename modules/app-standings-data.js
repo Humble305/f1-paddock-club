@@ -4,6 +4,8 @@ const STANDINGS_DATA_STORAGE_KEY = 'f1_standings_data';
 const STANDINGS_CONFIG_STORAGE_KEY = 'f1_standings_config';
 const STANDINGS_DATA_VERSION = '2026-official-remote-v1';
 const DEFAULT_STANDINGS_REMOTE_URL = 'https://raw.githubusercontent.com/Humble305/f1-paddock-club/main/standings.live.json';
+const FORMULA1_OFFICIAL_DRIVERS_URL = 'https://www.formula1.com/en/results/2026/drivers';
+const FORMULA1_OFFICIAL_TEAMS_URL = 'https://www.formula1.com/en/results/2026/team';
 const LOCAL_STANDINGS_MIRROR_URL = './standings.live.json';
 const LOCAL_STANDINGS_BUNDLE_URL = './standings.live.bundle.js';
 
@@ -18,6 +20,8 @@ let standingsDataConfig = {
     version: STANDINGS_DATA_VERSION,
     source: 'builtin',
     remoteUrl: DEFAULT_STANDINGS_REMOTE_URL,
+    officialDriversUrl: FORMULA1_OFFICIAL_DRIVERS_URL,
+    officialTeamsUrl: FORMULA1_OFFICIAL_TEAMS_URL,
     lastUpdated: '',
     defaultRemoteUrl: DEFAULT_STANDINGS_REMOTE_URL
 };
@@ -64,6 +68,49 @@ const BUILTIN_STANDINGS_SNAPSHOT = {
         { name: 'Sergio Perez', team: 'Cadillac', points: 0 },
         { name: 'Lance Stroll', team: 'Aston Martin', points: 0 }
     ]
+};
+
+const OFFICIAL_TEAM_NAME_MAP = {
+    Mercedes: { name: 'Mercedes', color: '#00D2BE' },
+    Ferrari: { name: 'Ferrari', color: '#DC0000' },
+    McLaren: { name: 'McLaren', color: '#FF8700' },
+    'Red Bull Racing': { name: 'Red Bull', color: '#3671C6' },
+    'Red Bull': { name: 'Red Bull', color: '#3671C6' },
+    Alpine: { name: 'Alpine', color: '#2293D1' },
+    'Haas F1 Team': { name: 'Haas', color: '#B6BABD' },
+    Haas: { name: 'Haas', color: '#B6BABD' },
+    'Racing Bulls': { name: 'Racing Bulls', color: '#2B6E9F' },
+    Williams: { name: 'Williams', color: '#005AFF' },
+    Audi: { name: 'Audi', color: '#1A1C2B' },
+    Cadillac: { name: 'Cadillac', color: '#C1C6D1' },
+    'Aston Martin': { name: 'Aston Martin', color: '#229971' }
+};
+
+const OFFICIAL_DRIVER_NAME_MAP = {
+    'Kimi Antonelli': 'Kimi Antonelli',
+    'George Russell': 'George Russell',
+    'Charles Leclerc': 'Charles Leclerc',
+    'Lando Norris': 'Lando Norris',
+    'Lewis Hamilton': 'Lewis Hamilton',
+    'Oscar Piastri': 'Oscar Piastri',
+    'Max Verstappen': 'Max Verstappen',
+    'Oliver Bearman': 'Oliver Bearman',
+    'Pierre Gasly': 'Pierre Gasly',
+    'Liam Lawson': 'Liam Lawson',
+    'Franco Colapinto': 'Franco Colapinto',
+    'Arvid Lindblad': 'Arvid Lindblad',
+    'Isack Hadjar': 'Isack Hadjar',
+    'Carlos Sainz': 'Carlos Sainz',
+    'Gabriel Bortoleto': 'Gabriel Bortoleto',
+    'Esteban Ocon': 'Esteban Ocon',
+    'Alexander Albon': 'Alexander Albon',
+    'Nico Hulkenberg': 'Nico Hulkenberg',
+    'Nico Hülkenberg': 'Nico Hulkenberg',
+    'Valtteri Bottas': 'Valtteri Bottas',
+    'Sergio Perez': 'Sergio Perez',
+    'Sergio Pérez': 'Sergio Perez',
+    'Fernando Alonso': 'Fernando Alonso',
+    'Lance Stroll': 'Lance Stroll'
 };
 
 function normalizeStandingsMeta(meta = {}) {
@@ -138,6 +185,126 @@ function shouldPreferBundledStandingsPayload() {
     return window.location?.protocol === 'file:';
 }
 
+function decodeStandingsHtmlEntities(input) {
+    const parser = document.createElement('textarea');
+    parser.innerHTML = String(input || '');
+    return parser.value;
+}
+
+function officialStandingsHtmlToTokens(html) {
+    return decodeStandingsHtmlEntities(
+        String(html || '')
+            .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+            .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+            .replace(/<(br|\/p|\/div|\/section|\/article|\/header|\/footer|\/li|\/tr|\/td|\/th|\/h1|\/h2|\/h3|\/h4|\/a)>/gi, '\n')
+            .replace(/<[^>]+>/g, ' ')
+    )
+        .split(/\n+/)
+        .map(token => token.replace(/\s+/g, ' ').trim())
+        .filter(Boolean);
+}
+
+function findOfficialStandingsSection(tokens, headingText) {
+    const start = tokens.findIndex(token => token.includes(headingText));
+    if (start === -1) {
+        throw new Error(`F1 官方页面结构变了：找不到 "${headingText}"`);
+    }
+    const end = tokens.findIndex((token, index) => index > start && token.includes('OUR PARTNERS'));
+    return tokens.slice(start, end === -1 ? undefined : end);
+}
+
+function stripOfficialDriverAbbreviation(nameToken) {
+    return String(nameToken || '').replace(/\s+[A-Z]{3}$/, '').trim();
+}
+
+function normalizeOfficialLookupKey(value = '') {
+    return String(value || '')
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase();
+}
+
+function getOfficialMappedTeam(teamLabel = '') {
+    const direct = OFFICIAL_TEAM_NAME_MAP[teamLabel];
+    if (direct) return direct;
+    const lookupKey = normalizeOfficialLookupKey(teamLabel);
+    const match = Object.entries(OFFICIAL_TEAM_NAME_MAP)
+        .find(([label]) => normalizeOfficialLookupKey(label) === lookupKey);
+    return match ? match[1] : null;
+}
+
+function getOfficialMappedDriver(driverLabel = '') {
+    const direct = OFFICIAL_DRIVER_NAME_MAP[driverLabel];
+    if (direct) return direct;
+    const lookupKey = normalizeOfficialLookupKey(driverLabel);
+    const match = Object.entries(OFFICIAL_DRIVER_NAME_MAP)
+        .find(([label]) => normalizeOfficialLookupKey(label) === lookupKey);
+    return match ? match[1] : null;
+}
+
+function parseOfficialPoints(pointsToken = '') {
+    const normalized = String(pointsToken || '').replace(/,/g, '').trim();
+    if (!/^\d+$/.test(normalized)) return null;
+    return Number(normalized);
+}
+
+function parseOfficialTeams(tokens = []) {
+    const section = findOfficialStandingsSection(tokens, "2026 Teams' Standings");
+    const entries = [];
+    for (let index = 0; index < section.length; index += 1) {
+        if (!/^\d+$/.test(section[index])) continue;
+        const teamLabel = section[index + 1];
+        const points = parseOfficialPoints(section[index + 2]);
+        if (!teamLabel || points === null) continue;
+        const mappedTeam = getOfficialMappedTeam(teamLabel);
+        if (!mappedTeam) {
+            throw new Error(`F1 官方车队名称还没有映射：${teamLabel}`);
+        }
+        entries.push({
+            name: mappedTeam.name,
+            color: mappedTeam.color,
+            points
+        });
+    }
+    if (!entries.length) {
+        throw new Error('F1 官方车队积分解析为空，已保留旧积分。');
+    }
+    return entries;
+}
+
+function parseOfficialDrivers(tokens = []) {
+    const section = findOfficialStandingsSection(tokens, "2026 Drivers' Standings");
+    const entries = [];
+    for (let index = 0; index < section.length; index += 1) {
+        if (!/^\d+$/.test(section[index])) continue;
+        const rawName = section[index + 1];
+        const nationality = section[index + 2];
+        const teamLabel = section[index + 3];
+        const points = parseOfficialPoints(section[index + 4]);
+        if (!rawName || !nationality || !teamLabel || points === null) continue;
+        const cleanName = stripOfficialDriverAbbreviation(rawName);
+        const mappedName = getOfficialMappedDriver(cleanName);
+        const mappedTeam = getOfficialMappedTeam(teamLabel);
+        if (!mappedName) {
+            throw new Error(`F1 官方车手名称还没有映射：${cleanName}`);
+        }
+        if (!mappedTeam) {
+            throw new Error(`F1 官方车队名称还没有映射：${teamLabel}`);
+        }
+        entries.push({
+            name: mappedName,
+            team: mappedTeam.name,
+            points
+        });
+    }
+    if (!entries.length) {
+        throw new Error('F1 官方车手积分解析为空，已保留旧积分。');
+    }
+    return entries;
+}
+
 function normalizeTeamStandingEntry(entry = {}) {
     return {
         name: String(entry.name || '').trim(),
@@ -176,26 +343,48 @@ function getCurrentStandingsPayload() {
     };
 }
 
+function createStandingsComparisonSignature(payload = {}) {
+    const teamSignature = (Array.isArray(payload.teamStandings) ? payload.teamStandings : [])
+        .map(item => ({
+            name: String(item?.name || '').trim(),
+            points: Number(item?.points || 0)
+        }));
+    const driverSignature = (Array.isArray(payload.driverStandings) ? payload.driverStandings : [])
+        .map(item => ({
+            name: String(item?.name || '').trim(),
+            team: String(item?.team || '').trim(),
+            points: Number(item?.points || 0)
+        }));
+    return JSON.stringify({ teamStandings: teamSignature, driverStandings: driverSignature });
+}
+
+function hasStandingsPayloadChanged(previousPayload = {}, nextPayload = {}) {
+    return createStandingsComparisonSignature(previousPayload) !== createStandingsComparisonSignature(nextPayload);
+}
+
 function saveStandingsData() {
     standingsDataConfig.version = STANDINGS_DATA_VERSION;
     secureStorageSet(STANDINGS_DATA_STORAGE_KEY, getCurrentStandingsPayload());
     secureStorageSet(STANDINGS_CONFIG_STORAGE_KEY, standingsDataConfig);
 }
 
-function rerenderStandingsConsumers() {
-    if (typeof renderStandings === 'function') renderStandings();
-    if (typeof renderRaceRankings === 'function') renderRaceRankings();
-    if (typeof renderFeed === 'function' && document.getElementById('feedPage')?.classList.contains('active-page')) renderFeed();
+function rerenderStandingsConsumers(changed = false) {
     window.dispatchEvent(new CustomEvent('standings:updated', {
         detail: {
             payload: getCurrentStandingsPayload(),
-            config: { ...standingsDataConfig }
+            config: { ...standingsDataConfig },
+            changed: Boolean(changed)
         }
     }));
+    if (typeof renderStandings === 'function') renderStandings();
+    if (typeof renderRaceRankings === 'function') renderRaceRankings();
+    if (typeof renderFeed === 'function' && document.getElementById('feedPage')?.classList.contains('active-page')) renderFeed();
 }
 
 function applyStandingsPayload(payload = {}, options = {}) {
+    const previousPayload = getCurrentStandingsPayload();
     const normalized = normalizeStandingsPayload(payload);
+    const changed = options.changed ?? hasStandingsPayloadChanged(previousPayload, normalized);
     standingsMeta = {
         ...normalized.meta,
         source: options.source || normalized.meta.source || 'builtin',
@@ -211,6 +400,8 @@ function applyStandingsPayload(payload = {}, options = {}) {
         version: STANDINGS_DATA_VERSION,
         source: options.source || standingsDataConfig.source || 'builtin',
         remoteUrl: options.remoteUrl ?? standingsDataConfig.remoteUrl ?? DEFAULT_STANDINGS_REMOTE_URL,
+        officialDriversUrl: FORMULA1_OFFICIAL_DRIVERS_URL,
+        officialTeamsUrl: FORMULA1_OFFICIAL_TEAMS_URL,
         lastUpdated: options.lastUpdated || standingsMeta.updatedAt || new Date().toISOString(),
         defaultRemoteUrl: DEFAULT_STANDINGS_REMOTE_URL
     };
@@ -220,8 +411,8 @@ function applyStandingsPayload(payload = {}, options = {}) {
         });
     }
     if (options.persist !== false) saveStandingsData();
-    if (options.rerender !== false) rerenderStandingsConsumers();
-    return normalized;
+    if (options.rerender !== false) rerenderStandingsConsumers(changed);
+    return { ...normalized, changed };
 }
 
 async function loadStandingsData() {
@@ -232,6 +423,8 @@ async function loadStandingsData() {
         ...storedConfig,
         version: STANDINGS_DATA_VERSION,
         defaultRemoteUrl: DEFAULT_STANDINGS_REMOTE_URL,
+        officialDriversUrl: FORMULA1_OFFICIAL_DRIVERS_URL,
+        officialTeamsUrl: FORMULA1_OFFICIAL_TEAMS_URL,
         remoteUrl: String(storedConfig.remoteUrl || DEFAULT_STANDINGS_REMOTE_URL).trim() || DEFAULT_STANDINGS_REMOTE_URL
     };
 
@@ -305,6 +498,8 @@ async function loadStandingsData() {
         version: STANDINGS_DATA_VERSION,
         source: 'builtin',
         remoteUrl: DEFAULT_STANDINGS_REMOTE_URL,
+        officialDriversUrl: FORMULA1_OFFICIAL_DRIVERS_URL,
+        officialTeamsUrl: FORMULA1_OFFICIAL_TEAMS_URL,
         lastUpdated: new Date().toISOString(),
         defaultRemoteUrl: DEFAULT_STANDINGS_REMOTE_URL
     };
@@ -323,6 +518,8 @@ function resetStandingsData() {
         version: STANDINGS_DATA_VERSION,
         source: 'builtin',
         remoteUrl: DEFAULT_STANDINGS_REMOTE_URL,
+        officialDriversUrl: FORMULA1_OFFICIAL_DRIVERS_URL,
+        officialTeamsUrl: FORMULA1_OFFICIAL_TEAMS_URL,
         lastUpdated: new Date().toISOString(),
         defaultRemoteUrl: DEFAULT_STANDINGS_REMOTE_URL
     };
@@ -344,7 +541,48 @@ async function refreshStandingsFromUrl(url = '', options = {}) {
         remoteUrl: targetUrl,
         lastUpdated: payload?.meta?.updatedAt || new Date().toISOString(),
         persist: options.persist !== false,
-        rerender: options.rerender !== false
+        rerender: options.rerender !== false,
+        openPredictionModal: options.openPredictionModal
+    });
+}
+
+async function fetchOfficialStandingsPage(url = '') {
+    try {
+        const response = await fetch(url, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return await response.text();
+    } catch (error) {
+        throw new Error(`无法直接连接 F1 官方积分页。浏览器可能拦截了跨域请求：${error.message || error}`);
+    }
+}
+
+async function refreshStandingsFromOfficial(options = {}) {
+    const [driversHtml, teamsHtml] = await Promise.all([
+        fetchOfficialStandingsPage(FORMULA1_OFFICIAL_DRIVERS_URL),
+        fetchOfficialStandingsPage(FORMULA1_OFFICIAL_TEAMS_URL)
+    ]);
+    const currentPayload = getCurrentStandingsPayload();
+    const driverStandings = parseOfficialDrivers(officialStandingsHtmlToTokens(driversHtml));
+    const teamStandings = parseOfficialTeams(officialStandingsHtmlToTokens(teamsHtml));
+    const updatedAt = new Date().toISOString();
+    const payload = {
+        meta: {
+            source: 'formula1.com',
+            season: 2026,
+            raceLabel: 'Latest official standings',
+            updatedAt
+        },
+        predictionResult: currentPayload.predictionResult || null,
+        teamStandings,
+        driverStandings
+    };
+    return applyStandingsPayload(payload, {
+        source: 'formula1.com',
+        remoteUrl: options.remoteUrl ?? standingsDataConfig.remoteUrl ?? DEFAULT_STANDINGS_REMOTE_URL,
+        lastUpdated: updatedAt,
+        persist: options.persist !== false,
+        rerender: options.rerender !== false,
+        openPredictionModal: false
     });
 }
 
@@ -355,6 +593,11 @@ window.applyStandingsPayload = applyStandingsPayload;
 window.loadStandingsData = loadStandingsData;
 window.resetStandingsData = resetStandingsData;
 window.refreshStandingsFromUrl = refreshStandingsFromUrl;
+window.refreshStandingsFromOfficial = refreshStandingsFromOfficial;
 window.getStandingsDataConfig = () => ({ ...standingsDataConfig });
 window.getDefaultStandingsRemoteUrl = () => DEFAULT_STANDINGS_REMOTE_URL;
+window.getOfficialStandingsUrls = () => ({
+    drivers: FORMULA1_OFFICIAL_DRIVERS_URL,
+    teams: FORMULA1_OFFICIAL_TEAMS_URL
+});
 window.getBundledStandingsPayload = getBundledStandingsPayload;
