@@ -32,36 +32,36 @@ function cloneStandingsList(list = []) {
 
 const BUILTIN_STANDINGS_SNAPSHOT = {
     teamStandings: [
-        { name: 'Mercedes', points: 262, color: '#00D2BE' },
-        { name: 'Ferrari', points: 190, color: '#DC0000' },
-        { name: 'McLaren', points: 141, color: '#FF8700' },
-        { name: 'Red Bull', points: 89, color: '#3671C6' },
-        { name: 'Alpine', points: 57, color: '#2293D1' },
-        { name: 'Racing Bulls', points: 41, color: '#2B6E9F' },
+        { name: 'Mercedes', points: 333, color: '#00D2BE' },
+        { name: 'Ferrari', points: 255, color: '#DC0000' },
+        { name: 'McLaren', points: 179, color: '#FF8700' },
+        { name: 'Red Bull', points: 128, color: '#3671C6' },
+        { name: 'Alpine', points: 60, color: '#2293D1' },
+        { name: 'Racing Bulls', points: 59, color: '#2B6E9F' },
         { name: 'Haas', points: 21, color: '#B6BABD' },
         { name: 'Williams', points: 11, color: '#005AFF' },
-        { name: 'Audi', points: 2, color: '#1A1C2B' },
+        { name: 'Audi', points: 6, color: '#1A1C2B' },
         { name: 'Aston Martin', points: 1, color: '#229971' },
         { name: 'Cadillac', points: 0, color: '#C1C6D1' }
     ],
     driverStandings: [
-        { name: 'Kimi Antonelli', team: 'Mercedes', points: 156 },
-        { name: 'Lewis Hamilton', team: 'Ferrari', points: 115 },
-        { name: 'George Russell', team: 'Mercedes', points: 106 },
-        { name: 'Charles Leclerc', team: 'Ferrari', points: 75 },
-        { name: 'Lando Norris', team: 'McLaren', points: 73 },
-        { name: 'Oscar Piastri', team: 'McLaren', points: 68 },
-        { name: 'Max Verstappen', team: 'Red Bull', points: 55 },
-        { name: 'Pierre Gasly', team: 'Alpine', points: 41 },
-        { name: 'Isack Hadjar', team: 'Red Bull', points: 34 },
-        { name: 'Liam Lawson', team: 'Racing Bulls', points: 28 },
+        { name: 'Kimi Antonelli', team: 'Mercedes', points: 179 },
+        { name: 'George Russell', team: 'Mercedes', points: 154 },
+        { name: 'Lewis Hamilton', team: 'Ferrari', points: 147 },
+        { name: 'Charles Leclerc', team: 'Ferrari', points: 108 },
+        { name: 'Lando Norris', team: 'McLaren', points: 97 },
+        { name: 'Oscar Piastri', team: 'McLaren', points: 82 },
+        { name: 'Max Verstappen', team: 'Red Bull', points: 76 },
+        { name: 'Isack Hadjar', team: 'Red Bull', points: 52 },
+        { name: 'Pierre Gasly', team: 'Alpine', points: 42 },
+        { name: 'Liam Lawson', team: 'Racing Bulls', points: 39 },
+        { name: 'Arvid Lindblad', team: 'Racing Bulls', points: 20 },
         { name: 'Oliver Bearman', team: 'Haas', points: 18 },
-        { name: 'Franco Colapinto', team: 'Alpine', points: 16 },
-        { name: 'Arvid Lindblad', team: 'Racing Bulls', points: 13 },
+        { name: 'Franco Colapinto', team: 'Alpine', points: 18 },
+        { name: 'Gabriel Bortoleto', team: 'Audi', points: 6 },
         { name: 'Carlos Sainz', team: 'Williams', points: 6 },
         { name: 'Alexander Albon', team: 'Williams', points: 5 },
         { name: 'Esteban Ocon', team: 'Haas', points: 3 },
-        { name: 'Gabriel Bortoleto', team: 'Audi', points: 2 },
         { name: 'Fernando Alonso', team: 'Aston Martin', points: 1 },
         { name: 'Nico Hulkenberg', team: 'Audi', points: 0 },
         { name: 'Valtteri Bottas', team: 'Cadillac', points: 0 },
@@ -321,6 +321,31 @@ function normalizeDriverStandingEntry(entry = {}) {
     };
 }
 
+function normalizeLatestRaceResult(payload = {}) {
+    const raw = payload?.latestRaceResult;
+    if (!raw || typeof raw !== 'object') return null;
+    const round = Number(raw.round || 0);
+    if (!round) return null;
+    const normalizeRows = rows => (Array.isArray(rows) ? rows : [])
+        .map(item => ({
+            pos: Number(item?.pos || 0),
+            driver: String(item?.driver || '').trim(),
+            team: String(item?.team || '').trim(),
+            points: Number(item?.points || 0),
+            time: String(item?.time || '').trim()
+        }))
+        .filter(item => item.pos > 0 && item.driver);
+    const race = normalizeRows(raw.race);
+    if (!race.length) return null;
+    return {
+        round,
+        raceLabel: String(raw.raceLabel || '').trim() || `Round ${round}`,
+        qualifying: normalizeRows(raw.qualifying),
+        sprint: normalizeRows(raw.sprint),
+        race
+    };
+}
+
 function normalizeStandingsPayload(payload = {}) {
     const fallback = getBuiltinStandingsPayload();
     const teamStandings = (Array.isArray(payload.teamStandings) ? payload.teamStandings : fallback.teamStandings)
@@ -331,13 +356,20 @@ function normalizeStandingsPayload(payload = {}) {
         .filter(item => item.name);
     const meta = normalizeStandingsMeta(payload.meta || fallback.meta);
     const predictionResult = normalizeStandingsPredictionResult(payload, meta);
-    return { meta, predictionResult, teamStandings, driverStandings };
+    const latestRaceResult = normalizeLatestRaceResult(payload);
+    return { meta, predictionResult, latestRaceResult, teamStandings, driverStandings };
 }
 
 function getCurrentStandingsPayload() {
     return {
         meta: { ...standingsMeta },
         predictionResult: window.__standingsPredictionResult ? { ...window.__standingsPredictionResult } : null,
+        latestRaceResult: window.__standingsLatestRaceResult ? {
+            ...window.__standingsLatestRaceResult,
+            qualifying: cloneStandingsList(window.__standingsLatestRaceResult.qualifying),
+            sprint: cloneStandingsList(window.__standingsLatestRaceResult.sprint),
+            race: cloneStandingsList(window.__standingsLatestRaceResult.race)
+        } : null,
         teamStandings: cloneStandingsList(window.teamStandings || []),
         driverStandings: cloneStandingsList(window.driverStandings || [])
     };
@@ -395,6 +427,12 @@ function applyStandingsPayload(payload = {}, options = {}) {
     window.defaultTeamStandings = cloneStandingsList(normalized.teamStandings);
     window.defaultDriverStandings = cloneStandingsList(normalized.driverStandings);
     window.__standingsPredictionResult = normalized.predictionResult ? { ...normalized.predictionResult } : null;
+    window.__standingsLatestRaceResult = normalized.latestRaceResult ? {
+        ...normalized.latestRaceResult,
+        qualifying: cloneStandingsList(normalized.latestRaceResult.qualifying),
+        sprint: cloneStandingsList(normalized.latestRaceResult.sprint),
+        race: cloneStandingsList(normalized.latestRaceResult.race)
+    } : null;
     standingsDataConfig = {
         ...standingsDataConfig,
         version: STANDINGS_DATA_VERSION,
@@ -546,6 +584,44 @@ async function refreshStandingsFromUrl(url = '', options = {}) {
     });
 }
 
+async function refreshStandingsFromFallback(options = {}) {
+    const errors = [];
+    try {
+        return await refreshStandingsFromUrl(LOCAL_STANDINGS_MIRROR_URL, {
+            source: 'local',
+            openPredictionModal: false,
+            persist: options.persist !== false,
+            rerender: options.rerender !== false
+        });
+    } catch (error) {
+        errors.push(`local JSON: ${error.message || error}`);
+    }
+
+    const bundledPayload = getBundledStandingsPayload();
+    if (bundledPayload) {
+        return applyStandingsPayload(bundledPayload, {
+            source: 'local',
+            remoteUrl: LOCAL_STANDINGS_BUNDLE_URL,
+            lastUpdated: bundledPayload?.meta?.updatedAt || new Date().toISOString(),
+            openPredictionModal: false,
+            persist: options.persist !== false,
+            rerender: options.rerender !== false
+        });
+    }
+
+    try {
+        return await refreshStandingsFromUrl(DEFAULT_STANDINGS_REMOTE_URL, {
+            source: 'remote',
+            openPredictionModal: false,
+            persist: options.persist !== false,
+            rerender: options.rerender !== false
+        });
+    } catch (error) {
+        errors.push(`remote JSON: ${error.message || error}`);
+    }
+    throw new Error(`所有积分镜像均刷新失败：${errors.join('；')}`);
+}
+
 async function fetchOfficialStandingsPage(url = '') {
     try {
         const response = await fetch(url, { cache: 'no-store' });
@@ -573,6 +649,7 @@ async function refreshStandingsFromOfficial(options = {}) {
             updatedAt
         },
         predictionResult: currentPayload.predictionResult || null,
+        latestRaceResult: currentPayload.latestRaceResult || null,
         teamStandings,
         driverStandings
     };
@@ -593,6 +670,7 @@ window.applyStandingsPayload = applyStandingsPayload;
 window.loadStandingsData = loadStandingsData;
 window.resetStandingsData = resetStandingsData;
 window.refreshStandingsFromUrl = refreshStandingsFromUrl;
+window.refreshStandingsFromFallback = refreshStandingsFromFallback;
 window.refreshStandingsFromOfficial = refreshStandingsFromOfficial;
 window.getStandingsDataConfig = () => ({ ...standingsDataConfig });
 window.getDefaultStandingsRemoteUrl = () => DEFAULT_STANDINGS_REMOTE_URL;

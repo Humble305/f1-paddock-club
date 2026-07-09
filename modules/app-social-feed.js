@@ -1480,12 +1480,14 @@ function bindStandingsRefreshButtons(scope = document) {
                 if (typeof showToast === 'function' && !settled) showToast('积分数据已从 F1 官方刷新', false);
             } catch (error) {
                 try {
-                    const defaultUrl = typeof window.getDefaultStandingsRemoteUrl === 'function' ? window.getDefaultStandingsRemoteUrl() : '';
-                    const refreshResult = await refreshStandingsFromUrl(defaultUrl, { openPredictionModal: false });
+                    if (typeof window.refreshStandingsFromFallback !== 'function') {
+                        throw new Error('当前版本没有加载积分镜像兜底模块');
+                    }
+                    const refreshResult = await window.refreshStandingsFromFallback();
                     const settled = maybeSettlePredictionAfterStandingsRefresh(refreshResult);
-                    if (typeof showToast === 'function' && !settled) showToast('F1 官方直连失败，已改用项目远程 JSON 刷新', false);
+                    if (typeof showToast === 'function' && !settled) showToast('F1 官方直连失败，已改用最新积分镜像', false);
                 } catch (fallbackError) {
-                    const message = `${error.message || error}；项目远程 JSON 兜底也刷新失败：${fallbackError.message || fallbackError}`;
+                    const message = `${error.message || error}；积分镜像兜底也刷新失败：${fallbackError.message || fallbackError}`;
                     if (typeof handleApiError === 'function') handleApiError(new Error(message), '积分数据刷新');
                     else console.error(message);
                 }

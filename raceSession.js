@@ -141,6 +141,42 @@ const COMPLETED_RACE_RESULTS = {
             { pos: 8, driver: 'Franco Colapinto', team: 'Alpine', points: 4 },
             { pos: 9, driver: 'Liam Lawson', team: 'Racing Bulls', points: 2 }
         ]
+    },
+    11: {
+        qualifying: [
+            { pos: 1, driver: 'Kimi Antonelli', team: 'Mercedes', time: '1:28.111' },
+            { pos: 2, driver: 'Charles Leclerc', team: 'Ferrari', time: '1:28.286' },
+            { pos: 3, driver: 'Lewis Hamilton', team: 'Ferrari', time: '1:28.458' },
+            { pos: 4, driver: 'George Russell', team: 'Mercedes', time: '1:28.481' },
+            { pos: 5, driver: 'Isack Hadjar', team: 'Red Bull', time: '1:28.746' },
+            { pos: 6, driver: 'Lando Norris', team: 'McLaren', time: '1:28.877' },
+            { pos: 7, driver: 'Max Verstappen', team: 'Red Bull', time: '1:28.893' },
+            { pos: 8, driver: 'Oscar Piastri', team: 'McLaren', time: '1:29.032' },
+            { pos: 9, driver: 'Arvid Lindblad', team: 'Racing Bulls', time: '1:29.305' },
+            { pos: 10, driver: 'Liam Lawson', team: 'Racing Bulls', time: '1:29.716' }
+        ],
+        sprint: [
+            { pos: 1, driver: 'Kimi Antonelli', team: 'Mercedes', points: 8 },
+            { pos: 2, driver: 'Lewis Hamilton', team: 'Ferrari', points: 7 },
+            { pos: 3, driver: 'Lando Norris', team: 'McLaren', points: 6 },
+            { pos: 4, driver: 'George Russell', team: 'Mercedes', points: 5 },
+            { pos: 5, driver: 'Charles Leclerc', team: 'Ferrari', points: 4 },
+            { pos: 6, driver: 'Max Verstappen', team: 'Red Bull', points: 3 },
+            { pos: 7, driver: 'Oscar Piastri', team: 'McLaren', points: 2 },
+            { pos: 8, driver: 'Liam Lawson', team: 'Racing Bulls', points: 1 }
+        ],
+        race: [
+            { pos: 1, driver: 'Charles Leclerc', team: 'Ferrari', points: 25 },
+            { pos: 2, driver: 'George Russell', team: 'Mercedes', points: 18 },
+            { pos: 3, driver: 'Lewis Hamilton', team: 'Ferrari', points: 15 },
+            { pos: 4, driver: 'Lando Norris', team: 'McLaren', points: 12 },
+            { pos: 5, driver: 'Isack Hadjar', team: 'Red Bull', points: 10 },
+            { pos: 6, driver: 'Liam Lawson', team: 'Racing Bulls', points: 8 },
+            { pos: 7, driver: 'Arvid Lindblad', team: 'Racing Bulls', points: 6 },
+            { pos: 8, driver: 'Gabriel Bortoleto', team: 'Audi', points: 4 },
+            { pos: 9, driver: 'Franco Colapinto', team: 'Alpine', points: 2 },
+            { pos: 10, driver: 'Pierre Gasly', team: 'Alpine', points: 1 }
+        ]
     }
 };
 
@@ -203,6 +239,10 @@ function getCalendarRaceDateRange(race) {
 }
 
 function getCompletedResult(round) {
+    const liveResult = window.__standingsLatestRaceResult;
+    if (liveResult && Number(liveResult.round) === Number(round) && Array.isArray(liveResult.race) && liveResult.race.length) {
+        return liveResult;
+    }
     return COMPLETED_RACE_RESULTS[Number(round)] || null;
 }
 
